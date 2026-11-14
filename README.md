@@ -87,6 +87,16 @@ JRAの「レース成績データ」に掲載される重賞レース結果PDF�
 
 参考：JRA [競走馬登録馬名簿・馬名意味](https://jra.jp/datafile/resist/index.html)、[5大登録](https://www.jra.go.jp/keiba/5dai/)、JRA-VAN [馬毎レース情報の仕様](https://jra-van.jp/dlb/sdv/sdk/JV-Data4901.pdf)。
 
+### 公式登録名簿OCRパーサー（試験段階）
+
+`jra_registry_parser.py` は、JRA公式登録名簿PDFをOCRしたテキストから、同じ行に馬名と `YYYY-NNNNN` 形式の登録番号が明確に並ぶ場合だけ対応表候補を抽出します。登録番号が複数ある行、血統など別列の文字が番号の両側にある行、同じ登録番号が複数回出現する場合は採用しません。さらに `build_unique_name_index` は、同じ馬名が複数の登録番号に対応する場合、その馬名を照合対象から除外します。
+
+この段階ではPDFダウンロード・OCR実行・既存成績への自動付与はまだ接続していません。JRA名簿PDFは画像として読める一方、通常のテキスト抽出では文字化けする場合があるため、OCR結果を目視確認してから段階的に取り込みます。テストは以下で実行できます。
+
+```bash
+python -m unittest tests.test_jra_registry_parser -v
+```
+
 ## JRA公式PDFの馬別データ取り込み
 
 レース見出しの天候表記（晴・曇・雨・小雨・小雪・雪）に続く馬場状態（良・稍重・重・不良）を `going` として抽出します。表記が確認できない場合は推測せず `null` にします。
