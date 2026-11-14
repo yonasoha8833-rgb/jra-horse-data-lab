@@ -1,0 +1,61 @@
+name: JRA registry OCR sample
+
+on:
+  workflow_dispatch:
+    inputs:
+      first_page:
+        description: First PDF page to OCR (1-based)
+        required: true
+        default: "1"
+        type: string
+      last_page:
+        description: Last PDF page to OCR (maximum five pages per run)
+        required: true
+        default: "2"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  ocr-sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install OCR dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes poppler-utils tesseract-ocr tesseract-ocr-jpn
+      - name: Validate page range
+        env:
+          FIRST_PAGE: ${{ inputs.first_page }}
+          LAST_PAGE: ${{ inputs.last_page }}
+        run: |
+          if ! [[ "$FIRST_PAGE" =~ ^[1-9][0-9]*$ && "$LAST_PAGE" =~ ^[1-9][0-9]*$ ]]; then
+            echo "Page numbers must be positive integers."
+            exit 1
+          fi
+          if (( LAST_PAGE < FIRST_PAGE || LAST_PAGE - FIRST_PAGE > 4 )); then
+            echo "Choose an ordered range of at most five pages."
+            exit 1
+          fi
+      - name: OCR official JRA registry sample
+        env:
+          FIRST_PAGE: ${{ inputs.first_page }}
+          LAST_PAGE: ${{ inputs.last_page }}
+        run: |
+          python ocr_jra_registry.py --first-page "$FIRST_PAGE" --last-page "$LAST_PAGE" --output registry_ocr_sample.txt
+      - name: Upload OCR text for manual review
+        uses: actions/upload-artifact@v4
+        with:
+          name: jra-registry-ocr-sample
+          path: registry_ocr_sample.txt
+          if-no-files-found: error
+          retention-days: 3
+
