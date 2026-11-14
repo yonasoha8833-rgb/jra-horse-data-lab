@@ -19,8 +19,9 @@ from urllib.request import Request, urlopen
 
 TRACKS = ("札幌", "函館", "福島", "新潟", "東京", "中山", "中京", "京都", "阪神", "小倉")
 RUNNER_RE = re.compile(
-    # JRA extraction may separate frame/horse numbers ("2 2") or join them ("811").
-    r"^\s*([1-8])\s*[|/\\\\]*\s*(\d{1,2})\s*[|/\\\\]?\s*(.+?)\s*[|/\\\\]?\s*(牡|牝|セ)\s*([0-9０-９]+)",
+    # OCR may separate frame/horse numbers ("2 2", "2 1 2") or join them ("811"),
+    # and may substitute braces or punctuation for the printed separator.
+    r"^\s*([1-8])\s*[|/\\\\{}()\[\].,:;<>_-]*\s*(\d{1,2})\s*[|/\\\\{}()\[\].,:;<>_-]?\s*(.+?)\s*[|/\\\\{}()\[\].,:;<>_-]?\s*(牡|牝|セ)\s*([0-9０-９]+)",
 )
 RACE_RE = re.compile(r"第\s*(\d+)\s*競走")
 DATE_RE = re.compile(r"(\d{1,2})月\s*(\d{1,2})日")
@@ -67,6 +68,13 @@ def _track(text: str) -> str | None:
 
 
 def _runner(line: str) -> dict[str, Any] | None:
+    # OCR sometimes inserts a space inside a two-digit horse number (e.g. "2 1 2").
+    # Japanese horse names do not begin with digits, so safely join that prefix.
+    line = re.sub(
+        r"^(\s*[1-8]\s*[|/\\\\{}()\[\].,:;<>_-]*\s*)(\d)\s+(\d)(?=\s)",
+        r"\1\2\3",
+        line,
+    )
     match = RUNNER_RE.match(line)
     if not match:
         return None
@@ -328,7 +336,12 @@ def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]
 
 
 def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str | None:
-    """OCR a bounded number of pages when the PDF text layer yields no runner rows."""
+    """OCR each JRA result panel separately and restore its known race number.
+
+    JRA result PDFs place two consecutive races on each page: left panel first,
+    right panel second. OCR frequently drops the printed race number, so use
+    this stable page/panel order instead of trusting a damaged OCR digit.
+    """
     if not shutil.which("pdftoppm") or not shutil.which("tesseract"):
         return None
     prefix = temp_dir / "ocr-page"
@@ -340,12 +353,12 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
         capture_output=True,
         text=True,
     )
-    pages = sorted(temp_dir.glob("ocr-page-*.png"))
+    pages = sorted(
+        temp_dir.glob("ocr-page-*.png"),
+        key=lambda path: int(path.stem.rsplit("-", 1)[-1]),
+    )
     if not pages:
         return None
-    # JRA result PDFs place multiple race tables side by side. OCRing the
-    # whole page merges the two columns and corrupts horse numbers, so split
-    # each rendered page into independently recognized left/right regions.
     try:
         from PIL import Image
     except ImportError:
@@ -353,7 +366,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
         return None
 
     chunks = []
-    for page in pages:
+    for page_index, page in enumerate(pages):
         with Image.open(page) as image:
             width, height = image.size
             midpoint = width // 2
@@ -362,11 +375,8 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 ("left", (0, 0, min(width, midpoint + overlap), height)),
                 ("right", (max(0, midpoint - overlap), 0, width, height)),
             )
-            for side, bounds in regions:
+            for side_index, (side, bounds) in enumerate(regions):
                 crop_path = temp_dir / f"{page.stem}-{side}.png"
-                # At 180 dpi the runner identifiers are only a few pixels
-                # tall. Upscale each isolated race column before OCR; this
-                # materially improves Japanese text and the frame/horse digits.
                 crop = image.crop(bounds)
                 scaled_size = (crop.width * 5 // 3, crop.height * 5 // 3)
                 crop.resize(scaled_size, Image.Resampling.LANCZOS).save(crop_path)
@@ -377,9 +387,6 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     capture_output=True,
                     text=True,
                 )
-                # Preserve only the first page's two crops and OCR text when
-                # explicitly enabled by CI, so layout errors can be inspected
-                # without committing diagnostic files to the repository.
                 debug_dir = os.environ.get("JRA_OCR_DEBUG_DIR")
                 if debug_dir and page == pages[0]:
                     destination = Path(debug_dir)
@@ -388,9 +395,17 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     (destination / f"{page.stem}-{side}.txt").write_text(
                         result.stdout, encoding="utf-8"
                     )
-                chunks.append(result.stdout)
-    return "\n".join(chunks)
 
+                # Remove possibly hallucinated race headers. The PDF's page
+                # order is authoritative and avoids splitting a panel at a
+                # misread digit such as 第5競走 instead of 第1競走.
+                clean_lines = [
+                    line for line in result.stdout.splitlines()
+                    if not RACE_RE.search(line)
+                ]
+                race_number = page_index * 2 + side_index + 1
+                chunks.append(f"第{race_number}競走\n" + "\n".join(clean_lines))
+    return "\n".join(chunks)
 
 def extract_pdf(pdf_bytes: bytes, *, source_url: str = "") -> list[dict[str, Any]]:
     """Parse PDF text first, then use bounded Japanese OCR if its text layer is unusable."""
