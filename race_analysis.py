@@ -221,3 +221,60 @@ def performance_score(records: Iterable[dict[str, Any]]) -> float | None:
         return None
     weights = list(range(len(recent), 0, -1))
     return round(sum(score * weight for (_, score), weight in zip(recent, weights)) / sum(weights), 1)
+
+def summarize_races(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Aggregate runner rows into race-level summaries without guessing missing data."""
+    grouped: dict[tuple[str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in records:
+        race_number = str(row.get("race_number") or "").strip()
+        if not race_number:
+            continue
+        key = (
+            str(row.get("source_url") or "").strip(),
+            str(row.get("date") or "").strip(),
+            str(row.get("track") or "").strip(),
+            race_number,
+        )
+        grouped[key].append(row)
+
+    summaries = []
+    for key, rows in grouped.items():
+        placed = [row for row in rows if (_number(row.get("finish")) or 0) > 0]
+        winners = [row for row in placed if _number(row.get("finish")) == 1]
+        top_three = [row for row in placed if _number(row.get("finish")) in (1, 2, 3)]
+        warnings = sorted({
+            warning
+            for row in rows
+            for warning in (row.get("race_validation_warnings") if isinstance(row.get("race_validation_warnings"), list) else [])
+            if isinstance(warning, str)
+        })
+        first = rows[0]
+        summaries.append({
+            "source_url": key[0] or None,
+            "date": key[1] or None,
+            "track": key[2] or None,
+            "race_number": int(key[3]) if key[3].isdigit() else key[3],
+            "race_name": first.get("race_name"),
+            "surface": first.get("surface"),
+            "distance": first.get("distance"),
+            "going": first.get("going"),
+            "starters": len(rows),
+            "placed_starters": len(placed),
+            "unplaced_starters": len(rows) - len(placed),
+            "winner_count": len(winners),
+            "winner_names": [str(row.get("horse_name") or "") for row in winners if row.get("horse_name")],
+            "winning_time_seconds": _number(winners[0].get("finish_time_seconds")) if len(winners) == 1 else None,
+            "top_three": [
+                {"finish": _number(row.get("finish")), "horse_number": row.get("horse_number"),
+                 "horse_name": row.get("horse_name"), "finish_time": row.get("finish_time")}
+                for row in sorted(top_three, key=lambda row: (_number(row.get("finish")) or 99, _number(row.get("horse_number")) or 99))
+            ],
+            "race_last3f": _number(first.get("race_last3f")),
+            "race_lap_times": first.get("race_lap_times") if isinstance(first.get("race_lap_times"), list) else None,
+            "validation_warnings": warnings,
+        })
+    return sorted(summaries, key=lambda race: (
+        str(race.get("date") or ""), str(race.get("track") or ""),
+        int(race["race_number"]) if str(race.get("race_number", "")).isdigit() else 0
+    ), reverse=True)
+
