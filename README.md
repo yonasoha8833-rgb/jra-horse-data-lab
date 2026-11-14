@@ -99,7 +99,7 @@ JRAの「レース成績データ」に掲載される重賞レース結果PDF�
 
 ### 公式登録名簿OCRの小規模実行ツール
 
-`ocr_jra_registry.py` を追加しました。JRA公式PDFを最大30MiBまでの範囲で取得し、指定した最大5ページだけを300dpi・日本語TesseractでOCRして、確認用テキストへ出力します。PDF署名とダウンロード容量を検査し、結果は成績データへ自動登録しません。
+`ocr_jra_registry.py` を追加しました。JRA公式PDFを最大30MiBまでの範囲で取得し、指定した最大5ページだけを300dpi・日本語TesseractでOCRして、確認用テキストへ出力します。PDF署名とダウンロード容量を検査し、取得先もHTTPSのJRA公式ホスト（`www.jra.go.jp`）に限定します。結果は成績データへ自動登録しません。
 
 実行環境に Poppler（`pdftoppm`）と Tesseract 日本語データ（`jpn`）が必要です。
 
