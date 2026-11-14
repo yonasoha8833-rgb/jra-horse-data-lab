@@ -332,7 +332,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
     chunks = []
     for page in pages:
         result = subprocess.run(
-            ["tesseract", str(page), "stdout", "-l", "jpn+eng", "--psm", "3"],
+            ["tesseract", str(page), "stdout", "-l", "jpn+eng", "--psm", "4"],
             check=True,
             timeout=30,
             capture_output=True,
