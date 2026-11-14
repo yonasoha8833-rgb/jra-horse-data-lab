@@ -22,7 +22,7 @@ RUNNER_RE = re.compile(
 RACE_RE = re.compile(r"第\s*(\d+)\s*競走")
 DATE_RE = re.compile(r"(\d{1,2})月\s*(\d{1,2})日")
 FIELD_SIZE_RE = re.compile(r"[（(]\s*([0-9０-９]{1,2})\s*頭\s*[）)]")
-DISTANCE_RE = re.compile(r"([0-9０-９]{1,2}[,，][0-9０-９]{3}|[0-9０-９]{3,4})\s*(?:ｍ|m|メートル)")
+DISTANCE_RE = re.compile(r"([0-9０-９]{1,2}[,，][0-9０-９]{3}|[0-9０-９]{3,4})\s*(?:ｍ|m|メートル|\\x02)")
 RESULT_STATUS_RE = re.compile(r"(競走中止|失格|中止|取消|除外)")
 GOING_RE = re.compile(r"(?:小雨|小雪|晴|曇|雨|雪)\s*(良|稍重|重|不良)")
 LAST3F_RE = re.compile(r"上り\s*4F\s*([0-9.．]+)\s*[―ー-]\s*3F\s*([0-9.．]+)")
@@ -79,14 +79,16 @@ def _runner(line: str) -> dict[str, Any] | None:
     time_match = re.search(r"(?<![0-9])([0-9０-９]{1,2})[：:]([0-9０-９]{2})[.．]([0-9０-９])", tail)
     finish_time = None
     finish_time_seconds = None
+    dead_heat = False
     runner_warnings: list[str] = []
     if time_match:
         # A status after the official time belongs to the result field. Do not
         # scan jockey/owner/trainer text, where the same word could be a name.
         status_match = re.search(r"(競走中止|失格|中止|取消|除外)\s*$", tail[time_match.end():])
     else:
-        # Non-finishers have no time; accept a status only when it is the
-        # terminal token in the runner row, not an incidental name fragment.
+        # JRA prints 〃 instead of repeating the time for a dead heat.
+        dead_heat = bool(re.search(r"(?:^|\s)〃(?:\s|$)", tail))
+        # Non-finishers have no time; accept a status only when terminal.
         status_match = re.search(r"(競走中止|失格|中止|取消|除外)\s*$", tail)
     result_status = status_match.group(1) if status_match else None
     if time_match:
@@ -108,6 +110,7 @@ def _runner(line: str) -> dict[str, Any] | None:
         "finish_time": finish_time,
         "finish_time_seconds": finish_time_seconds,
         "result_status": result_status,
+        "dead_heat": dead_heat,
         "runner_validation_warnings": runner_warnings,
     }
 
@@ -206,12 +209,22 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
         # Finish order follows the official result table's runner row order.
         # Ties are not guessed from margins; downstream validation can refine it.
         finish_position = 0
+        last_finish_position = None
+        last_finish_time = None
+        last_finish_seconds = None
         for runner in runners:
-            # A runner without a recorded finish time may be a non-finisher,
-            # so never assign it a placing or shift later finishers upward.
-            is_placed = runner["finish_time_seconds"] is not None and runner["result_status"] is None
-            if is_placed:
+            # The 〃 marker shares the previous finisher placing and time.
+            is_tied = runner.get("dead_heat") and last_finish_position is not None
+            is_placed = (runner["finish_time_seconds"] is not None or is_tied) and runner["result_status"] is None
+            if is_tied:
+                runner["finish_time"] = last_finish_time
+                runner["finish_time_seconds"] = last_finish_seconds
+            elif is_placed:
                 finish_position += 1
+            if is_placed:
+                last_finish_position = finish_position
+                last_finish_time = runner["finish_time"]
+                last_finish_seconds = runner["finish_time_seconds"]
             records.append({
                 **runner,
                 "date": race_date,
@@ -221,7 +234,7 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
                 "surface": surface,
                 "distance": distance,
                 "going": going,
-                "finish": finish_position if is_placed else None,
+                "finish": last_finish_position if is_placed else None,
                 "field_size": len(runners),
                 "declared_field_size": declared_field_size,
                 "race_validation_warnings": validation_warnings,
