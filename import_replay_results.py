@@ -35,16 +35,24 @@ def validate_replay_records(rows: list[dict]) -> list[dict]:
     """Reject malformed rows before a source is marked as successfully imported."""
     if not isinstance(rows, list) or not rows:
         raise ValueError("No runner rows recognized in replay PDF")
+    seen_horse_numbers = set()
     for index, row in enumerate(rows, start=1):
         if not isinstance(row, dict):
             raise ValueError(f"Runner row {index} is not an object")
+        raw_number = row.get("horse_number")
+        raw_finish = row.get("finish")
         try:
-            horse_number = int(row.get("horse_number"))
-            finish = int(row.get("finish"))
+            horse_number = int(raw_number)
+            finish = int(raw_finish)
         except (TypeError, ValueError):
             raise ValueError(f"Runner row {index} has invalid horse number or placing")
+        if str(raw_number).strip() != str(horse_number) or str(raw_finish).strip() != str(finish):
+            raise ValueError(f"Runner row {index} has non-integer horse number or placing")
         if not 1 <= horse_number <= 18:
             raise ValueError(f"Runner row {index} has horse number outside 1-18")
+        if horse_number in seen_horse_numbers:
+            raise ValueError(f"Duplicate horse number {horse_number} in replay PDF")
+        seen_horse_numbers.add(horse_number)
         if not 1 <= finish <= 18:
             raise ValueError(f"Runner row {index} has placing outside 1-18")
         if not isinstance(row.get("horse_name"), str) or not row["horse_name"].strip():
