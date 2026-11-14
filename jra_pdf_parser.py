@@ -337,6 +337,23 @@ def extract_pdf(pdf_bytes: bytes, *, source_url: str = "") -> list[dict[str, Any
         ocr_lines = [line.strip()[:180] for line in ocr_text.splitlines() if line.strip()]
         ocr_records = parse_race_text(ocr_text, source_url=source_url)
         accepted = _complete_ocr_records(ocr_records)
+        race_groups: dict[tuple, list[dict[str, Any]]] = {}
+        for row in ocr_records:
+            key = (row.get("date"), row.get("race_number"))
+            race_groups.setdefault(key, []).append(row)
+        print(
+            "OCR race validation: "
+            + repr([
+                {
+                    "date": key[0],
+                    "race_number": key[1],
+                    "parsed": len(rows),
+                    "declared_field_size": rows[0].get("declared_field_size"),
+                    "horse_numbers": sorted(row.get("horse_number") for row in rows),
+                }
+                for key, rows in race_groups.items()
+            ])
+        )
         print(
             f"OCR result: {source_url}; chars={len(ocr_text)}, "
             f"race_headers={sum(1 for line in ocr_lines if RACE_RE.search(line))}, "
