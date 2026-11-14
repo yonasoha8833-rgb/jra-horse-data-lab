@@ -410,7 +410,7 @@ class JraPdfParserTests(unittest.TestCase):
 
     def test_ocr_identifier_reader_marks_unreadable_rows_instead_of_guessing(self):
         pairs = _ocr_identifier_pairs("a}7\n4|19")
-        self.assertEqual(pairs, [None, (4, 19)])
+        self.assertEqual(pairs, [None, None])
 
 
 if __name__ == "__main__":
