@@ -118,7 +118,7 @@ class JraPdfParserTests(unittest.TestCase):
     def test_ocr_header_metadata_on_adjacent_lines_is_parsed(self):
         text = SAMPLE.replace(
             "11月 8日 晴良 （2026年5東京） 第1競走 2歳未勝利 1，600ｍ",
-            "第1競走 2歳未勝利\\n11月 8日 晴良 （2026年5東京）\\n1，600ｍ",
+            "第1競走 2歳未勝利\n11月 8日 晴良 （2026年5東京）\n1，600ｍ",
         )
         rows = parse_race_text(text)
         self.assertEqual(rows[0]["date"], "2026-11-08")
