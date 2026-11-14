@@ -68,7 +68,8 @@ def _runner(line: str) -> dict[str, Any] | None:
         )
         if not compact:
             return None
-        frame, number, name, sex, age = compact.groups()
+        match = compact
+        frame, number, name, sex, age = match.groups()
     tail = line[match.end():]
     time_match = re.search(r"(?<![0-9])([0-9０-９]{1,2})[：:]([0-9０-９]{2})[.．]([0-9０-９])", tail)
     finish_time = None
