@@ -119,7 +119,9 @@ def parse_listing_html(html: str, *, year: int, listing_url: str) -> list[dict]:
         }
         for link in row["links"]:
             href = link.get("href") or ""
-            if not href:
+            link_text = link.get("text") or ""
+            is_pdf = bool(re.search(r"\\.pdf(?:$|[?#])", href, re.I))
+            if not href or (not is_pdf and "レース結果" not in link_text):
                 continue
             result_url = urljoin(listing_url, href)
             item = {
@@ -145,12 +147,15 @@ def fetch_year(year: int) -> list[dict]:
     items = parse_listing_html(html, year=year, listing_url=listing_url)
     resolved = []
     for item in items:
-        pdf_url = item.get("url") or fetch_result_pdf_url(item["result_url"])
-        if not pdf_url:
-            print(f"WARNING: no PDF link found: {item['result_url']}")
-            continue
-        item["url"] = pdf_url
-        resolved.append(item)
+        try:
+            pdf_url = item.get("url") or fetch_result_pdf_url(item["result_url"])
+            if not pdf_url:
+                print(f"WARNING: no PDF link found: {item['result_url']}")
+                continue
+            item["url"] = pdf_url
+            resolved.append(item)
+        except Exception as exc:
+            print(f"WARNING: could not resolve {item['result_url']}: {type(exc).__name__}: {exc}")
     return resolved
 
 
