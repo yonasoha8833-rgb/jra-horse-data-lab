@@ -64,7 +64,7 @@ python import_results.py --limit 1
 
 GitHub上では Actions → **Import JRA race results** → Run workflow から実行できます。最初は1 PDFずつ取り込んで抽出結果を確認してください。入力の `limit` を増やすと複数PDFを処理します。
 
-取り込み先は `data/race_results.json` です。重複取り込みはPDF URL・競走番号・馬番で抑制します。抽出対象外の行や読み取りに失敗したPDFはログに警告・エラーとして残ります。
+取り込み先は `data/race_results.json` です。重複取り込みはPDF URL・競走番号・馬番で抑制します。`import_failures` には失敗URL・試行回数・最終試行日時・エラー内容を保存し、失敗または抽出0件のPDFは処理済みにせず次回実行で再試行します。Actionsの取り込み処理は、PDFを取得する前にユニットテストを実行します。
 
 ### データ精度に関する注意
 
