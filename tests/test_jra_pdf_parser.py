@@ -152,7 +152,7 @@ class JraPdfParserTests(unittest.TestCase):
     def test_non_finisher_does_not_shift_later_finish_positions(self):
         text = SAMPLE.replace(
             "6 7 ブルーサンタ 牡2青鹿56 戸崎 圭太 SNSグループ 452＋2 1：39．2",
-            "6 7 ブルーサンタ 牡2青鹿56 戸崎 圭太 SNSグループ 452＋2 中止\\n"
+            "6 7 ブルーサンタ 牡2青鹿56 戸崎 圭太 SNSグループ 452＋2 中止\n"
             "3 3 テストホース 牡3鹿56 横山 武史 テスト 470＋0 1：40．0",
         )
         rows = parse_race_text(text)
