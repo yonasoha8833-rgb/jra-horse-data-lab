@@ -109,6 +109,9 @@ function renderHorses(){
   const card=document.createElement('div');card.className='item';
   const title=document.createElement('strong');title.textContent=name+'　'+rows.length+'戦 '+wins+'勝';card.append(title);
   const stat=document.createElement('p');stat.className='muted small';stat.textContent='勝率 '+(wins/rows.length*100).toFixed(1)+'% ／ 複勝率 '+(top3/rows.length*100).toFixed(1)+'%';card.append(stat);
+  const finishes=rows.map(r=>Number(r.finish)).filter(v=>Number.isFinite(v)&&v>0);
+  const times=rows.map(r=>Number(r.finish_time_seconds)).filter(v=>Number.isFinite(v)&&v>0);
+  if(finishes.length||times.length){const extra=document.createElement('p');extra.className='muted small';const parts=[];if(finishes.length)parts.push('平均着順 '+(finishes.reduce((a,b)=>a+b,0)/finishes.length).toFixed(2));if(times.length)parts.push('平均走破 '+(times.reduce((a,b)=>a+b,0)/times.length).toFixed(2)+'秒');extra.textContent=parts.join(' ／ ');card.append(extra);}
   const valid=rows.filter(r=>Number.isFinite(Number(r.finish))&&Number.isFinite(Number(r.field_size))&&Number(r.field_size)>1&&Number(r.finish)>=1&&Number(r.finish)<=Number(r.field_size)).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,5);
   if(valid.length){const weighted=valid.reduce((sum,r,i)=>sum+(100*(Number(r.field_size)-Number(r.finish))/(Number(r.field_size)-1))*(valid.length-i),0);const weights=valid.length*(valid.length+1)/2;const score=document.createElement('p');score.className='small';score.textContent='着順ベース参考指数：'+(weighted/weights).toFixed(1)+' / 100';card.append(score);}
   rows.forEach(r=>{
