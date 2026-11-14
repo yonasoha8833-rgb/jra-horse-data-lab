@@ -73,7 +73,7 @@ def _runner(line: str) -> dict[str, Any] | None:
     else:
         # Non-finishers have no time; accept a status only when it is the
         # terminal token in the runner row, not an incidental name fragment.
-        status_match = re.search(r"(競走中止|失格|中止|取消|除外)\\s*$", tail)
+        status_match = re.search(r"(競走中止|失格|中止|取消|除外)\s*$", tail)
     result_status = status_match.group(1) if status_match else None
     if time_match:
         minutes, seconds, tenth = map(int, (_ascii_digits(v) for v in time_match.groups()))
