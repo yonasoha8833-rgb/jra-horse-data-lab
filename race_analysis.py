@@ -29,6 +29,66 @@ def _registration_number(value: Any) -> str | None:
     return candidate if REGISTRATION_NUMBER_RE.fullmatch(candidate) else None
 
 
+def parse_corner_positions(value: Any) -> list[int] | None:
+    """Parse positive corner ranks from a list or a delimited official value."""
+    if isinstance(value, str):
+        tokens = [token for token in re.split(r"[\s,、/|‐‑‒–—-]+", value.strip()) if token]
+    elif isinstance(value, (list, tuple)):
+        tokens = list(value)
+    else:
+        return None
+    if not tokens:
+        return None
+    positions = []
+    for token in tokens:
+        number = _number(token)
+        if number is None or number < 1 or not number.is_integer():
+            return None
+        positions.append(int(number))
+    return positions
+
+
+def classify_running_style(corner_positions: Any, field_size: Any) -> str | None:
+    """Estimate running style from mean corner rank relative to field size."""
+    positions = parse_corner_positions(corner_positions)
+    runners = _number(field_size)
+    if positions is None or runners is None or runners < 2 or not runners.is_integer():
+        return None
+    if any(position > runners for position in positions):
+        return None
+    average_ratio = mean(positions) / runners
+    first_ratio = positions[0] / runners
+    if first_ratio <= 0.15 and average_ratio <= 0.25:
+        return "逃げ"
+    if average_ratio <= 0.40:
+        return "先行"
+    if average_ratio <= 0.70:
+        return "差し"
+    return "追込"
+
+
+def _summarize_running_styles(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    counts: dict[str, int] = defaultdict(int)
+    for row in rows:
+        style = classify_running_style(row.get("corner_positions"), row.get("field_size"))
+        if style:
+            counts[style] += 1
+    total = sum(counts.values())
+    if not total:
+        return {"sample_starts": 0, "dominant_style": None, "counts": {}, "distribution": {}}
+    order = ["逃げ", "先行", "差し", "追込"]
+    dominant = sorted(counts, key=lambda style: (-counts[style], order.index(style)))[0]
+    return {
+        "sample_starts": total,
+        "dominant_style": dominant,
+        "counts": dict(sorted(counts.items(), key=lambda item: order.index(item[0]))),
+        "distribution": {
+            style: round(count / total, 4)
+            for style, count in sorted(counts.items(), key=lambda item: order.index(item[0]))
+        },
+    }
+
+
 def summarize_horses(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     """Aggregate normalized race rows by horse name.
 
@@ -88,6 +148,7 @@ def summarize_horses(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
             "top3_rate": round(sum(1 for r in rows if (_number(r.get("finish")) or 0) in (1, 2, 3)) / len(rows), 4),
             "average_finish": round(mean(finishes), 2) if finishes else None,
             "performance_score": performance_score(rows),
+            "running_style": _summarize_running_styles(rows),
             "average_time_seconds": round(mean(times), 3) if times else None,
             "average_last3f": round(mean(last3fs), 2) if last3fs else None,
             "records": sorted(rows, key=lambda r: str(r.get("date") or ""), reverse=True),
