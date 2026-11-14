@@ -55,6 +55,19 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["race_lap_times"], [12.4, 10.8, 11.5, 12.3])
 
 
+
+    def test_extracts_track_going_condition_from_race_header(self):
+        for header, expected in (
+            ("晴良", "良"),
+            ("曇稍重", "稍重"),
+            ("雨重", "重"),
+            ("小雨不良", "不良"),
+        ):
+            with self.subTest(header=header):
+                rows = parse_race_text(SAMPLE.replace("晴良", header))
+                self.assertEqual(rows[0]["going"], expected)
+
+
     def test_accepts_distance_without_thousands_separator(self):
         text = SAMPLE.replace("1，600ｍ", "1600ｍ")
         rows = parse_race_text(text)
