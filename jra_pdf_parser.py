@@ -435,6 +435,27 @@ def _pair_identifier_columns(
     return paired
 
 
+def _infer_identifier_pairs_from_complete_horse_column(
+    horse_rows: list[tuple[float, int]],
+) -> list[tuple[float, tuple[int, int]]]:
+    """Infer frame numbers only when OCR proves a complete 1..N horse-number column."""
+    field_size = len(horse_rows)
+    if not 2 <= field_size <= 18:
+        return []
+    numbers = [horse for _, horse in horse_rows]
+    if sorted(numbers) != list(range(1, field_size + 1)):
+        return []
+    if any(
+        horse_rows[index + 1][0] <= horse_rows[index][0]
+        for index in range(field_size - 1)
+    ):
+        return []
+    return [
+        (y, (_expected_frame(field_size, horse), horse))
+        for y, horse in horse_rows
+    ]
+
+
 def _ocr_tsv_lines(tsv: str, *, scale: float = 1.0, y_offset: float = 0.0) -> list[tuple[float, str]]:
     """Return OCR text lines with vertical centers in original panel coordinates."""
     grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
@@ -619,6 +640,13 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     horse_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"(?:[1-9]|1[0-8])"
                 )
                 identifier_rows = _pair_identifier_columns(frame_rows, horse_rows)
+                if not identifier_rows:
+                    # A single unreadable frame digit should not discard a race
+                    # when the horse-number column independently proves every
+                    # runner exactly once; JRA frame assignment is deterministic.
+                    identifier_rows = _infer_identifier_pairs_from_complete_horse_column(
+                        horse_rows
+                    )
                 # Keep row-local OCR diagnostics separate from the full-panel pass.
                 row_diagnostics = []
                 # OCR each runner row independently to avoid cross-column merging.
