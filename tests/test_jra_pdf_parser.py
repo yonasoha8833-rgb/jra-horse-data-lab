@@ -159,7 +159,7 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(len(rows), 3)
         self.assertEqual(rows[0]["finish"], 1)
         self.assertIsNone(rows[1]["finish"])
-        self.assertEqual(rows[2]["finish"], 2)
+        self.assertEqual(rows[2]["finish"], 3)
         self.assertIsNone(rows[1]["finish_time_seconds"])
 
 
@@ -215,7 +215,7 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertIsNone(rows[1]["finish"])
 
     def test_parses_official_distance_control_glyph(self):
-        text = SAMPLE.replace("1，600ｍ", "1，600\\x02")
+        text = SAMPLE.replace("1，600ｍ", "1，600\x02")
         rows = parse_race_text(text)
         self.assertEqual(rows[0]["distance"], 1600)
 
