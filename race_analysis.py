@@ -278,3 +278,44 @@ def summarize_races(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
         int(race["race_number"]) if str(race.get("race_number", "")).isdigit() else 0
     ), reverse=True)
 
+def summarize_race_conditions(
+    records: Iterable[dict[str, Any]],
+    *,
+    dimension: str = "track",
+    min_races: int = 3,
+) -> list[dict[str, Any]]:
+    """Summarize race-level averages by track/course/distance band/going.
+
+    Each race is counted once, not once per runner. Missing condition values
+    and missing measurements are excluded rather than inferred.
+    """
+    allowed = {"track", "surface", "distance_band", "going"}
+    if dimension not in allowed:
+        raise ValueError(f"unsupported race condition dimension: {dimension}")
+    if min_races < 1:
+        raise ValueError("min_races must be at least 1")
+    races = summarize_races(records)
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for race in races:
+        value = distance_band(race.get("distance")) if dimension == "distance_band" else race.get(dimension)
+        value = str(value or "").strip()
+        if value:
+            grouped[value].append(race)
+
+    result = []
+    for condition, items in grouped.items():
+        if len(items) < min_races:
+            continue
+        starters = [_number(item.get("starters")) for item in items]
+        winning_times = [_number(item.get("winning_time_seconds")) for item in items]
+        last3fs = [_number(item.get("race_last3f")) for item in items]
+        result.append({
+            "condition": condition,
+            "races": len(items),
+            "average_starters": round(mean(v for v in starters if v is not None), 1) if any(v is not None for v in starters) else None,
+            "average_winning_time_seconds": round(mean(v for v in winning_times if v is not None), 2) if any(v is not None for v in winning_times) else None,
+            "average_race_last3f": round(mean(v for v in last3fs if v is not None), 2) if any(v is not None for v in last3fs) else None,
+            "warning_races": sum(1 for item in items if item.get("validation_warnings")),
+        })
+    return sorted(result, key=lambda item: (-item["races"], item["condition"]))
+
