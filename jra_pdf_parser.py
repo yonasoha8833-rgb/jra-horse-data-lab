@@ -593,6 +593,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     ["tesseract", str(horse_path), "stdout", "-l", "eng", "--psm", "6", "tsv"],
                     check=True, timeout=30, capture_output=True, text=True,
                 ).stdout
+                number_tsv = "FRAME COLUMN\n" + frame_tsv + "\nHORSE COLUMN\n" + horse_tsv
                 panel_lines = _ocr_tsv_lines(panel_tsv, scale=5 / 3)
                 runner_indexes = [
                     i for i, line in enumerate(clean_lines) if _runner(line.strip())
