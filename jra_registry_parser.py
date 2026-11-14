@@ -51,10 +51,10 @@ def parse_registry_text(text: str) -> list[dict[str, Any]]:
             continue
         match = matches[0]
         before = line[:match.start()].strip(" ・,，:：()（）")
-        after = line[match.end():].strip(" \\t・,，:：()（）")
-        if after:
+        after = line[match.end():].strip(" ・,，:：()（）")
+        if bool(before) == bool(after):
             continue
-        name = _clean_name(before)
+        name = _clean_name(before if before else after)
         if not name or len(name) > 30 or not re.search(r"[ぁ-んァ-ヶ一-龠]", name):
             continue
         candidates.append({"horse_name": name, "horse_registration_number": match.group(1)})
