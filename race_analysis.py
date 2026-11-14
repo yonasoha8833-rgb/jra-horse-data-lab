@@ -437,14 +437,18 @@ def summarize_running_style_pace_performance(
 
     races: dict[tuple[str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
     for row in records:
+        source_url = str(row.get("source_url") or "").strip()
         race_number = str(row.get("race_number") or "").strip()
-        if not race_number:
+        # Graded-race replay PDFs contain one race per source file. When the
+        # official PDF URL is known, it safely identifies that race even if
+        # the listing does not expose a race number.
+        if not race_number and not source_url:
             continue
         key = (
-            str(row.get("source_url") or "").strip(),
+            source_url,
             str(row.get("date") or "").strip(),
             str(row.get("track") or "").strip(),
-            race_number,
+            race_number or "__source_pdf__",
         )
         races[key].append(row)
 
