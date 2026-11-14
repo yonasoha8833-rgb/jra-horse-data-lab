@@ -30,7 +30,7 @@ class RegistryOcrToolTests(unittest.TestCase):
     def test_download_rejects_untrusted_host(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaisesRegex(ValueError, 'Only HTTPS URLs'):
-                download_pdf('https://www.jra.go.jp/sample.pdf', Path(temp) / 'sample.pdf')
+                download_pdf('https://example.test/sample.pdf', Path(temp) / 'sample.pdf')
 
     @patch('ocr_jra_registry.urllib.request.urlopen')
     def test_download_accepts_pdf_signature(self, mocked_open):
