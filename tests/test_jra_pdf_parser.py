@@ -89,6 +89,32 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["horse_number"], 18)
         self.assertEqual(rows[0]["age"], 20)
 
+
+    def test_duplicate_horse_numbers_are_flagged(self):
+        text = SAMPLE.replace(
+            "6 7 ブルーサンタ",
+            "6 2 ブルーサンタ",
+        )
+        rows = parse_race_text(text)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["race_validation_warnings"], ["duplicate_horse_number:2"])
+        self.assertEqual(rows[1]["race_validation_warnings"], ["duplicate_horse_number:2"])
+
+    def test_declared_field_size_mismatch_is_flagged(self):
+        text = SAMPLE.replace("（2頭）", "（3頭）")
+        rows = parse_race_text(text)
+        self.assertEqual(rows[0]["declared_field_size"], 3)
+        self.assertEqual(rows[0]["field_size"], 2)
+        self.assertIn(
+            "declared_field_size_mismatch:declared=3,parsed=2",
+            rows[0]["race_validation_warnings"],
+        )
+
+    def test_matching_declared_field_size_has_no_warnings(self):
+        rows = parse_race_text(SAMPLE)
+        self.assertEqual(rows[0]["declared_field_size"], 2)
+        self.assertEqual(rows[0]["race_validation_warnings"], [])
+
     def test_ignores_non_runner_lines(self):
         text = SAMPLE.replace("（2頭）", "（2頭）\n発走 9時55分")
         rows = parse_race_text(text)
