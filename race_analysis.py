@@ -879,6 +879,135 @@ def summarize_relative_last3f(
     return results
 
 
+
+def integrated_condition_last3f_score(
+    horse_records: Iterable[dict[str, Any]],
+    race_records: Iterable[dict[str, Any]],
+    target_conditions: dict[str, Any],
+    *,
+    horse_registration_number: str | None = None,
+    horse_name: str | None = None,
+    min_condition_starts: int = 3,
+    prior_strength: float = 5.0,
+    relative_last3f_weight: float = 0.2,
+) -> dict[str, Any]:
+    """Combine condition-adjusted placing with same-race relative last-3F.
+
+    race_records must contain the target horse and its competitors for each
+    race. Relative last-3F is included only when a matching condition has
+    enough comparable starts; otherwise the placing-based score is unchanged.
+    This descriptive index is not a win probability.
+    """
+    if not 0 <= relative_last3f_weight <= 1:
+        raise ValueError("relative_last3f_weight must be between 0 and 1")
+    if min_condition_starts < 1:
+        raise ValueError("min_condition_starts must be at least 1")
+
+    base = condition_adjusted_performance_score(
+        horse_records, target_conditions,
+        min_condition_starts=min_condition_starts,
+        prior_strength=prior_strength,
+    )
+    if base["score"] is None:
+        return {
+            **base,
+            "relative_last3f_score": None,
+            "relative_last3f_sample_count": 0,
+            "relative_last3f_condition": None,
+            "integrated": False,
+        }
+
+    registration = _registration_number(horse_registration_number)
+    name = str(horse_name or "").strip()
+    if not registration and not name:
+        return {
+            **base,
+            "relative_last3f_score": None,
+            "relative_last3f_sample_count": 0,
+            "relative_last3f_condition": None,
+            "integrated": False,
+        }
+
+    summaries = summarize_relative_last3f(
+        race_records, min_condition_starts=min_condition_starts
+    )
+    target = next((
+        item for item in summaries
+        if (registration and item["horse_registration_number"] == registration)
+        or (not registration and not item["horse_registration_number"] and item["horse_name"] == name)
+    ), None)
+    if target is None:
+        return {
+            **base,
+            "relative_last3f_score": None,
+            "relative_last3f_sample_count": 0,
+            "relative_last3f_condition": None,
+            "integrated": False,
+        }
+
+    conditions = target_conditions or {}
+    surface = str(conditions.get("surface") or "").strip()
+    track = str(conditions.get("track") or "").strip()
+    going = str(conditions.get("going") or "").strip()
+    distance = _number(conditions.get("distance"))
+    band = distance_band(distance)
+    exact_distance = int(distance) if distance is not None and distance.is_integer() else None
+    candidates = []
+    if track and surface and exact_distance is not None:
+        candidates.append(("track_surface_distance", f"{track} {surface} {exact_distance}m", "競馬場・芝ダート・距離"))
+    if surface and band:
+        candidates.append(("surface", surface, "芝ダート"))
+        candidates.append(("distance_band", band, "距離帯"))
+    if surface and going:
+        candidates.append(("surface_going", f"{surface}・{going}", "芝ダート・馬場状態"))
+    if track:
+        candidates.append(("track", track, "競馬場"))
+    if surface:
+        candidates.append(("surface", surface, "芝ダート"))
+    if band:
+        candidates.append(("distance_band", band, "距離帯"))
+    if going:
+        candidates.append(("going", going, "馬場状態"))
+
+    selected = None
+    for dimension, condition, label in candidates:
+        match = next((
+            item for item in target["conditions"].get(dimension, [])
+            if item["condition"] == condition
+            and item["sample_count"] >= min_condition_starts
+        ), None)
+        if match is not None:
+            selected = (label, match)
+            break
+
+    if selected is None or relative_last3f_weight == 0:
+        return {
+            **base,
+            "relative_last3f_score": None,
+            "relative_last3f_sample_count": 0,
+            "relative_last3f_condition": None,
+            "integrated": False,
+        }
+
+    label, relative = selected
+    relative_score = relative["average_relative_score"]
+    combined = (
+        base["score"] * (1 - relative_last3f_weight)
+        + relative_score * relative_last3f_weight
+    )
+    return {
+        **base,
+        "score": round(combined, 1),
+        "placing_condition_score": base["score"],
+        "relative_last3f_score": relative_score,
+        "relative_last3f_sample_count": relative["sample_count"],
+        "relative_last3f_condition": label,
+        "relative_last3f_weight": relative_last3f_weight,
+        "integrated": True,
+        "confidence": "高め" if relative["sample_count"] >= 10 and base["confidence"] == "高め" else "中程度",
+    }
+
+
 def summarize_horse_condition_profiles(
     records: Iterable[dict[str, Any]],
     *,
