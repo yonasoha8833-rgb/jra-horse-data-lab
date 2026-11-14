@@ -69,7 +69,7 @@ def _runner(line: str) -> dict[str, Any] | None:
     if time_match:
         # A status after the official time belongs to the result field. Do not
         # scan jockey/owner/trainer text, where the same word could be a name.
-        status_match = re.search(r"(競走中止|失格|中止|取消|除外)\\s*$", tail[time_match.end():])
+        status_match = re.search(r"(競走中止|失格|中止|取消|除外)\s*$", tail[time_match.end():])
     else:
         # Non-finishers have no time; accept a status only when it is the
         # terminal token in the runner row, not an incidental name fragment.
