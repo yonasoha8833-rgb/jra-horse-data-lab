@@ -44,6 +44,23 @@ def download_pdf(url: str, destination: Path, max_bytes: int = MAX_PDF_BYTES) ->
     destination.write_bytes(data)
 
 
+def extract_pdf_text(pdf_path: Path, first_page: int, last_page: int) -> str:
+    """Extract positioned text from selected PDF pages for comparison with OCR."""
+    if first_page < 1 or last_page < first_page:
+        raise ValueError("Page numbers must be positive and ordered")
+    if last_page - first_page > 4:
+        raise ValueError("At most five pages may be extracted in one run")
+    result = subprocess.run(
+        [
+            "pdftotext", "-f", str(first_page), "-l", str(last_page),
+            "-layout", str(pdf_path), "-",
+        ],
+        check=True, capture_output=True, text=True, timeout=60,
+    )
+    if len(result.stdout) > 2 * 1024 * 1024:
+        raise ValueError("Extracted PDF text exceeds the permitted 2 MiB limit")
+    return result.stdout
+
 def ocr_pdf_pages(pdf_path: Path, first_page: int, last_page: int, dpi: int = 300) -> str:
     if first_page < 1 or last_page < first_page:
         raise ValueError("Page numbers must be positive and ordered")
