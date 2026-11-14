@@ -137,6 +137,21 @@ function appendConditionBreakdown(card,rows){
  sections.forEach(section=>{if(!section.groups.length)return;const heading=document.createElement('p');heading.className='muted';heading.textContent=section.title;details.append(heading);section.groups.slice(0,8).forEach(g=>{const line=document.createElement('p');const delta=(g.difference>=0?'+':'')+g.difference.toFixed(1)+'pt';const tendency=g.starts<3?'（比較データ不足）':g.difference>=15?'【得意傾向】':g.difference<=-15?'【苦手傾向】':'';const exactDistanceSection=section.title==='芝・ダート／距離別'||section.title==='競馬場・コース・距離別';const baselineIndex=horseScore(rows);const adjustedIndex=g.normalizedFinishSampleCount>=3&&baselineIndex!==null?(g.averageNormalizedFinish*g.normalizedFinishSampleCount+baselineIndex*5)/(g.normalizedFinishSampleCount+5):null;const scoreNote=g.normalizedFinishSampleCount>=3?' ／ 頭数補正着順指数 '+g.averageNormalizedFinish.toFixed(1)+'点（'+g.normalizedFinishSampleCount+'件）'+(adjustedIndex!==null?'・条件補正 '+adjustedIndex.toFixed(1)+'点':''):'';const last3fNote=exactDistanceSection&&g.individualLast3fSampleCount>=3?' ／ 個別上がり3F平均 '+g.averageIndividualLast3f.toFixed(2)+'秒（'+g.individualLast3fSampleCount+'件）':'';line.textContent=g.label+'：'+g.starts+'戦 '+g.wins+'勝（勝率 '+g.winRate.toFixed(1)+'%・複勝 '+g.top3+'回・全体比 '+delta+'）'+scoreNote+last3fNote+tendency;details.append(line);});});
  card.append(details);
 }
+
+function horseConditionAdjustedScore(conditionRows,allRows,minStarts=3,priorStrength=5){
+ const baseline=horseScore(allRows);
+ if(baseline===null)return {score:null,baseline:null,conditionScore:null,sampleCount:0,confidence:'判定材料不足'};
+ const valid=conditionRows.map(r=>{
+  const finish=Number(r.finish),field=Number(r.field_size);
+  return Number.isInteger(finish)&&Number.isInteger(field)&&field>1&&finish>=1&&finish<=field
+   ?100*(field-finish)/(field-1):null;
+ }).filter(v=>v!==null);
+ if(valid.length<minStarts)return {score:baseline,baseline,conditionScore:null,sampleCount:valid.length,confidence:'条件データ不足'};
+ const conditionScore=valid.reduce((a,b)=>a+b,0)/valid.length;
+ const adjusted=(conditionScore*valid.length+baseline*priorStrength)/(valid.length+priorStrength);
+ return {score:adjusted,baseline,conditionScore,sampleCount:valid.length,confidence:valid.length>=10?'高め':'中程度'};
+}
+
 function updateHorseComparison(){
  horseCompare.replaceChildren();
  if(!selectedHorses.size)return;
@@ -169,20 +184,20 @@ function updateHorseComparison(){
  });
  const table=document.createElement('table');table.style.width='100%';table.style.borderCollapse='collapse';
  const head=document.createElement('tr');
- ['馬名','出走','勝利','勝率','複勝率','着順指数','上がり相対','参考統合指数'].forEach(label=>{const th=document.createElement('th');th.textContent=label;th.style.textAlign='left';th.style.padding='6px';head.append(th);});table.append(head);
+ ['馬名','出走','勝利','勝率','複勝率','全体指数','条件補正指数','上がり相対','参考統合指数'].forEach(label=>{const th=document.createElement('th');th.textContent=label;th.style.textAlign='left';th.style.padding='6px';head.append(th);});table.append(head);
  selectedHorses.forEach(item=>{
   const rows=filterRows(item.rows);
   const wins=rows.filter(r=>Number(r.finish)===1).length;
   const top3=rows.filter(r=>[1,2,3].includes(Number(r.finish))).length;
-  const score=horseScore(rows);
+  const adjusted=horseConditionAdjustedScore(rows,item.rows);
   const relative=horseRelativeLast3fSummary(rows,horseRecords);
-  const integrated=score!==null&&relative.averageScore!==null?score*0.8+relative.averageScore*0.2:null;
+  const integrated=adjusted.score!==null&&relative.averageScore!==null?adjusted.score*0.8+relative.averageScore*0.2:null;
   const tr=document.createElement('tr');
-  const values=[item.name,rows.length?rows.length+'戦':'—',rows.length?wins+'勝':'—',rows.length?(wins/rows.length*100).toFixed(1)+'%':'—',rows.length?(top3/rows.length*100).toFixed(1)+'%':'—',score===null?'—':score.toFixed(1),relative.averageScore===null?'—':relative.averageScore.toFixed(1)+'（'+relative.sampleCount+'走）',integrated===null?'—':integrated.toFixed(1)];
+  const values=[item.name,rows.length?rows.length+'戦':'—',rows.length?wins+'勝':'—',rows.length?(wins/rows.length*100).toFixed(1)+'%':'—',rows.length?(top3/rows.length*100).toFixed(1)+'%':'—',adjusted.baseline===null?'—':adjusted.baseline.toFixed(1),adjusted.score===null?'—':adjusted.score.toFixed(1)+(adjusted.sampleCount<3?'*':''),relative.averageScore===null?'—':relative.averageScore.toFixed(1)+'（'+relative.sampleCount+'走）',integrated===null?'—':integrated.toFixed(1)];
   values.forEach(value=>{const td=document.createElement('td');td.textContent=value;td.style.padding='6px';td.style.borderTop='1px solid #40516a';tr.append(td);});
   table.append(tr);
  });horseCompare.append(table);
- const note=document.createElement('p');note.className='muted small';note.textContent='着順指数は頭数補正した直近5走の参考値です。上がり相対は同一レース内で3頭以上を比較できた出走のみ集計します。参考統合指数は着順指数80％・上がり相対20％の暫定値で、比較可能な上がりデータがない場合は表示しません。各指数は勝率や将来の結果を示すものではありません。';horseCompare.append(note);
+ const note=document.createElement('p');note.className='muted small';note.textContent='全体指数は頭数補正した直近5走の参考値です。条件補正指数は選択条件の頭数補正着順平均を全体指数へ5走分相当で縮約し、条件データ3走未満では全体指数を使用します（*は条件データ不足）。上がり相対は同一レース内で3頭以上を比較できた出走のみ集計します。参考統合指数は条件補正指数80％・上がり相対20％の暫定値で、上がり比較データがない場合は表示しません。各指数は勝率や将来の結果を示すものではありません。';horseCompare.append(note);
  const clear=document.createElement('button');clear.type='button';clear.textContent='比較を解除';clear.addEventListener('click',()=>{selectedHorses.clear();comparisonCondition='all';updateHorseComparison();renderHorses();});horseCompare.append(clear);
 }
 
