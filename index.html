@@ -318,6 +318,65 @@ function uniqueRunnerRows(rows){
   return true;
  });
 }
+
+function horseRelativeLast3fSummary(targetRows,allRows){
+ const raceGroups=new Map();
+ allRows.forEach(row=>{
+  const time=Number(row.individual_last3f??row.last3f);
+  const key=[row.source_url,row.date,row.track,row.race_number].map(v=>String(v??'').trim());
+  if(key.some(v=>!v)||!Number.isFinite(time)||time<=0)return;
+  const raceKey=key.join('|');
+  if(!raceGroups.has(raceKey))raceGroups.set(raceKey,[]);
+  raceGroups.get(raceKey).push(row);
+ });
+ const scores=[];
+ const seenTarget=new Set();
+ targetRows.forEach(target=>{
+  const time=Number(target.individual_last3f??target.last3f);
+  const key=[target.source_url,target.date,target.track,target.race_number].map(v=>String(v??'').trim());
+  if(key.some(v=>!v)||!Number.isFinite(time)||time<=0)return;
+  const raceKey=key.join('|');
+  const runners=raceGroups.get(raceKey)||[];
+  const unique=new Map();
+  runners.forEach((runner,index)=>{
+   const registration=String(runner.horse_registration_number||'').trim();
+   const number=String(runner.horse_number||'').trim();
+   const name=String(runner.horse_name||'').trim();
+   const identity=registration?'reg:'+registration:number?'number:'+number:name?'name:'+name:'row:'+index;
+   if(!unique.has(identity))unique.set(identity,runner);
+  });
+  const field=[...unique.values()];
+  if(field.length<3)return;
+  const targetRegistration=String(target.horse_registration_number||'').trim();
+  const targetNumber=String(target.horse_number||'').trim();
+  const targetName=String(target.horse_name||'').trim();
+  const targetRunner=field.find(r=>{
+   if(targetRegistration&&String(r.horse_registration_number||'').trim())return String(r.horse_registration_number).trim()===targetRegistration;
+   if(targetNumber&&String(r.horse_number||'').trim())return String(r.horse_number).trim()===targetNumber;
+   return targetName&&String(r.horse_name||'').trim()===targetName;
+  });
+  if(!targetRunner)return;
+  const targetIdentity=targetRegistration?'reg:'+targetRegistration:targetNumber?'number:'+targetNumber:'name:'+targetName;
+  const uniqueStart=raceKey+'|'+targetIdentity;
+  if(seenTarget.has(uniqueStart))return;
+  seenTarget.add(uniqueStart);
+  const ranked=field.map((runner,index)=>({index,time:Number(runner.individual_last3f??runner.last3f)}))
+   .filter(item=>Number.isFinite(item.time)&&item.time>0)
+   .sort((a,b)=>a.time-b.time);
+  if(ranked.length<3)return;
+  let position=0,targetRank=null;
+  while(position<ranked.length){
+   let end=position+1;
+   while(end<ranked.length&&ranked[end].time===ranked[position].time)end++;
+   const averageRank=((position+1)+end)/2;
+   for(let i=position;i<end;i++)if(ranked[i].index===field.indexOf(targetRunner))targetRank=averageRank;
+   position=end;
+  }
+  if(targetRank!==null)scores.push(100*(ranked.length-targetRank)/(ranked.length-1));
+ });
+ return {sampleCount:scores.length,averageScore:scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:null};
+}
+
 function renderHorses(){
  const q=horseKeyword.value.trim().toLocaleLowerCase();
  const track=horseTrack.value;
@@ -355,6 +414,19 @@ function renderHorses(){
   const times=rows.map(r=>Number(r.finish_time_seconds)).filter(v=>Number.isFinite(v)&&v>0);
   const last3fs=rows.map(r=>Number(r.individual_last3f)).filter(v=>Number.isFinite(v)&&v>0);
   if(finishes.length||times.length||last3fs.length||rows.some(r=>r.result_status)){const extra=document.createElement('p');extra.className='muted small';const parts=[];if(finishes.length)parts.push('平均着順 '+(finishes.reduce((a,b)=>a+b,0)/finishes.length).toFixed(2));if(times.length)parts.push('平均走破 '+(times.reduce((a,b)=>a+b,0)/times.length).toFixed(2)+'秒');if(last3fs.length)parts.push('個別平均上がり3F '+(last3fs.reduce((a,b)=>a+b,0)/last3fs.length).toFixed(2)+'秒');const statuses=rows.filter(r=>r.result_status).map(r=>r.result_status);if(statuses.length)parts.push('状態記録 '+statuses.length+'件（'+[...new Set(statuses)].join('・')+'）');extra.textContent=parts.join(' ／ ');card.append(extra);}
+  const relativeLast3f=horseRelativeLast3fSummary(rows,horseRecords);
+  if(relativeLast3f.sampleCount){
+   const relative=document.createElement('p');relative.className='small';
+   relative.textContent='同一レース内・個別上がり3F相対指数：'+relativeLast3f.averageScore.toFixed(1)+' / 100（比較 '+relativeLast3f.sampleCount+'走）';
+   card.append(relative);
+   const relativeNote=document.createElement('p');relativeNote.className='muted small';
+   relativeNote.textContent='各レースの出走馬間で上がり3F順位を比較した参考値です。異なるレース間の走破速度や勝率を示すものではありません。比較可能な出走馬が3頭以上のレースのみ集計します。';
+   card.append(relativeNote);
+  }else{
+   const relative=document.createElement('p');relative.className='muted small';
+   relative.textContent='同一レース内・個別上がり3F相対指数：比較可能なデータ不足（同一レースで3頭以上の個別上がり3Fが必要）';
+   card.append(relative);
+  }
   appendRecentForm(card,rows);
   appendConditionBreakdown(card,rows);
   const scoreValue=horseScore(rows);
