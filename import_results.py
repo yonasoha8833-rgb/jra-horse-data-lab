@@ -6,10 +6,23 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 
-from jra_pdf_parser import download_and_extract
+from jra_pdf_parser import _complete_ocr_records, download_and_extract
 
 CATALOG = Path("data/catalog.json")
 OUTPUT = Path("data/race_results.json")
+
+
+def sanitize_existing_records(records: list[dict]) -> list[dict]:
+    """Revalidate legacy OCR rows before retaining them in the cumulative dataset."""
+    ordinary = [
+        row for row in records
+        if row.get("extraction_status") != "ocr_fallback_basic_fields"
+    ]
+    legacy_ocr = [
+        row for row in records
+        if row.get("extraction_status") == "ocr_fallback_basic_fields"
+    ]
+    return ordinary + _complete_ocr_records(legacy_ocr)
 
 
 def build_quality_report(records: list[dict]) -> dict:
