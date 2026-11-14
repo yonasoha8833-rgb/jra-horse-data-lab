@@ -122,6 +122,12 @@ python ocr_jra_registry.py --first-page 1 --last-page 2 --output registry_ocr_sa
 python -m unittest tests.test_jra_registry_parser -v
 ```
 
+### OCRの数字誤認識を手動確認へ分離
+
+`jra_registry_parser.py` に、全角数字・全角ハイフンを正規化して通常の登録番号形式として読める処理を追加しました。一方、`O` と `0`、`I`・`l` と `1`、縦棒 `|` などが登録番号らしい位置に現れた行は、数字へ自動置換せず `find_ambiguous_registration_lines` で行番号・原文・確認理由を返します。これらは人の目で原本PDFと照合するための警告であり、登録番号候補や成績データには自動登録しません。
+
+また、登録番号重複テストが実際に別々のOCR行を入力するよう修正しました。登録番号の重複除外を正しく検証するためのテストです。
+
 ## JRA公式PDFの馬別データ取り込み
 
 レース見出しの天候表記（晴・曇・雨・小雨・小雪・雪）に続く馬場状態（良・稍重・重・不良）を `going` として抽出します。表記が確認できない場合は推測せず `null` にします。
