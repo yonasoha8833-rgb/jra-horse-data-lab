@@ -44,7 +44,8 @@ ul{padding-left:22px}
 <select id="horseSort" aria-label="馬の並び順"><option value="name">馬名順</option><option value="starts">出走数が多い順</option><option value="wins">勝利数が多い順</option><option value="winRate">勝率が高い順</option><option value="score">参考指数が高い順</option></select>
 </div>
 <div id="horseCompare" class="small"></div>
-<div class="panel" style="margin:14px 0;padding:12px"><h3>レース別成績</h3><p id="raceSummaryStatus" class="muted small">レースデータを集計します…</p><div id="raceResults"></div></div>
+<div class="panel" style="margin:14px 0;padding:12px"><h3>レース別成績</h3><p id="raceSummaryStatus" class="muted small">レースデータを集計します…</p><div id="raceResults"></div>
+<h4>条件別レース傾向</h4><label class="small">集計条件 <select id="raceConditionDimension"><option value="track">競馬場</option><option value="surface">芝・ダート</option><option value="distance_band">距離帯</option><option value="going">馬場状態</option></select></label><div id="raceConditionResults" class="small"></div></div>
 <div id="horseResults"></div>
 <p class="muted small">能力指数は出走頭数で着順を0〜100点に換算し、直近5走を重み付けした参考値です。速度指数や勝率予測ではありません。</p>
 </section>
@@ -194,6 +195,45 @@ function renderRaceSummaries(records){
  });
 }
 
+
+function renderRaceConditionSummaries(records){
+ const target=document.getElementById('raceConditionResults');
+ const selector=document.getElementById('raceConditionDimension');
+ if(!target||!selector)return;
+ const dimension=selector.value;
+ const races=new Map();
+ records.forEach(row=>{
+  const number=String(row.race_number||'').trim();if(!number)return;
+  const key=[row.source_url||'',row.date||'',row.track||'',number].join('|');
+  if(!races.has(key))races.set(key,[]);
+  races.get(key).push(row);
+ });
+ const distanceBand=value=>{const n=Number(value);if(!Number.isFinite(n)||n<1000||n>5000)return null;return n<=1400?'短距離（1000〜1400m）':n<=1800?'マイル（1401〜1800m）':n<=2200?'中距離（1801〜2200m）':'長距離（2201〜5000m）';};
+ const groups=new Map();
+ races.forEach(rows=>{
+  const first=rows[0];const value=dimension==='distance_band'?distanceBand(first.distance):String(first[dimension]||'').trim();
+  if(!value)return;
+  if(!groups.has(value))groups.set(value,[]);
+  const placed=rows.filter(r=>Number.isFinite(Number(r.finish))&&Number(r.finish)>0);
+  const winners=placed.filter(r=>Number(r.finish)===1);
+  groups.get(value).push({
+   starters:rows.length,
+   winningTime:winners.length===1&&Number.isFinite(Number(winners[0].finish_time_seconds))?Number(winners[0].finish_time_seconds):null,
+   last3f:Number.isFinite(Number(first.race_last3f))&&first.race_last3f!==null?Number(first.race_last3f):null,
+   warning:rows.some(r=>Array.isArray(r.race_validation_warnings)&&r.race_validation_warnings.length)
+  });
+ });
+ target.replaceChildren();
+ const eligible=[...groups.entries()].filter(([,items])=>items.length>=3).sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0],'ja'));
+ if(!eligible.length){const p=document.createElement('p');p.className='muted';p.textContent='この条件は集計対象が3レース未満です。レースデータが増えると表示されます。';target.append(p);return;}
+ const table=document.createElement('table');table.style.width='100%';table.style.borderCollapse='collapse';
+ const head=document.createElement('tr');['条件','レース数','平均頭数','平均勝ち時計','平均レース上がり3F','警告レース'].forEach(label=>{const th=document.createElement('th');th.textContent=label;th.style.textAlign='left';th.style.padding='6px';head.append(th);});table.append(head);
+ const average=(items,key,digits)=>{const values=items.map(item=>item[key]).filter(value=>value!==null&&Number.isFinite(value));return values.length?(values.reduce((a,b)=>a+b,0)/values.length).toFixed(digits):'—';};
+ eligible.forEach(([condition,items])=>{const tr=document.createElement('tr');const values=[condition,String(items.length),average(items,'starters',1)+'頭',average(items,'winningTime',2)==='—'?'—':average(items,'winningTime',2)+'秒',average(items,'last3f',2)==='—'?'—':average(items,'last3f',2)+'秒',String(items.filter(item=>item.warning).length)];values.forEach(value=>{const td=document.createElement('td');td.textContent=value;td.style.padding='6px';td.style.borderTop='1px solid #40516a';tr.append(td);});table.append(tr);});
+ target.append(table);
+ const note=document.createElement('p');note.className='muted';note.textContent='各条件3レース以上を表示。勝ち時計・レース上がり3Fは取得できたレースのみで平均し、欠損値は補完しません。';target.append(note);
+}
+
 function horseScore(rows){const valid=rows.filter(r=>Number.isFinite(Number(r.finish))&&Number.isFinite(Number(r.field_size))&&Number(r.field_size)>1&&Number(r.finish)>=1&&Number(r.finish)<=Number(r.field_size)).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,5);if(!valid.length)return null;const weighted=valid.reduce((sum,r,i)=>sum+(100*(Number(r.field_size)-Number(r.finish))/(Number(r.field_size)-1))*(valid.length-i),0);return weighted/(valid.length*(valid.length+1)/2);}
 function renderHorses(){
  const q=horseKeyword.value.trim().toLocaleLowerCase();
@@ -240,6 +280,8 @@ function renderHorses(){
 fetch('./data/race_results.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('not imported');return r.json();}).then(d=>{
  horseRecords=Array.isArray(d.records)?d.records:[];
  renderRaceSummaries(horseRecords);
+ renderRaceConditionSummaries(horseRecords);
+ document.getElementById('raceConditionDimension').addEventListener('change',()=>renderRaceConditionSummaries(horseRecords));
  [...new Set(horseRecords.map(r=>r.distance).filter(v=>Number.isFinite(Number(v))&&Number(v)>0))].sort((a,b)=>Number(a)-Number(b)).forEach(v=>{const o=document.createElement('option');o.value=String(v);o.textContent=String(v)+'m';horseDistance.append(o);});
  window.__importFailures=Array.isArray(d.import_failures)?d.import_failures:[];
  const importMeta=document.createElement('p');importMeta.className='muted small';
