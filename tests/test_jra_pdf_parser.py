@@ -433,6 +433,20 @@ class JraPdfParserTests(unittest.TestCase):
             [100.0, 140.0], [(101.0, (1, 1)), (141.0, None)]
         ))
 
+    def test_ocr_identifier_rows_ignore_extra_rows_outside_runner_positions(self):
+        matched = _match_ocr_identifier_rows(
+            [100.0, 140.0, 180.0],
+            [(20.0, (8, 8)), (101.0, (1, 1)), (141.0, (2, 2)),
+             (181.0, (3, 3)), (260.0, (4, 4))],
+        )
+        self.assertEqual(matched, [(1, 1), (2, 2), (3, 3)])
+
+    def test_ocr_identifier_rows_reject_ambiguous_nearby_rows(self):
+        self.assertIsNone(_match_ocr_identifier_rows(
+            [100.0, 140.0],
+            [(99.0, (1, 1)), (101.0, (1, 2)), (141.0, (2, 2))],
+        ))
+
     def test_ocr_tsv_lines_converts_crop_coordinates_to_panel_coordinates(self):
         tsv = (
             "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
