@@ -44,7 +44,8 @@ class JraReplayCatalogTests(unittest.TestCase):
         html = """
         <table><tr><td>10月5日日曜</td><td>GⅡ毎日王冠</td><td>東京</td>
         <td>3歳以上</td><td>芝1,800メートル</td><td></td><td></td>
-        <td><a href="/JRADB/accessS.html?CNAME=example">レース結果</a></td></tr></table>
+        <td><a href="/JRADB/accessS.html?CNAME=example">レース結果</a>
+        <a href="/history.html">成績一覧</a></td></tr></table>
         """
         rows = parse_listing_html(
             html, year=2025,
