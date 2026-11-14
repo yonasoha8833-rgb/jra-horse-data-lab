@@ -1,6 +1,6 @@
 import unittest
 
-from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _pair_identifier_columns, parse_race_text
+from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _pair_identifier_columns, _build_ocr_runner_lines, parse_race_text
 
 
 SAMPLE = """
@@ -481,6 +481,24 @@ class JraPdfParserTests(unittest.TestCase):
         )
         lines = _ocr_tsv_lines(tsv, scale=5, y_offset=30)
         self.assertEqual(lines, [(35.0, "1")])
+
+
+    def test_builds_runner_lines_from_row_ocr_and_trusted_identifiers(self):
+        rows = [(100.0, (7, 14)), (140.0, (1, 2))]
+        lines = _build_ocr_runner_lines(
+            rows,
+            ["メイショウイブキ 牝3鹿 55 1:23.4", "サンライズロイ 牡3鹿 57 1:24.0"],
+        )
+        self.assertEqual(lines, [
+            "7|14 メイショウイブキ 牝3鹿 55 1:23.4",
+            "1|2 サンライズロイ 牡3鹿 57 1:24.0",
+        ])
+
+    def test_rejects_incomplete_row_ocr_results(self):
+        self.assertEqual(
+            _build_ocr_runner_lines([(100.0, (7, 14)), (140.0, (1, 2))], ["馬名"]),
+            [],
+        )
 
 if __name__ == "__main__":
     unittest.main()
