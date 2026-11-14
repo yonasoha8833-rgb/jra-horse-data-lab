@@ -20,7 +20,7 @@ def _number(value: Any) -> float | None:
         return None
 
 
-REGISTRATION_NUMBER_RE = re.compile(r"^20[0-9]{2}-[0-9]{5}$")
+REGISTRATION_NUMBER_RE = re.compile(r"^[0-9]{4}-[0-9]{5}$")
 
 
 def _registration_number(value: Any) -> str | None:
