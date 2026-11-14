@@ -27,14 +27,20 @@ def summarize_horses(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     corner_positions, jockey.
     Missing or unparseable values are excluded from numeric averages.
     """
-    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for row in records:
         name = str(row.get("horse_name") or "").strip()
+        registration_number = str(row.get("horse_registration_number") or "").strip()
         if name:
-            grouped[name].append(row)
+            # Prefer an official registration identifier when a source provides it.
+            # Name-only grouping remains provisional and is explicitly labeled.
+            identity = ("registration", registration_number) if registration_number else ("name", name)
+            grouped[identity].append(row)
 
     summaries = []
-    for name, rows in sorted(grouped.items()):
+    for identity, rows in sorted(grouped.items()):
+        name = str(rows[0].get("horse_name") or "").strip()
+        registration_number = identity[1] if identity[0] == "registration" else None
         finishes = [_number(r.get("finish")) for r in rows]
         finishes = [v for v in finishes if v is not None and v > 0]
         times = [_number(r.get("finish_time_seconds", r.get("time_seconds"))) for r in rows]
@@ -43,6 +49,9 @@ def summarize_horses(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
         last3fs = [v for v in last3fs if v is not None and v > 0]
         summaries.append({
             "horse_name": name,
+            "horse_registration_number": registration_number,
+            "identity_basis": "official_registration_number" if registration_number else "horse_name_only",
+            "identity_verified": bool(registration_number),
             "starts": len(rows),
             "placed_starts": sum(1 for r in rows if _number(r.get("finish")) is not None and _number(r.get("finish")) > 0),
             "unplaced_starts": sum(1 for r in rows if _number(r.get("finish")) is None or _number(r.get("finish")) <= 0),
