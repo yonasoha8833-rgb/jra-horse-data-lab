@@ -45,7 +45,7 @@ ul{padding-left:22px}
 </div>
 <div id="horseCompare" class="small"></div>
 <div class="panel" style="margin:14px 0;padding:12px"><h3>レース別成績</h3><p id="raceSummaryStatus" class="muted small">レースデータを集計します…</p><div id="raceResults"></div>
-<h4>条件別レース傾向</h4><label class="small">集計条件 <select id="raceConditionDimension"><option value="track">競馬場</option><option value="surface">芝・ダート</option><option value="distance_band">距離帯</option><option value="going">馬場状態</option></select></label><div id="raceConditionResults" class="small"></div></div>
+<h4>脚質×ペース別の実績</h4><p class="muted small">公式ラップとコーナー通過順位がそろうレースのみ集計します。各組み合わせ3走以上を表示します。</p><div id="stylePaceStatus" class="muted small"></div><div id="stylePaceResults" class="small"></div><h4>条件別レース傾向</h4><label class="small">集計条件 <select id="raceConditionDimension"><option value="track">競馬場</option><option value="surface">芝・ダート</option><option value="distance_band">距離帯</option><option value="going">馬場状態</option></select></label><div id="raceConditionResults" class="small"></div></div>
 <div id="horseResults"></div>
 <p class="muted small">能力指数は出走頭数で着順を0〜100点に換算し、直近5走を重み付けした参考値です。速度指数や勝率予測ではありません。</p>
 </section>
@@ -215,6 +215,55 @@ function renderRaceSummaries(records){
 }
 
 
+function renderStylePacePerformance(records){
+ const target=document.getElementById('stylePaceResults');
+ const status=document.getElementById('stylePaceStatus');
+ if(!target||!status)return;
+ target.replaceChildren();
+ const races=new Map();
+ records.forEach(row=>{
+  const number=String(row.race_number||'').trim();if(!number)return;
+  const key=[row.source_url||'',row.date||'',row.track||'',number].join('|');
+  if(!races.has(key))races.set(key,[]);
+  races.get(key).push(row);
+ });
+ const groups=new Map();
+ let validRaces=0;
+ const styles=['逃げ','先行','差し','追込'];
+ races.forEach(rows=>{
+  const first=rows[0];
+  const lapValue=rows.find(r=>r.race_lap_times!=null)?.race_lap_times;
+  const laps=Array.isArray(lapValue)?lapValue.map(Number):typeof lapValue==='string'?lapValue.trim().split(/[\\s,、/|‐-‒–—-]+/).map(Number):[];
+  const distance=Number(rows.find(r=>Number(r.distance)>0)?.distance||first.distance);
+  if(!Number.isInteger(distance)||distance<1000||distance>5000||distance%200!==0||laps.length!==distance/200||laps.some(v=>!Number.isFinite(v)||v<8||v>40))return;
+  const half=Math.floor(laps.length/2),balance=laps.slice(half).reduce((a,b)=>a+b,0)/laps.length*2-laps.slice(0,half).reduce((a,b)=>a+b,0)/laps.length*2;
+  const pace=balance>=0.3?'前半速い':balance<=-0.3?'後半速い':'ほぼ均等';
+  validRaces++;
+  const field=Number(first.field_size)>1?Number(first.field_size):rows.length;
+  rows.forEach(row=>{
+   let positions=row.corner_positions;
+   if(typeof positions==='string')positions=positions.trim().split(/[\\s,、/|‐-‒–—-]+/).map(Number);
+   if(!Array.isArray(positions)||!positions.length||positions.some(v=>!Number.isInteger(Number(v))||Number(v)<1||Number(v)>field))return;
+   const avg=positions.reduce((a,b)=>a+Number(b),0)/positions.length;
+   const ratio=avg/field,firstRatio=Number(positions[0])/field;
+   const style=firstRatio<=.15&&ratio<=.25?'逃げ':ratio<=.4?'先行':ratio<=.7?'差し':'追込';
+   const finish=Number(row.finish);
+   if(!Number.isInteger(finish)||finish<1||finish>field)return;
+   const key=style+'|'+pace;if(!groups.has(key))groups.set(key,[]);
+   groups.get(key).push({finish,field});
+  });
+ });
+ status.textContent='有効ラップ確認レース '+validRaces+'件 ／ 表示条件：各組み合わせ3走以上';
+ const ordered=[];
+ styles.forEach(style=>['前半速い','ほぼ均等','後半速い'].forEach(pace=>{const items=groups.get(style+'|'+pace)||[];if(items.length<3)return;const wins=items.filter(x=>x.finish===1).length,top=items.filter(x=>x.finish<=3).length;const score=items.reduce((sum,x)=>sum+100*(x.field-x.finish)/(x.field-1),0)/items.length;ordered.push({style,pace,starts:items.length,wins,top,score});}));
+ if(!ordered.length){const p=document.createElement('p');p.className='muted';p.textContent='条件を満たす集計はまだありません。ラップ・通過順位・着順がそろったデータを追加してください。';target.append(p);return;}
+ const table=document.createElement('table');table.style.width='100%';table.style.borderCollapse='collapse';
+ const head=document.createElement('tr');['脚質','ペース','出走','勝率','複勝率','着順指数'].forEach(label=>{const th=document.createElement('th');th.textContent=label;th.style.textAlign='left';th.style.padding='6px 3px';head.append(th);});table.append(head);
+ ordered.forEach(item=>{const tr=document.createElement('tr');[item.style,item.pace,item.starts+'戦',(item.wins/item.starts*100).toFixed(1)+'%',(item.top/item.starts*100).toFixed(1)+'%',item.score.toFixed(1)].forEach(value=>{const td=document.createElement('td');td.textContent=value;td.style.padding='6px 3px';td.style.borderTop='1px solid #40516a';tr.append(td);});table.append(tr);});
+ target.append(table);
+ const note=document.createElement('p');note.className='muted';note.textContent='着順指数は各レースの出走頭数で着順を補正した記述値です。脚質は通過順位からの簡易推定であり、予測確率ではありません。';target.append(note);
+}
+
 function renderRaceConditionSummaries(records){
  const target=document.getElementById('raceConditionResults');
  const selector=document.getElementById('raceConditionDimension');
@@ -350,6 +399,7 @@ Promise.all([
   }
  });
  renderRaceSummaries(horseRecords);
+ renderStylePacePerformance(horseRecords);
  renderRaceConditionSummaries(horseRecords);
  document.getElementById('raceConditionDimension').addEventListener('change',()=>renderRaceConditionSummaries(horseRecords));
  [...new Set(horseRecords.map(r=>r.distance).filter(v=>Number.isFinite(Number(v))&&Number(v)>0))].sort((a,b)=>Number(a)-Number(b)).forEach(v=>{const o=document.createElement('option');o.value=String(v);o.textContent=String(v)+'m';horseDistance.append(o);});
