@@ -254,21 +254,27 @@ function renderRaceConditionSummaries(records){
 }
 
 function horseScore(rows){const valid=rows.filter(r=>Number.isFinite(Number(r.finish))&&Number.isFinite(Number(r.field_size))&&Number(r.field_size)>1&&Number(r.finish)>=1&&Number(r.finish)<=Number(r.field_size)).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,5);if(!valid.length)return null;const weighted=valid.reduce((sum,r,i)=>sum+(100*(Number(r.field_size)-Number(r.finish))/(Number(r.field_size)-1))*(valid.length-i),0);return weighted/(valid.length*(valid.length+1)/2);}
+function uniqueRunnerRows(rows){
+ const seen=new Set();
+ return rows.filter(r=>{
+  const parts=[r.source_url,r.date,r.track,r.race_number].map(v=>String(v??'').trim());
+  const rawNumber=r.horse_number;
+  if(parts.some(v=>!v)||rawNumber===null||rawNumber===undefined||String(rawNumber).trim()==='')return true;
+  const numericNumber=Number(rawNumber);
+  const horseNumber=Number.isFinite(numericNumber)&&Number.isInteger(numericNumber)?String(numericNumber):String(rawNumber).trim();
+  const key=parts.concat(horseNumber).join('|');
+  if(seen.has(key))return false;
+  seen.add(key);
+  return true;
+ });
+}
 function renderHorses(){
  const q=horseKeyword.value.trim().toLocaleLowerCase();
  const track=horseTrack.value;
  const surface=horseSurface.value;
  const distance=horseDistance.value;
  const matchedCandidates=horseRecords.filter(r=>(!track||r.track===track)&&(!surface||r.surface===surface)&&(!distance||String(r.distance)===distance)&&(!q||String(r.horse_name||'').toLocaleLowerCase().includes(q)));
- const seenRunnerKeys=new Set();
- const matched=matchedCandidates.filter(r=>{
-  const parts=[r.source_url,r.date,r.track,r.race_number,r.horse_number].map(v=>String(v??'').trim());
-  if(parts.some(v=>!v))return true;
-  const key=parts.join('|');
-  if(seenRunnerKeys.has(key))return false;
-  seenRunnerKeys.add(key);
-  return true;
- });
+ const matched=uniqueRunnerRows(matchedCandidates);
  horseResults.replaceChildren();
  updateHorseComparison();
  if(!horseRecords.length){horseStatus.textContent='馬別データはまだありません。GitHub Actionsの「Import JRA race results」を実行してください。';return;}
@@ -292,7 +298,7 @@ function renderHorses(){
   const identity=registration?'登録番号:'+registration:'馬名:'+name;
   const choose=document.createElement('label');choose.className='small';choose.style.display='block';choose.style.marginTop='6px';
   const check=document.createElement('input');check.type='checkbox';check.style.width='auto';check.checked=selectedHorses.has(identity);check.disabled=!check.checked&&selectedHorses.size>=3;
-  check.addEventListener('change',()=>{if(check.checked){const allRows=horseRecords.filter(r=>{const reg=String(r.horse_registration_number||'').trim();return (reg?'登録番号:'+reg:'馬名:'+String(r.horse_name||'馬名不明'))===identity;});selectedHorses.set(identity,{name:name,rows:allRows});}else selectedHorses.delete(identity);updateHorseComparison();renderHorses();});
+  check.addEventListener('change',()=>{if(check.checked){const allRows=uniqueRunnerRows(horseRecords.filter(r=>{const reg=String(r.horse_registration_number||'').trim();return (reg?'登録番号:'+reg:'馬名:'+String(r.horse_name||'馬名不明'))===identity;}));selectedHorses.set(identity,{name:name,rows:allRows});}else selectedHorses.delete(identity);updateHorseComparison();renderHorses();});
   choose.append(check,document.createTextNode(' 比較対象に追加'));card.append(choose);
   const stat=document.createElement('p');stat.className='muted small';stat.textContent='勝率 '+(wins/rows.length*100).toFixed(1)+'% ／ 複勝率 '+(top3/rows.length*100).toFixed(1)+'%';card.append(stat);
   const finishes=rows.map(r=>Number(r.finish)).filter(v=>Number.isFinite(v)&&v>0);
