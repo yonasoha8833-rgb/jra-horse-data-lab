@@ -319,3 +319,62 @@ def summarize_race_conditions(
         })
     return sorted(result, key=lambda item: (-item["races"], item["condition"]))
 
+
+
+def summarize_horse_condition_profiles(
+    records: Iterable[dict[str, Any]],
+    *,
+    min_starts: int = 3,
+) -> list[dict[str, Any]]:
+    """Return per-horse condition performance using consistent identity keys.
+
+    Profiles cover track, surface, distance band, going, surface+going, and
+    track+surface+distance. Conditions below min_starts are omitted. Unknown
+    condition values are never inferred.
+    """
+    if min_starts < 1:
+        raise ValueError("min_starts must be at least 1")
+    grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in records:
+        name = str(row.get("horse_name") or "").strip()
+        if not name:
+            continue
+        registration = str(row.get("horse_registration_number") or "").strip()
+        identity = ("registration", registration) if registration else ("name", name)
+        grouped[identity].append(row)
+
+    profiles = []
+    for identity, rows in sorted(grouped.items()):
+        prepared = []
+        for row in rows:
+            distance = distance_band(row.get("distance"))
+            item = dict(row)
+            if distance:
+                item["distance_band"] = distance
+            if row.get("surface") and row.get("going"):
+                item["surface_going"] = f'{row["surface"]}・{row["going"]}'
+            if row.get("track") and row.get("surface") and _number(row.get("distance")):
+                item["track_surface_distance"] = (
+                    f'{row["track"]} {row["surface"]} {int(_number(row["distance"]))}m'
+                )
+            prepared.append(item)
+        dimensions = {
+            "track": "track",
+            "surface": "surface",
+            "distance_band": "distance_band",
+            "going": "going",
+            "surface_going": "surface_going",
+            "track_surface_distance": "track_surface_distance",
+        }
+        profiles.append({
+            "horse_name": str(rows[0].get("horse_name") or "").strip(),
+            "horse_registration_number": identity[1] if identity[0] == "registration" else None,
+            "identity_basis": "official_registration_number" if identity[0] == "registration" else "horse_name_only",
+            "identity_verified": identity[0] == "registration",
+            "starts": len(rows),
+            "conditions": {
+                label: summarize_conditions(prepared, field, min_starts=min_starts)
+                for label, field in dimensions.items()
+            },
+        })
+    return profiles
