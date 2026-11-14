@@ -398,7 +398,7 @@ def _ocr_identifier_pairs(text: str) -> list[tuple[int, int] | None]:
 def _ocr_tsv_lines(tsv: str, *, scale: float = 1.0, y_offset: float = 0.0) -> list[tuple[float, str]]:
     """Return OCR text lines with vertical centers in original panel coordinates."""
     grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
-    for item in csv.DictReader(io.StringIO(tsv), delimiter="\\t"):
+    for item in csv.DictReader(io.StringIO(tsv), delimiter="\t"):
         if item.get("level") != "5" or not item.get("text", "").strip():
             continue
         key = (item.get("page_num", "1"), item.get("block_num", "0"),
