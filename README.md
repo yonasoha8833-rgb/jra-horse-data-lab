@@ -87,6 +87,10 @@ JRAの「レース成績データ」に掲載される重賞レース結果PDF�
 
 参考：JRA [競走馬登録馬名簿・馬名意味](https://jra.jp/datafile/resist/index.html)、[5大登録](https://www.jra.go.jp/keiba/5dai/)、JRA-VAN [馬毎レース情報の仕様](https://jra-van.jp/dlb/sdv/sdk/JV-Data4901.pdf)。
 
+### OCRツールの安全性テスト
+
+`tests/test_ocr_jra_registry.py` に、PDF署名の確認、HTML応答の拒否、Content-Lengthによる過大ファイルの拒否、OCRページ数の上限、ページ範囲の検証を追加しました。登録番号重複テストも、現在の仕様（重複番号に結び付く候補をすべて除外）と一致するよう整理しました。
+
 ### 公式登録名簿OCRの小規模実行ツール
 
 `ocr_jra_registry.py` を追加しました。JRA公式PDFを最大30MiBまでの範囲で取得し、指定した最大5ページだけを300dpi・日本語TesseractでOCRして、確認用テキストへ出力します。PDF署名とダウンロード容量を検査し、結果は成績データへ自動登録しません。
