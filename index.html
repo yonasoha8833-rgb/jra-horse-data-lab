@@ -169,9 +169,20 @@ function updateHorseComparison(){
  });
  const table=document.createElement('table');table.style.width='100%';table.style.borderCollapse='collapse';
  const head=document.createElement('tr');
- ['馬名','出走','勝利','勝率','複勝率','参考指数'].forEach(label=>{const th=document.createElement('th');th.textContent=label;th.style.textAlign='left';th.style.padding='6px';head.append(th);});table.append(head);
- selectedHorses.forEach(item=>{const rows=filterRows(item.rows);const wins=rows.filter(r=>Number(r.finish)===1).length;const top3=rows.filter(r=>[1,2,3].includes(Number(r.finish))).length;const score=horseScore(rows);const tr=document.createElement('tr');const values=[item.name,rows.length?rows.length+'戦':'—',rows.length?wins+'勝':'—',rows.length?(wins/rows.length*100).toFixed(1)+'%':'—',rows.length?(top3/rows.length*100).toFixed(1)+'%':'—',score===null?'—':score.toFixed(1)];values.forEach(value=>{const td=document.createElement('td');td.textContent=value;td.style.padding='6px';td.style.borderTop='1px solid #40516a';tr.append(td);});table.append(tr);});horseCompare.append(table);
- const note=document.createElement('p');note.className='muted small';note.textContent='選択した条件に該当する出走記録だけで比較します。出走数も必ず確認してください。少数の記録による勝率は参考値であり、適性や将来の結果を保証するものではありません。';horseCompare.append(note);
+ ['馬名','出走','勝利','勝率','複勝率','着順指数','上がり相対','参考統合指数'].forEach(label=>{const th=document.createElement('th');th.textContent=label;th.style.textAlign='left';th.style.padding='6px';head.append(th);});table.append(head);
+ selectedHorses.forEach(item=>{
+  const rows=filterRows(item.rows);
+  const wins=rows.filter(r=>Number(r.finish)===1).length;
+  const top3=rows.filter(r=>[1,2,3].includes(Number(r.finish))).length;
+  const score=horseScore(rows);
+  const relative=horseRelativeLast3fSummary(rows,horseRecords);
+  const integrated=score!==null&&relative.averageScore!==null?score*0.8+relative.averageScore*0.2:null;
+  const tr=document.createElement('tr');
+  const values=[item.name,rows.length?rows.length+'戦':'—',rows.length?wins+'勝':'—',rows.length?(wins/rows.length*100).toFixed(1)+'%':'—',rows.length?(top3/rows.length*100).toFixed(1)+'%':'—',score===null?'—':score.toFixed(1),relative.averageScore===null?'—':relative.averageScore.toFixed(1)+'（'+relative.sampleCount+'走）',integrated===null?'—':integrated.toFixed(1)];
+  values.forEach(value=>{const td=document.createElement('td');td.textContent=value;td.style.padding='6px';td.style.borderTop='1px solid #40516a';tr.append(td);});
+  table.append(tr);
+ });horseCompare.append(table);
+ const note=document.createElement('p');note.className='muted small';note.textContent='着順指数は頭数補正した直近5走の参考値です。上がり相対は同一レース内で3頭以上を比較できた出走のみ集計します。参考統合指数は着順指数80％・上がり相対20％の暫定値で、比較可能な上がりデータがない場合は表示しません。各指数は勝率や将来の結果を示すものではありません。';horseCompare.append(note);
  const clear=document.createElement('button');clear.type='button';clear.textContent='比較を解除';clear.addEventListener('click',()=>{selectedHorses.clear();comparisonCondition='all';updateHorseComparison();renderHorses();});horseCompare.append(clear);
 }
 
