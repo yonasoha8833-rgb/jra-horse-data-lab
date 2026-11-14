@@ -143,5 +143,28 @@ class ImportResultsTests(unittest.TestCase):
             self.assertEqual(saved["import_failures"][0]["url"], failed_url)
 
 
+    def test_quality_report_ignores_malformed_warning_fields(self):
+        records = [
+            {
+                "source_url": "https://example.test/malformed.pdf",
+                "race_number": 1,
+                "date": "2026-11-08",
+                "race_validation_warnings": None,
+                "runner_validation_warnings": "invalid_finish_time_seconds",
+            },
+            {
+                "source_url": "https://example.test/malformed.pdf",
+                "race_number": 1,
+                "date": "2026-11-08",
+                "race_validation_warnings": "not-a-list",
+                "runner_validation_warnings": None,
+            },
+        ]
+        report = import_results.build_quality_report(records)
+        self.assertEqual(report["race_count"], 1)
+        self.assertEqual(report["warning_race_count"], 0)
+        self.assertEqual(report["records_with_invalid_finish_time"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()
