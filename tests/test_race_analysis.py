@@ -409,7 +409,7 @@ class RaceAnalysisTests(unittest.TestCase):
             "race_number": 1, "horse_number": 3, "surface": "芝",
             "distance": 1600, "going": "良", "finish": 1,
         }
-        profile = summarize_horse_condition_profiles([row, dict(row)])[0]
+        profile = summarize_horse_condition_profiles([row, dict(row)], min_starts=1)[0]
         self.assertEqual(profile["starts"], 1)
         self.assertEqual(profile["conditions"]["track"][0]["starts"], 1)
 
