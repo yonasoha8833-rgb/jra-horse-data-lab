@@ -168,6 +168,35 @@ def summarize_conditions(
         })
     return sorted(summaries, key=lambda item: (-item["starts"], item["condition"]))
 
+
+def distance_band(distance: Any) -> str | None:
+    """Map a valid race distance to a broad descriptive distance band."""
+    value = _number(distance)
+    if value is None or value < 1000 or value > 5000:
+        return None
+    if value <= 1400:
+        return "短距離（1000〜1400m）"
+    if value <= 1800:
+        return "マイル（1401〜1800m）"
+    if value <= 2200:
+        return "中距離（1801〜2200m）"
+    return "長距離（2201〜5000m）"
+
+
+def summarize_distance_bands(
+    records: Iterable[dict[str, Any]],
+    *,
+    min_starts: int = 3,
+) -> list[dict[str, Any]]:
+    """Summarize win/top-three rates by broad distance band."""
+    prepared = []
+    for row in records:
+        band = distance_band(row.get("distance"))
+        if band:
+            prepared.append({**row, "distance_band": band})
+    return summarize_conditions(prepared, "distance_band", min_starts=min_starts)
+
+
 def performance_score(records: Iterable[dict[str, Any]]) -> float | None:
     """Return a transparent 0-100 average placing score.
 
