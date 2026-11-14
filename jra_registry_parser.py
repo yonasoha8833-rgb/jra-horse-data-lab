@@ -77,7 +77,8 @@ def find_ambiguous_registration_lines(text: str) -> list[dict[str, Any]]:
     findings = []
     for line_number, raw_line in enumerate(text.splitlines(), start=1):
         normalized = unicodedata.normalize("NFKC", raw_line)
-        match = AMBIGUOUS_REGISTRATION_RE.search(normalized)\n        if match and AMBIGUOUS_OCR_CHAR_RE.search(match.group(0)):
+        match = AMBIGUOUS_REGISTRATION_RE.search(normalized)
+        if match and AMBIGUOUS_OCR_CHAR_RE.search(match.group(0)):
             findings.append({
                 "line_number": line_number,
                 "raw_text": raw_line.strip(),
