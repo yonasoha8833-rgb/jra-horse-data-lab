@@ -1,6 +1,82 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JRA HORSE DATA LAB</title>
-<style>body{margin:auto;padding:18px;max-width:850px;background:#101827;color:#edf2f8;font:16px system-ui}h1{font-size:1.5rem}.panel{background:#1b293d;border:1px solid #40516a;border-radius:14px;padding:16px;margin:16px 0}.muted{color:#aab8c9}a{color:#91caff;overflow-wrap:anywhere}.item{padding:10px 0;border-bottom:1px solid #40516a}</style></head><body>
-<h1>JRA HORSE DATA LAB</h1><p class="muted">JRA公式データ分析基盤・開発中</p>
-<section class="panel"><h2>公式データ更新状況</h2><p id="status">読み込み中…</p><div id="items"></div></section>
-<section class="panel"><h2>分析機能</h2><ul><li>レースラップ・前後半3F/5F：未実装</li><li>上がり3F・通過順位：未実装</li><li>テン速度・位置取り能力：未実装</li><li>トラックバイアス・不利補正：未実装</li><li>調教・初ブリンカー検出：未実装</li></ul><p class="muted">現在は公式PDFリンク一覧のみ。レース全体ラップと個別馬ラップを混同しません。</p></section>
-<script>fetch('./data/catalog.json').then(r=>{if(!r.ok)throw Error();return r.json()}).then(d=>{document.getElementById('status').textContent='確認日時: '+d.checked_at+' / PDFリンク: '+d.items.length;const b=document.getElementById('items');d.items.forEach(x=>{const p=document.createElement('p');p.className='item';const a=document.createElement('a');a.href=x.url;a.textContent=x.label+' ('+x.year+')';a.target='_blank';a.rel='noopener';p.append(a);b.append(p)})}).catch(()=>document.getElementById('status').textContent='更新データはまだありません。GitHub Actionsを実行してください。');</script></body></html>
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>JRA HORSE DATA LAB</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0 auto;padding:18px;max-width:900px;background:#101827;color:#edf2f8;font:16px/1.6 system-ui,sans-serif}
+h1{font-size:1.55rem;margin:8px 0}.muted{color:#aab8c9}
+.panel{background:#1b293d;border:1px solid #40516a;border-radius:14px;padding:16px;margin:16px 0}
+.controls{display:grid;grid-template-columns:1fr 130px;gap:10px;margin:14px 0}
+input,select{width:100%;min-width:0;padding:12px;border-radius:9px;border:1px solid #64748b;background:#0f1b2d;color:#fff;font-size:16px}
+button{padding:12px 16px;border:0;border-radius:9px;background:#2563eb;color:white;font-size:16px}
+.item{padding:12px 0;border-bottom:1px solid #40516a}.item:last-child{border:0}
+.item a{color:#91caff;text-decoration:none;font-weight:600}.item a:hover{text-decoration:underline}
+.small{font-size:.9rem}.count{font-weight:700;margin:10px 0}
+ul{padding-left:22px}
+@media(max-width:480px){.controls{grid-template-columns:1fr}.panel{padding:14px}}
+</style>
+</head>
+<body>
+<h1>JRA HORSE DATA LAB</h1>
+<p class="muted">JRA公式成績データ検索・分析基盤（開発中）</p>
+<section class="panel">
+<h2>公式データ検索</h2>
+<p id="status" class="muted">データを読み込んでいます…</p>
+<div class="controls">
+<input id="keyword" type="search" placeholder="競馬場・開催名で検索" aria-label="競馬場・開催名で検索">
+<select id="year" aria-label="年で絞り込み"><option value="">すべての年</option></select>
+</div>
+<div class="count" id="count" aria-live="polite"></div>
+<div id="items"></div>
+</section>
+<section class="panel">
+<h2>分析機能の開発状況</h2>
+<ul>
+<li>JRA公式成績PDF一覧：利用可能</li>
+<li>レースラップ・前後半3F/5F：未実装</li>
+<li>上がり3F・通過順位：未実装</li>
+<li>テン速度・位置取り能力：未実装</li>
+<li>トラックバイアス・不利補正：未実装</li>
+<li>調教・初ブリンカー検出：未実装</li>
+</ul>
+<p class="muted small">現在は公式成績PDFへのリンクを検索できます。馬別解析や自動予想はまだ実装していません。</p>
+</section>
+<script>
+(function(){
+const status=document.getElementById('status');
+const keyword=document.getElementById('keyword');
+const year=document.getElementById('year');
+const itemsBox=document.getElementById('items');
+const count=document.getElementById('count');
+let records=[];
+function render(){
+ const q=keyword.value.trim().toLocaleLowerCase();
+ const y=year.value;
+ const filtered=records.filter(x=>(!y||String(x.year)===y)&&(!q||(String(x.label)+' '+String(x.year)).toLocaleLowerCase().includes(q)));
+ count.textContent=filtered.length+'件 / 全'+records.length+'件';
+ itemsBox.replaceChildren();
+ if(!filtered.length){const p=document.createElement('p');p.className='muted';p.textContent='該当するデータはありません。';itemsBox.append(p);return;}
+ filtered.forEach(x=>{
+  const div=document.createElement('div');div.className='item';
+  const a=document.createElement('a');a.href=x.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=x.label+'（'+x.year+'年）';
+  div.append(a);itemsBox.append(div);
+ });
+}
+fetch('./data/catalog.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(d=>{
+ records=Array.isArray(d.items)?d.items:[];
+ const years=[...new Set(records.map(x=>x.year).filter(Boolean))].sort((a,b)=>b-a);
+ years.forEach(y=>{const o=document.createElement('option');o.value=String(y);o.textContent=y+'年';year.append(o);});
+ const checked=d.checked_at?new Date(d.checked_at).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}):'不明';
+ status.textContent='最終確認：'+checked+'（日本時間）';
+ render();
+}).catch(e=>{status.textContent='データを読み込めませんでした。時間をおいて再読み込みしてください。';count.textContent='';});
+keyword.addEventListener('input',render);
+year.addEventListener('change',render);
+})();
+</script>
+</body>
+</html>
