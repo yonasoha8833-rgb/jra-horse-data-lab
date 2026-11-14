@@ -15,7 +15,8 @@ from urllib.request import Request, urlopen
 
 TRACKS = ("札幌", "函館", "福島", "新潟", "東京", "中山", "中京", "京都", "阪神", "小倉")
 RUNNER_RE = re.compile(
-            r"^\s*(\d)(\d{1,2})\s+(.+?)\s+(牡|牝|セ)\s*([0-9０-９]+)",
+    # JRA extraction may separate frame/horse numbers ("2 2") or join them ("811").
+    r"^\\s*(\\d)\\s*(\\d{1,2})\\s+(.+?)\\s+(牡|牝|セ)\\s*([0-9０-９]+)",
 )
 RACE_RE = re.compile(r"第\s*(\d+)\s*競走")
 DATE_RE = re.compile(r"(\d{1,2})月\s*(\d{1,2})日")
@@ -57,19 +58,9 @@ def _track(text: str) -> str | None:
 
 def _runner(line: str) -> dict[str, Any] | None:
     match = RUNNER_RE.match(line)
-    if match:
-        frame, number, name, sex, age = match.groups()
-    else:
-        # JRA PDF text extraction sometimes joins a one-digit frame number
-        # and a two-digit horse number (for example, "811" = frame 8, horse 11).
-        compact = re.match(
-            r"^\s*(\d)(\d{1,2})\s+(.+?)\s+(牡|牝|セ)\s*([0-9０-９]+)",
-            line,
-        )
-        if not compact:
-            return None
-        match = compact
-        frame, number, name, sex, age = match.groups()
+    if not match:
+        return None
+    frame, number, name, sex, age = match.groups()
     tail = line[match.end():]
     time_match = re.search(r"(?<![0-9])([0-9０-９]{1,2})[：:]([0-9０-９]{2})[.．]([0-9０-９])", tail)
     finish_time = None
