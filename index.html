@@ -170,8 +170,25 @@ fetch('./data/race_results.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new
  [...new Set(horseRecords.map(r=>r.distance).filter(v=>Number.isFinite(Number(v))&&Number(v)>0))].sort((a,b)=>Number(a)-Number(b)).forEach(v=>{const o=document.createElement('option');o.value=String(v);o.textContent=String(v)+'m';horseDistance.append(o);});
  window.__importFailures=Array.isArray(d.import_failures)?d.import_failures:[];
  const importMeta=document.createElement('p');importMeta.className='muted small';
- const quality=d.quality_report||{};importMeta.textContent='取り込み済みPDF '+(Array.isArray(d.processed_sources)?d.processed_sources.length:0)+'件 ／ 記録 '+(Number(d.record_count)||horseRecords.length)+'件'+(window.__importFailures.length?' ／ 失敗 '+window.__importFailures.length+'件':'')+(Number(quality.warning_race_count)?' ／ 要確認レース '+Number(quality.warning_race_count)+'件':'');
+ const quality=d.quality_report&&typeof d.quality_report==='object'?d.quality_report:{};
+ importMeta.textContent='取り込み済みPDF '+(Array.isArray(d.processed_sources)?d.processed_sources.length:0)+'件 ／ 記録 '+(Number(d.record_count)||horseRecords.length)+'件'+(window.__importFailures.length?' ／ 失敗 '+window.__importFailures.length+'件':'')+(Number(quality.warning_race_count)?' ／ 要確認レース '+Number(quality.warning_race_count)+'件':'');
  horseStatus.after(importMeta);
+ const qualityDetails=document.createElement('details');qualityDetails.className='small';
+ const qualitySummary=document.createElement('summary');qualitySummary.textContent='データ品質の詳細を表示';qualityDetails.append(qualitySummary);
+ const qualityRows=[
+  ['集計レース数',quality.race_count,'件'],
+  ['要確認レース',quality.warning_race_count,'件'],
+  ['馬番重複レース',quality.duplicate_number_race_count,'件'],
+  ['出走頭数の不一致',quality.field_size_mismatch_race_count,'件'],
+  ['日付が未取得の記録',quality.records_missing_date,'件'],
+  ['競馬場が未取得の記録',quality.records_missing_track,'件'],
+  ['距離が未取得の記録',quality.records_missing_distance,'件'],
+  ['走破タイムが未取得の記録',quality.records_missing_finish_time,'件'],
+  ['不正な走破タイム',quality.records_with_invalid_finish_time,'件']
+ ];
+ qualityRows.forEach(([label,value,unit])=>{const p=document.createElement('p');p.textContent=label+'：'+(Number.isFinite(Number(value))?Number(value):0)+unit;qualityDetails.append(p);});
+ const note=document.createElement('p');note.className='muted';note.textContent='品質件数は取り込み済みデータを対象にした集計です。未取得や要確認の記録は、元PDFの表記や解析状況によって発生します。';qualityDetails.append(note);
+ importMeta.after(qualityDetails);
  renderHorses();
 }).catch(()=>{horseRecords=[];horseStatus.textContent='馬別データはまだありません。PDF取り込み後にここへ表示されます。';});
 horseKeyword.addEventListener('input',renderHorses);
