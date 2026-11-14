@@ -64,6 +64,31 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(len(rows), 2)
         self.assertIsNone(rows[0]["distance"])
 
+
+    def test_rejects_invalid_frame_and_horse_number(self):
+        invalid_frame = SAMPLE.replace("2 2 サノノファイター", "9 2 サノノファイター")
+        rows = parse_race_text(invalid_frame)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["horse_number"], 7)
+
+        invalid_number = SAMPLE.replace("2 2 サノノファイター", "2 19 サノノファイター")
+        rows = parse_race_text(invalid_number)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["horse_number"], 7)
+
+    def test_rejects_impossible_horse_age(self):
+        text = SAMPLE.replace("牡2鹿", "牡1鹿")
+        rows = parse_race_text(text)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["horse_name"], "ブルーサンタ")
+
+    def test_accepts_upper_boundary_values(self):
+        text = SAMPLE.replace("2 2 サノノファイター 牡2鹿", "8 18 サノノファイター 牡20鹿")
+        rows = parse_race_text(text)
+        self.assertEqual(rows[0]["frame"], 8)
+        self.assertEqual(rows[0]["horse_number"], 18)
+        self.assertEqual(rows[0]["age"], 20)
+
     def test_ignores_non_runner_lines(self):
         text = SAMPLE.replace("（2頭）", "（2頭）\n発走 9時55分")
         rows = parse_race_text(text)
