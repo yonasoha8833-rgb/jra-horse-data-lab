@@ -1,6 +1,6 @@
 import unittest
 
-from race_analysis import analyze_race_scenario, classify_running_style, parse_corner_positions, distance_band, filter_records, parse_lap_times, performance_score, condition_adjusted_performance_score, recent_form_summary, summarize_race_pace, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles, summarize_relative_last3f, summarize_running_style_pace_performance
+from race_analysis import analyze_race_scenario, classify_running_style, parse_corner_positions, distance_band, filter_records, parse_lap_times, performance_score, condition_adjusted_performance_score, integrated_condition_last3f_score, recent_form_summary, summarize_race_pace, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles, summarize_relative_last3f, summarize_running_style_pace_performance
 
 
 class RaceAnalysisTests(unittest.TestCase):
@@ -557,6 +557,64 @@ class RaceAnalysisTests(unittest.TestCase):
             summarize_relative_last3f(rows, min_race_runners=1)
         with self.assertRaises(ValueError):
             summarize_relative_last3f(rows, min_condition_starts=0)
+
+
+
+    def test_integrated_score_combines_condition_form_and_relative_last3f(self):
+        horse_rows = []
+        race_rows = []
+        for race_number in range(1, 4):
+            date = f"2026-11-0{race_number}"
+            target = {
+                "horse_name": "統合対象馬", "horse_registration_number": "2020-12345",
+                "date": date, "track": "東京", "race_number": race_number,
+                "surface": "芝", "distance": 1600, "going": "良",
+                "finish": 2, "field_size": 10, "horse_number": 1, "last3f": 33.0,
+            }
+            horse_rows.append(target)
+            race_rows.append(target)
+            race_rows.extend([
+                {**target, "horse_name": "相手馬A", "horse_registration_number": f"2021-{race_number:05d}",
+                 "horse_number": 2, "finish": 1, "last3f": 34.0},
+                {**target, "horse_name": "相手馬B", "horse_registration_number": f"2022-{race_number:05d}",
+                 "horse_number": 3, "finish": 3, "last3f": 35.0},
+            ])
+        result = integrated_condition_last3f_score(
+            horse_rows, race_rows, {"track": "東京", "surface": "芝", "distance": 1600, "going": "良"},
+            horse_registration_number="2020-12345",
+        )
+        self.assertTrue(result["integrated"])
+        self.assertEqual(result["relative_last3f_score"], 100.0)
+        self.assertEqual(result["relative_last3f_sample_count"], 3)
+        self.assertEqual(result["relative_last3f_condition"], "競馬場・芝ダート・距離")
+        self.assertGreater(result["score"], result["placing_condition_score"])
+
+    def test_integrated_score_falls_back_when_relative_sample_is_insufficient(self):
+        horse = {"horse_name": "単独馬", "horse_registration_number": "2020-12345",
+                 "date": "2026-11-01", "track": "東京", "race_number": 1,
+                 "surface": "芝", "distance": 1600, "finish": 2, "field_size": 10,
+                 "last3f": 33.0}
+        race_rows = [
+            horse,
+            {**horse, "horse_name": "相手", "horse_registration_number": "2021-12345",
+             "horse_number": 2, "last3f": 34.0},
+        ]
+        result = integrated_condition_last3f_score(
+            [horse], race_rows, {"surface": "芝", "distance": 1600},
+            horse_registration_number="2020-12345",
+        )
+        self.assertFalse(result["integrated"])
+        self.assertIsNone(result["relative_last3f_score"])
+        self.assertEqual(result["score"], result["overall_score"])
+
+    def test_integrated_score_validates_weight_and_requires_identity(self):
+        horse = {"horse_name": "対象", "date": "2026-11-01", "finish": 2, "field_size": 10}
+        with self.assertRaises(ValueError):
+            integrated_condition_last3f_score([horse], [], {}, horse_name="対象", relative_last3f_weight=1.1)
+        result = integrated_condition_last3f_score(
+            [horse], [], {}, horse_registration_number=None, horse_name=None
+        )
+        self.assertFalse(result["integrated"])
 
 
 if __name__ == "__main__":
