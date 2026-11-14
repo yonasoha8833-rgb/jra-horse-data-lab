@@ -43,6 +43,7 @@ ul{padding-left:22px}
 <select id="horseDistance" aria-label="距離で絞り込み"><option value="">全距離</option></select>
 <select id="horseSort" aria-label="馬の並び順"><option value="name">馬名順</option><option value="starts">出走数が多い順</option><option value="wins">勝利数が多い順</option><option value="winRate">勝率が高い順</option><option value="score">参考指数が高い順</option></select>
 </div>
+<div id="horseCompare" class="small"></div>
 <div id="horseResults"></div>
 <p class="muted small">能力指数は出走頭数で着順を0〜100点に換算し、直近5走を重み付けした参考値です。速度指数や勝率予測ではありません。</p>
 </section>
@@ -97,7 +98,9 @@ const horseSurface=document.getElementById('horseSurface');
 const horseDistance=document.getElementById('horseDistance');
 const horseSort=document.getElementById('horseSort');
 const horseResults=document.getElementById('horseResults');
+const horseCompare=document.getElementById('horseCompare');
 let horseRecords=[];
+const selectedHorses=new Map();
 function appendConditionBreakdown(card,rows){
  const makeGroups=(keyFn)=>{const groups=new Map();rows.forEach(r=>{const key=keyFn(r);if(!key)return;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(r);});return [...groups.entries()].map(([label,items])=>{const wins=items.filter(r=>Number(r.finish)===1).length;const top3=items.filter(r=>[1,2,3].includes(Number(r.finish))).length;return {label,starts:items.length,wins:wins,winRate:wins/items.length*100,top3:top3};}).sort((a,b)=>b.starts-a.starts||a.label.localeCompare(b.label,'ja'));};
  const sections=[
@@ -109,6 +112,17 @@ function appendConditionBreakdown(card,rows){
  sections.forEach(section=>{if(!section.groups.length)return;const heading=document.createElement('p');heading.className='muted';heading.textContent=section.title;details.append(heading);section.groups.slice(0,8).forEach(g=>{const line=document.createElement('p');line.textContent=g.label+'：'+g.starts+'戦 '+g.wins+'勝（勝率 '+g.winRate.toFixed(1)+'%・複勝 '+g.top3+'回）';details.append(line);});});
  card.append(details);
 }
+function updateHorseComparison(){
+ horseCompare.replaceChildren();
+ if(!selectedHorses.size)return;
+ const heading=document.createElement('p');heading.className='count';heading.textContent='馬の比較（最大3頭） '+selectedHorses.size+'/3頭';horseCompare.append(heading);
+ const table=document.createElement('table');table.style.width='100%';table.style.borderCollapse='collapse';
+ const head=document.createElement('tr');
+ ['馬名','出走','勝利','勝率','複勝率','参考指数'].forEach(label=>{const th=document.createElement('th');th.textContent=label;th.style.textAlign='left';th.style.padding='6px';head.append(th);});table.append(head);
+ selectedHorses.forEach(item=>{const rows=item.rows;const wins=rows.filter(r=>Number(r.finish)===1).length;const top3=rows.filter(r=>[1,2,3].includes(Number(r.finish))).length;const tr=document.createElement('tr');const values=[item.name,rows.length+'戦',wins+'勝',(wins/rows.length*100).toFixed(1)+'%',(top3/rows.length*100).toFixed(1)+'%',horseScore(rows)===null?'—':horseScore(rows).toFixed(1)];values.forEach(value=>{const td=document.createElement('td');td.textContent=value;td.style.padding='6px';td.style.borderTop='1px solid #40516a';tr.append(td);});table.append(tr);});
+ horseCompare.append(table);
+ const clear=document.createElement('button');clear.type='button';clear.textContent='比較を解除';clear.addEventListener('click',()=>{selectedHorses.clear();updateHorseComparison();renderHorses();});horseCompare.append(clear);
+}
 function horseScore(rows){const valid=rows.filter(r=>Number.isFinite(Number(r.finish))&&Number.isFinite(Number(r.field_size))&&Number(r.field_size)>1&&Number(r.finish)>=1&&Number(r.finish)<=Number(r.field_size)).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,5);if(!valid.length)return null;const weighted=valid.reduce((sum,r,i)=>sum+(100*(Number(r.field_size)-Number(r.finish))/(Number(r.field_size)-1))*(valid.length-i),0);return weighted/(valid.length*(valid.length+1)/2);}
 function renderHorses(){
  const q=horseKeyword.value.trim().toLocaleLowerCase();
@@ -117,6 +131,7 @@ function renderHorses(){
  const distance=horseDistance.value;
  const matched=horseRecords.filter(r=>(!track||r.track===track)&&(!surface||r.surface===surface)&&(!distance||String(r.distance)===distance)&&(!q||String(r.horse_name||'').toLocaleLowerCase().includes(q)));
  horseResults.replaceChildren();
+ updateHorseComparison();
  if(!horseRecords.length){horseStatus.textContent='馬別データはまだありません。GitHub Actionsの「Import JRA race results」を実行してください。';return;}
  const failures=Array.isArray(window.__importFailures)?window.__importFailures.length:0;
  horseStatus.textContent=matched.length+'件の出走記録（全'+horseRecords.length+'件）'+(failures?' ／ 取り込み失敗 '+failures+'件':'');
@@ -129,6 +144,11 @@ function renderHorses(){
   const top3=rows.filter(r=>[1,2,3].includes(Number(r.finish))).length;
   const card=document.createElement('div');card.className='item';
   const title=document.createElement('strong');title.textContent=name+(registration?'（登録番号 '+registration+'）':'（馬名による仮集計）')+'　'+rows.length+'戦 '+wins+'勝';card.append(title);
+  const identity=registration?'登録番号:'+registration:'馬名:'+name;
+  const choose=document.createElement('label');choose.className='small';choose.style.display='block';choose.style.marginTop='6px';
+  const check=document.createElement('input');check.type='checkbox';check.style.width='auto';check.checked=selectedHorses.has(identity);check.disabled=!check.checked&&selectedHorses.size>=3;
+  check.addEventListener('change',()=>{if(check.checked)selectedHorses.set(identity,{name:name,rows:rows.slice()});else selectedHorses.delete(identity);updateHorseComparison();renderHorses();});
+  choose.append(check,document.createTextNode(' 比較対象に追加'));card.append(choose);
   const stat=document.createElement('p');stat.className='muted small';stat.textContent='勝率 '+(wins/rows.length*100).toFixed(1)+'% ／ 複勝率 '+(top3/rows.length*100).toFixed(1)+'%';card.append(stat);
   const finishes=rows.map(r=>Number(r.finish)).filter(v=>Number.isFinite(v)&&v>0);
   const times=rows.map(r=>Number(r.finish_time_seconds)).filter(v=>Number.isFinite(v)&&v>0);
