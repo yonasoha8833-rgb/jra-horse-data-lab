@@ -6,6 +6,8 @@ individual horse's last-3F value from the race-level figure.
 """
 from __future__ import annotations
 
+import csv
+import io
 import os
 import re
 from datetime import date
@@ -393,6 +395,49 @@ def _ocr_identifier_pairs(text: str) -> list[tuple[int, int] | None]:
     return pairs
 
 
+def _ocr_tsv_lines(tsv: str, *, scale: float = 1.0, y_offset: float = 0.0) -> list[tuple[float, str]]:
+    """Return OCR text lines with vertical centers in original panel coordinates."""
+    grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
+    for item in csv.DictReader(io.StringIO(tsv), delimiter="\\t"):
+        if item.get("level") != "5" or not item.get("text", "").strip():
+            continue
+        key = (item.get("page_num", "1"), item.get("block_num", "0"),
+               item.get("par_num", "0"), item.get("line_num", "0"))
+        grouped.setdefault(key, []).append(item)
+    lines = []
+    for words in grouped.values():
+        try:
+            top = min(int(word["top"]) for word in words)
+            bottom = max(int(word["top"]) + int(word["height"]) for word in words)
+        except (KeyError, ValueError):
+            continue
+        text = " ".join(word["text"].strip() for word in words if word.get("text", "").strip())
+        lines.append((y_offset + ((top + bottom) / 2) / scale, text))
+    return sorted(lines, key=lambda item: item[0])
+
+
+def _match_ocr_identifier_rows(
+    runner_centers: list[float],
+    identifier_rows: list[tuple[float, tuple[int, int] | None]],
+) -> list[tuple[int, int]] | None:
+    """Match independent OCR rows by vertical position; reject ambiguity."""
+    if not runner_centers or len(runner_centers) != len(identifier_rows):
+        return None
+    centers = sorted(runner_centers)
+    rows = sorted(identifier_rows, key=lambda item: item[0])
+    gaps = [centers[i + 1] - centers[i] for i in range(len(centers) - 1)]
+    gaps = [gap for gap in gaps if gap > 0]
+    if len(gaps) != len(centers) - 1:
+        return None
+    typical_gap = sorted(gaps)[len(gaps) // 2] if gaps else 0
+    tolerance = typical_gap * 0.40
+    if not tolerance or any(abs(y - row[0]) > tolerance for y, row in zip(centers, rows)):
+        return None
+    if any(row[1] is None for row in rows):
+        return None
+    return [row[1] for row in rows]
+
+
 def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str | None:
     """OCR JRA panels, using a separate high-resolution pass for frame/horse columns."""
     if not shutil.which("pdftoppm") or not shutil.which("tesseract"):
@@ -466,19 +511,36 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 )
                 identifiers = _ocr_identifier_pairs(number_result.stdout)
 
-                # Replace only identifiers on rows already recognized as runners.
-                # If row counts disagree, retain the original OCR unchanged.
+                # Equal row counts are unsafe: independently OCR both columns
+                # with TSV boxes and require close vertical alignment.
+                panel_tsv = subprocess.run(
+                    ["tesseract", str(crop_path), "stdout", "-l", "jpn+eng", "--psm", "6", "tsv"],
+                    check=True, timeout=30, capture_output=True, text=True,
+                ).stdout
+                number_tsv = subprocess.run(
+                    ["tesseract", str(number_path), "stdout", "-l", "eng", "--psm", "6", "tsv"],
+                    check=True, timeout=30, capture_output=True, text=True,
+                ).stdout
+                panel_lines = _ocr_tsv_lines(panel_tsv, scale=5 / 3)
+                number_lines = _ocr_tsv_lines(
+                    number_tsv, scale=5, y_offset=float(number_box[1])
+                )
                 runner_indexes = [
                     i for i, line in enumerate(clean_lines) if _runner(line.strip())
                 ]
-                if len(runner_indexes) == len(identifiers):
-                    for line_index, identifier in zip(runner_indexes, identifiers):
-                        if identifier is None:
-                            continue
-                        frame, number = identifier
+                runner_centers = [
+                    y for y, line in panel_lines if _runner(line.strip())
+                ]
+                identifier_rows = (
+                    [(y, pair) for (y, _), pair in zip(number_lines, identifiers)]
+                    if len(number_lines) == len(identifiers) else []
+                )
+                matched = _match_ocr_identifier_rows(runner_centers, identifier_rows)
+                if len(runner_indexes) == len(runner_centers) and matched is not None:
+                    for line_index, (frame, number) in zip(runner_indexes, matched):
                         line = clean_lines[line_index]
                         prefix_match = re.match(
-                            r"^\s*[1-8]\s*[|/\\\\{}()\[\].,:;<>_-]*\s*\d{1,2}",
+                            r"^\\s*[1-8]\\s*[|/\\\\{}()\\[\\].,:;<>_-]*\\s*\\d{1,2}",
                             line,
                         )
                         if prefix_match:
