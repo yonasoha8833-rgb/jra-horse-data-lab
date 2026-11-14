@@ -27,6 +27,7 @@ class JraRegistryParserTests(unittest.TestCase):
 
     def test_still_rejects_text_after_registration_number(self):
         self.assertEqual(parse_registry_text("馬名 2023-01631 父名"), [])
+
     def test_rejects_lines_with_multiple_numbers(self):
         self.assertEqual(parse_registry_text("馬名 2023-01631 2024-00001"), [])
 
