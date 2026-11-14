@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from ocr_jra_registry import MAX_PDF_BYTES, download_pdf, ocr_pdf_pages
+from ocr_jra_registry import MAX_PDF_BYTES, download_pdf, extract_pdf_text, ocr_pdf_pages
 
 
 class FakeResponse:
@@ -53,6 +53,25 @@ class RegistryOcrToolTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaisesRegex(ValueError, 'Content-Length'):
                 download_pdf('https://www.jra.go.jp/sample.pdf', Path(temp) / 'sample.pdf')
+
+    @patch('ocr_jra_registry.subprocess.run')
+    def test_extract_pdf_text_uses_layout_and_requested_pages(self, mocked_run):
+        mocked_run.return_value.stdout = '馬名          登録番号'
+        result = extract_pdf_text(Path('sample.pdf'), 2, 3)
+        self.assertEqual(result, '馬名          登録番号')
+        self.assertEqual(mocked_run.call_args.args[0], [
+            'pdftotext', '-f', '2', '-l', '3', '-layout', 'sample.pdf', '-'
+        ])
+
+    def test_extract_pdf_text_rejects_more_than_five_pages(self):
+        with self.assertRaisesRegex(ValueError, 'five pages'):
+            extract_pdf_text(Path('unused.pdf'), 1, 6)
+
+    @patch('ocr_jra_registry.subprocess.run')
+    def test_extract_pdf_text_rejects_excessive_output(self, mocked_run):
+        mocked_run.return_value.stdout = 'x' * (2 * 1024 * 1024 + 1)
+        with self.assertRaisesRegex(ValueError, '2 MiB'):
+            extract_pdf_text(Path('sample.pdf'), 1, 1)
 
     def test_ocr_rejects_more_than_five_pages(self):
         with self.assertRaisesRegex(ValueError, 'five pages'):
