@@ -12,6 +12,41 @@ CATALOG = Path("data/catalog.json")
 OUTPUT = Path("data/race_results.json")
 
 
+def build_quality_report(records: list[dict]) -> dict:
+    """Summarize extraction completeness and race-level consistency warnings."""
+    races: dict[tuple, list[dict]] = {}
+    for row in records:
+        key = (row.get("source_url"), row.get("race_number"), row.get("date"))
+        races.setdefault(key, []).append(row)
+
+    warning_races = 0
+    duplicate_number_races = 0
+    field_size_mismatch_races = 0
+    for rows in races.values():
+        warnings = {
+            warning
+            for row in rows
+            for warning in row.get("race_validation_warnings", [])
+        }
+        if warnings:
+            warning_races += 1
+        if any(warning.startswith("duplicate_horse_number:") for warning in warnings):
+            duplicate_number_races += 1
+        if any(warning.startswith("declared_field_size_mismatch:") for warning in warnings):
+            field_size_mismatch_races += 1
+
+    return {
+        "race_count": len(races),
+        "warning_race_count": warning_races,
+        "duplicate_number_race_count": duplicate_number_races,
+        "field_size_mismatch_race_count": field_size_mismatch_races,
+        "records_missing_date": sum(1 for row in records if not row.get("date")),
+        "records_missing_track": sum(1 for row in records if not row.get("track")),
+        "records_missing_distance": sum(1 for row in records if row.get("distance") is None),
+        "records_missing_finish_time": sum(1 for row in records if row.get("finish_time_seconds") is None),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int, default=1,
@@ -77,12 +112,12 @@ def main() -> None:
         unique[key] = row
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(json.dumps({
+    quality_report = build_quality_report(list(unique.values()))\n    OUTPUT.write_text(json.dumps({
         "source": "JRA official result PDFs listed in data/catalog.json",
         "processed_sources": sorted(processed),
         "import_failures": sorted(failures_by_url.values(), key=lambda item: item["url"]),
         "last_import_attempted": attempted,
-        "record_count": len(unique),
+        "record_count": len(unique),\n        "quality_report": quality_report,
         "records": list(unique.values()),
         "notes": [
             "finish is based on the order of recognized official result rows",
