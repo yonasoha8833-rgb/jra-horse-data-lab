@@ -270,7 +270,7 @@ def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]
     return accepted
 
 
-def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 5) -> str | None:
+def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str | None:
     """OCR a bounded number of pages when the PDF text layer yields no runner rows."""
     if not shutil.which("pdftoppm") or not shutil.which("tesseract"):
         return None
