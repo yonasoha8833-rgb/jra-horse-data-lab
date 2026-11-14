@@ -1,6 +1,6 @@
 import unittest
 
-from race_analysis import distance_band, filter_records, performance_score, recent_form_summary, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions
+from race_analysis import distance_band, filter_records, performance_score, recent_form_summary, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles
 
 
 class RaceAnalysisTests(unittest.TestCase):
@@ -245,6 +245,44 @@ class RaceAnalysisTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             summarize_race_conditions([], min_races=0)
 
+
+
+    def test_horse_condition_profiles_group_by_identity_and_conditions(self):
+        rows = [
+            {"horse_name": "条件分析馬", "horse_registration_number": "2020100001",
+             "track": "東京", "surface": "芝", "distance": 1600, "going": "良", "finish": 1},
+            {"horse_name": "条件分析馬", "horse_registration_number": "2020100001",
+             "track": "東京", "surface": "芝", "distance": 1800, "going": "良", "finish": 2},
+            {"horse_name": "条件分析馬", "horse_registration_number": "2020100001",
+             "track": "東京", "surface": "芝", "distance": 1600, "going": "重", "finish": 3},
+            {"horse_name": "条件分析馬", "horse_registration_number": "2020100001",
+             "track": "京都", "surface": "ダート", "distance": 1200, "going": "良", "finish": 8},
+            {"horse_name": "別個体", "horse_registration_number": "2021100002",
+             "track": "東京", "surface": "芝", "distance": 1600, "going": "良", "finish": 1},
+        ]
+        profiles = summarize_horse_condition_profiles(rows, min_starts=3)
+        self.assertEqual(len(profiles), 2)
+        horse = next(item for item in profiles if item["horse_registration_number"] == "2020100001")
+        self.assertTrue(horse["identity_verified"])
+        self.assertEqual(horse["conditions"]["track"][0]["condition"], "東京")
+        self.assertEqual(horse["conditions"]["track"][0]["starts"], 3)
+        self.assertEqual(horse["conditions"]["surface"][0]["condition"], "芝")
+        self.assertEqual(horse["conditions"]["going"][0]["condition"], "良")
+        self.assertEqual(horse["conditions"]["surface_going"][0]["condition"], "芝・良")
+        self.assertEqual(horse["conditions"]["distance_band"][0]["condition"], "マイル（1401〜1800m）")
+        self.assertEqual(horse["conditions"]["track_surface_distance"], [])
+
+    def test_horse_condition_profiles_exclude_unknowns_and_validate_minimum(self):
+        rows = [
+            {"horse_name": "仮集計馬", "track": "東京", "finish": 1},
+            {"horse_name": "仮集計馬", "track": "東京", "finish": 2},
+            {"horse_name": "仮集計馬", "track": None, "finish": 3},
+        ]
+        profile = summarize_horse_condition_profiles(rows)[0]
+        self.assertFalse(profile["identity_verified"])
+        self.assertEqual(profile["conditions"]["track"], [])
+        with self.assertRaises(ValueError):
+            summarize_horse_condition_profiles(rows, min_starts=0)
 
 
 if __name__ == "__main__":
