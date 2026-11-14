@@ -102,7 +102,9 @@ const horseCompare=document.getElementById('horseCompare');
 let horseRecords=[];
 const selectedHorses=new Map();
 function appendConditionBreakdown(card,rows){
- const makeGroups=(keyFn)=>{const groups=new Map();rows.forEach(r=>{const key=keyFn(r);if(!key)return;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(r);});return [...groups.entries()].map(([label,items])=>{const wins=items.filter(r=>Number(r.finish)===1).length;const top3=items.filter(r=>[1,2,3].includes(Number(r.finish))).length;return {label,starts:items.length,wins:wins,winRate:wins/items.length*100,top3:top3};}).sort((a,b)=>b.starts-a.starts||a.label.localeCompare(b.label,'ja'));};
+ const overallWins=rows.filter(r=>Number(r.finish)===1).length;
+ const overallWinRate=rows.length?overallWins/rows.length*100:0;
+ const makeGroups=(keyFn)=>{const groups=new Map();rows.forEach(r=>{const key=keyFn(r);if(!key)return;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(r);});return [...groups.entries()].map(([label,items])=>{const wins=items.filter(r=>Number(r.finish)===1).length;const top3=items.filter(r=>[1,2,3].includes(Number(r.finish))).length;const winRate=wins/items.length*100;return {label,starts:items.length,wins:wins,winRate:winRate,top3:top3,top3Rate:top3/items.length*100,difference:winRate-overallWinRate};}).sort((a,b)=>b.starts-a.starts||a.label.localeCompare(b.label,'ja'));};
  const sections=[
   {title:'競馬場別',groups:makeGroups(r=>r.track||'')},
   {title:'馬場状態別',groups:makeGroups(r=>r.going||'')},
@@ -110,8 +112,9 @@ function appendConditionBreakdown(card,rows){
   {title:'競馬場・コース・距離別',groups:makeGroups(r=>r.track&&r.surface&&Number(r.distance)>0?r.track+' '+r.surface+' '+r.distance+'m':'')}
  ];
  const details=document.createElement('details');details.className='small';
- const summary=document.createElement('summary');summary.textContent='条件別成績を表示';details.append(summary);
- sections.forEach(section=>{if(!section.groups.length)return;const heading=document.createElement('p');heading.className='muted';heading.textContent=section.title;details.append(heading);section.groups.slice(0,8).forEach(g=>{const line=document.createElement('p');line.textContent=g.label+'：'+g.starts+'戦 '+g.wins+'勝（勝率 '+g.winRate.toFixed(1)+'%・複勝 '+g.top3+'回）';details.append(line);});});
+ const summary=document.createElement('summary');summary.textContent='得意・苦手条件と条件別成績を表示';details.append(summary);
+ const explanation=document.createElement('p');explanation.className='muted';explanation.textContent='得意・苦手の目安は全体勝率との差です。各条件3走以上で比較し、差が15ポイント以上のときだけ傾向を表示します。少ない出走数だけで断定しません。';details.append(explanation);
+ sections.forEach(section=>{if(!section.groups.length)return;const heading=document.createElement('p');heading.className='muted';heading.textContent=section.title;details.append(heading);section.groups.slice(0,8).forEach(g=>{const line=document.createElement('p');const delta=(g.difference>=0?'+':'')+g.difference.toFixed(1)+'pt';const tendency=g.starts<3?'（比較データ不足）':g.difference>=15?'【得意傾向】':g.difference<=-15?'【苦手傾向】':'';line.textContent=g.label+'：'+g.starts+'戦 '+g.wins+'勝（勝率 '+g.winRate.toFixed(1)+'%・複勝 '+g.top3+'回・全体比 '+delta+'）'+tendency;details.append(line);});});
  card.append(details);
 }
 function updateHorseComparison(){
