@@ -78,5 +78,22 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["distance"], 1600)
 
 
+    def test_disqualified_runner_keeps_status_and_has_no_finish_place(self):
+        text = SAMPLE.replace(
+            "2 2 サノノファイター 牡2鹿 56 田辺 裕信 佐野 信幸氏 栗田 徹 484±0 1：39．0",
+            "2 2 サノノファイター 牡2鹿 56 田辺 裕信 佐野 信幸氏 栗田 徹 484±0 1：39．0 失格",
+        )
+        rows = parse_race_text(text)
+        self.assertEqual(rows[0]["result_status"], "失格")
+        self.assertIsNone(rows[0]["finish"])
+        self.assertEqual(rows[1]["finish"], 1)
+
+    def test_non_finisher_status_is_recorded(self):
+        text = SAMPLE.replace("1：39．2", "中止")
+        rows = parse_race_text(text)
+        self.assertEqual(rows[1]["result_status"], "中止")
+        self.assertIsNone(rows[1]["finish"])
+
+
 if __name__ == "__main__":
     unittest.main()
