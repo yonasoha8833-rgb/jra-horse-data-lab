@@ -50,3 +50,23 @@ python -m unittest discover -s tests -v
 GitHub Actions の `Python tests` が push / pull request 時に自動実行します。
 
 ※ 現段階では集計エンジンとテストを追加した段階です。JRA PDFから上記キーを安定して抽出し、公式値と照合する処理は次の開発工程です。
+
+## JRA公式PDFの馬別データ取り込み
+
+PDF本文の読み取りには Poppler の `pdftotext` を使用します。ローカル環境では Poppler をインストールしたうえで実行してください。
+
+```bash
+python -m unittest discover -s tests -v
+python import_results.py --limit 1
+```
+
+GitHub上では Actions → **Import JRA race results** → Run workflow から実行できます。最初は1 PDFずつ取り込んで抽出結果を確認してください。入力の `limit` を増やすと複数PDFを処理します。
+
+取り込み先は `data/race_results.json` です。重複取り込みはPDF URL・競走番号・馬番で抑制します。抽出対象外の行や読み取りに失敗したPDFはログに警告・エラーとして残ります。
+
+### データ精度に関する注意
+
+- 着順はPDFの認識できた馬行の掲載順を使います。同着・取消・除外などは今後の検証対象です。
+- `race_last3f` はレース全体の上がり3Fです。個別馬の上がり3Fではありません。
+- `individual_last3f` は公式資料から個別値を確認できるまで `null` のままです。
+- 初期パーサーは基本項目を抽出する段階です。全競馬場・全ページでの精度検証後に本格集計へ接続します。
