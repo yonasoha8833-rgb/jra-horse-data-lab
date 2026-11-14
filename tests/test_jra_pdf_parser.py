@@ -88,6 +88,22 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertIsNone(rows[0]["finish"])
         self.assertEqual(rows[1]["finish"], 1)
 
+
+    def test_status_word_in_owner_name_is_not_misclassified(self):
+        text = SAMPLE.replace(
+            "佐野 信幸氏 栗田 徹",
+            "中止商事 栗田 徹",
+        )
+        rows = parse_race_text(text)
+        self.assertIsNone(rows[0]["result_status"])
+        self.assertEqual(rows[0]["finish"], 1)
+
+    def test_status_after_finish_time_is_detected(self):
+        text = SAMPLE.replace("1：39．0", "1：39．0 失格")
+        rows = parse_race_text(text)
+        self.assertEqual(rows[0]["result_status"], "失格")
+        self.assertIsNone(rows[0]["finish"])
+
     def test_non_finisher_status_is_recorded(self):
         text = SAMPLE.replace("1：39．2", "中止")
         rows = parse_race_text(text)
