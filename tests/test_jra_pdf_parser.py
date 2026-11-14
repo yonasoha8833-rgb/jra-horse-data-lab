@@ -21,6 +21,7 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(len(rows), 2)
         self.assertEqual(rows[0]["horse_name"], "サノノファイター")
         self.assertEqual(rows[0]["finish"], 1)
+        self.assertEqual(rows[0]["field_size"], 2)
         self.assertEqual(rows[0]["finish_time"], "1:39.0")
         self.assertAlmostEqual(rows[0]["finish_time_seconds"], 99.0)
         self.assertEqual(rows[1]["finish_time"], "1:39.2")
