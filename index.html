@@ -296,8 +296,29 @@ function renderHorses(){
   horseResults.append(card);
  });
 }
-fetch('./data/race_results.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('not imported');return r.json();}).then(d=>{
- horseRecords=Array.isArray(d.records)?d.records:[];
+Promise.all([
+ fetch('./data/race_results.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('not imported');return r.json();}),
+ fetch('./data/replay_results.json',{cache:'no-store'}).then(r=>r.ok?r.json():{records:[]})
+]).then(([d,replayData])=>{
+ horseRecords=Array.isArray(d.records)?d.records.map(row=>({...row})):[];
+ const replayRecords=Array.isArray(replayData.records)?replayData.records:[];
+ let replayMatched=0,replayAdded=0;
+ replayRecords.forEach(replay=>{
+  const match=horseRecords.find(row=>
+   row.date===replay.date&&row.track===replay.track&&
+   Number(row.horse_number)===Number(replay.horse_number)&&
+   String(row.horse_name||'').replace(/\\s+/g,'')===String(replay.horse_name||'').replace(/\\s+/g,'')
+  );
+  if(match){
+   if(match.individual_last3f==null&&replay.individual_last3f!=null)match.individual_last3f=replay.individual_last3f;
+   if(!match.corner_positions&&replay.corner_positions)match.corner_positions=replay.corner_positions;
+   match.replay_source_url=replay.source_url;
+   replayMatched++;
+  }else{
+   horseRecords.push({...replay,extraction_status:'replay_pdf_only'});
+   replayAdded++;
+  }
+ });
  renderRaceSummaries(horseRecords);
  renderRaceConditionSummaries(horseRecords);
  document.getElementById('raceConditionDimension').addEventListener('change',()=>renderRaceConditionSummaries(horseRecords));
@@ -305,7 +326,7 @@ fetch('./data/race_results.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new
  window.__importFailures=Array.isArray(d.import_failures)?d.import_failures:[];
  const importMeta=document.createElement('p');importMeta.className='muted small';
  const quality=d.quality_report&&typeof d.quality_report==='object'?d.quality_report:{};
- importMeta.textContent='取り込み済みPDF '+(Array.isArray(d.processed_sources)?d.processed_sources.length:0)+'件 ／ 記録 '+(Number(d.record_count)||horseRecords.length)+'件'+(window.__importFailures.length?' ／ 失敗 '+window.__importFailures.length+'件':'')+(Number(quality.warning_race_count)?' ／ 要確認レース '+Number(quality.warning_race_count)+'件':'');
+ importMeta.textContent='年度別PDF '+(Array.isArray(d.processed_sources)?d.processed_sources.length:0)+'件 ／ 重賞PDF '+(Array.isArray(replayData.processed_sources)?replayData.processed_sources.length:0)+'件 ／ 重賞PDFの個別上がり '+replayRecords.filter(r=>r.individual_last3f!=null).length+'件（既存記録へ反映 '+replayMatched+'件・重賞PDF単独 '+replayAdded+'件）'+(window.__importFailures.length?' ／ 年度別PDF失敗 '+window.__importFailures.length+'件':'')+(Number(quality.warning_race_count)?' ／ 要確認レース '+Number(quality.warning_race_count)+'件':'');
  horseStatus.after(importMeta);
  const qualityDetails=document.createElement('details');qualityDetails.className='small';
  const qualitySummary=document.createElement('summary');qualitySummary.textContent='データ品質の詳細を表示';qualityDetails.append(qualitySummary);
