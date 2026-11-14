@@ -56,7 +56,7 @@ ul{padding-left:22px}
 <li>公式PDFから馬名・馬番・基本着順を抽出：初期版を追加</li>
 <li>PDF一括取り込み：GitHub Actionsから手動実行可能</li>
 <li>レースラップ・前後半3F/5F：未実装</li>
-<li>重賞PDFの個別上がり3F・通過順位：抽出器追加済み（自動取り込み・画面連携は未実装）</li>
+<li>重賞PDFの個別上がり3F・通過順位：抽出器・自動取り込み・画面連携を追加（実データ検証中）</li>
 <li>テン速度・位置取り能力：未実装</li>
 <li>トラックバイアス・不利補正：未実装</li>
 <li>調教・初ブリンカー検出：未実装</li>
@@ -303,11 +303,13 @@ Promise.all([
  horseRecords=Array.isArray(d.records)?d.records.map(row=>({...row})):[];
  const replayRecords=Array.isArray(replayData.records)?replayData.records:[];
  let replayMatched=0,replayAdded=0;
+ const normalizeHorseName=value=>String(value||'').normalize('NFKC').replace(/\s+/g,'');
  replayRecords.forEach(replay=>{
+  const replayName=normalizeHorseName(replay.horse_name);
   const match=horseRecords.find(row=>
    row.date===replay.date&&row.track===replay.track&&
    Number(row.horse_number)===Number(replay.horse_number)&&
-   String(row.horse_name||'').replace(/\s+/g,'')===String(replay.horse_name||'').replace(/\s+/g,'')
+   normalizeHorseName(row.horse_name)===replayName
   );
   if(match){
    if(match.individual_last3f==null&&replay.individual_last3f!=null)match.individual_last3f=replay.individual_last3f;
