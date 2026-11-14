@@ -27,6 +27,18 @@
       "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto2.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-14T08:43:46.159558+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto3.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-14T08:42:27.722033+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto4.pdf",
       "attempts": 1,
       "last_attempt_utc": "2026-11-14T08:39:33.902801+00:00",
@@ -96,6 +108,12 @@
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo11.pdf",
       "attempts": 1,
       "last_attempt_utc": "2026-11-14T08:15:49.010080+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo2.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-14T08:43:07.389237+00:00",
       "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
