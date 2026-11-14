@@ -216,13 +216,17 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
             # The 〃 marker shares the previous finisher placing and time.
             is_tied = runner.get("dead_heat") and last_finish_position is not None
             is_placed = (runner["finish_time_seconds"] is not None or is_tied) and runner["result_status"] is None
+            current_finish_position = None
             if is_tied:
                 runner["finish_time"] = last_finish_time
                 runner["finish_time_seconds"] = last_finish_seconds
+                finish_position += 1  # Count tied runners when assigning later ordinal places.
+                current_finish_position = last_finish_position
             elif is_placed:
                 finish_position += 1
+                current_finish_position = finish_position
+                last_finish_position = current_finish_position
             if is_placed:
-                last_finish_position = finish_position
                 last_finish_time = runner["finish_time"]
                 last_finish_seconds = runner["finish_time_seconds"]
             records.append({
@@ -234,7 +238,7 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
                 "surface": surface,
                 "distance": distance,
                 "going": going,
-                "finish": last_finish_position if is_placed else None,
+                "finish": current_finish_position if is_placed else None,
                 "field_size": len(runners),
                 "declared_field_size": declared_field_size,
                 "race_validation_warnings": validation_warnings,
