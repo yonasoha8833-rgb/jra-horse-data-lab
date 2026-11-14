@@ -326,16 +326,22 @@ def extract_pdf(pdf_bytes: bytes, *, source_url: str = "") -> list[dict[str, Any
             f"lines={len(text_lines)}, race_headers={header_count}, "
             f"runner_candidates={runner_line_count}; trying OCR"
         )
+        text_sample = [line.strip()[:180] for line in text_lines if line.strip()][:12]
+        print(f"PDF text sample: {text_sample!r}")
         ocr_text = _ocr_pdf_text(pdf_path, temp_dir)
         if not ocr_text:
             print(f"OCR unavailable or empty: {source_url}")
             return []
+        ocr_lines = [line.strip()[:180] for line in ocr_text.splitlines() if line.strip()]
         ocr_records = parse_race_text(ocr_text, source_url=source_url)
         accepted = _complete_ocr_records(ocr_records)
         print(
             f"OCR result: {source_url}; chars={len(ocr_text)}, "
+            f"race_headers={sum(1 for line in ocr_lines if RACE_RE.search(line))}, "
+            f"runner_candidates={sum(1 for line in ocr_lines if _runner(line))}, "
             f"parsed_rows={len(ocr_records)}, accepted_rows={len(accepted)}"
         )
+        print(f"OCR text sample: {ocr_lines[:20]!r}")
         return accepted
 
 
