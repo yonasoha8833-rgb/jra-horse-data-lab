@@ -82,6 +82,24 @@ class ImportReplayResultsTests(unittest.TestCase):
                 "individual_last3f": float("nan"),
             }])
 
+    def test_rejects_implausible_individual_last3f(self):
+        for value in (19.9, 60.1):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "outside 20-60"):
+                    validate_replay_records([{
+                        "horse_number": 1, "finish": 1, "horse_name": "テスト",
+                        "individual_last3f": value,
+                    }])
+
+    def test_validates_corner_position_count_and_range(self):
+        base = {"horse_number": 1, "finish": 1, "horse_name": "テスト"}
+        valid = dict(base, corner_positions="3-2-2-1")
+        self.assertEqual(validate_replay_records([valid]), [valid])
+        for value in ("3", "3-2-1-2-4", "3-19", "3-x"):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    validate_replay_records([dict(base, corner_positions=value)])
+
     def test_deduplicates_by_source_and_horse_but_keeps_unkeyed_rows(self):
         rows = [
             {"source_url": "a.pdf", "horse_number": 1, "horse_name": "旧"},
