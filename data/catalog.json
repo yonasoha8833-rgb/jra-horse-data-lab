@@ -1,1685 +1,1455 @@
 {
   "source": "https://www.jra.go.jp/datafile/seiseki/report/2026.html",
-  "checked_at": "2026-11-14T01:14:25.187302+00:00",
-  "notice": "PDFリンク一覧のみ。馬別データ解析は未実装。",
+  "checked_at": "2026-11-14T01:29:56.986647+00:00",
+  "notice": "公式成績PDFリンク一覧。馬別解析は未実装。",
   "items": [
     {
-      "label": "5�� ����2�� �iPDF�F655KB�j",
+      "label": "5回 東京2日 （PDF：655KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-5tokyo2.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F526KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261108-hyo-tokyo.pdf",
-      "year": 2026
-    },
-    {
-      "label": "5�� ���s2�� �iPDF�F670KB�j",
+      "label": "5回 京都2日 （PDF：670KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-5kyoto2.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F505KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261108-hyo-kyoto.pdf",
-      "year": 2026
-    },
-    {
-      "label": "3�� ����2�� �iPDF�F435KB�j",
+      "label": "3回 福島2日 （PDF：435KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3fukushima2.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F626KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261108-hyo-fukushima.pdf",
-      "year": 2026
-    },
-    {
-      "label": "5�� ����1�� �iPDF�F651KB�j",
+      "label": "5回 東京1日 （PDF：651KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-5tokyo1.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F528KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261107-hyo-tokyo.pdf",
-      "year": 2026
-    },
-    {
-      "label": "5�� ���s1�� �iPDF�F659KB�j",
+      "label": "5回 京都1日 （PDF：659KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-5kyoto1.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F435KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261107-hyo-kyoto.pdf",
-      "year": 2026
-    },
-    {
-      "label": "3�� ����1�� �iPDF�F699KB�j",
+      "label": "3回 福島1日 （PDF：699KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3fukushima1.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F705KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261107-hyo-fukushima.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ����11�� �iPDF�F733KB�j",
+      "label": "4回 東京11日 （PDF：733KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo11.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F537KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261101-hyo-tokyo.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���s11�� �iPDF�F710KB�j",
+      "label": "4回 京都11日 （PDF：710KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto11.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F474KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261101-hyo-kyoto.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ����10�� �iPDF�F694KB�j",
+      "label": "4回 東京10日 （PDF：694KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo10.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F433KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261031-hyo-tokyo.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���s10�� �iPDF�F688KB�j",
+      "label": "4回 京都10日 （PDF：688KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto10.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F472KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261031-hyo-kyoto.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ����9�� �iPDF�F659KB�j",
+      "label": "4回 東京9日 （PDF：659KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo9.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F496KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261025-hyo-tokyo.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���s9�� �iPDF�F413KB�j",
+      "label": "4回 京都9日 （PDF：413KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto9.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F456KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261025-hyo-kyoto.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� �V��4�� �iPDF�F874KB�j",
+      "label": "4回 新潟4日 （PDF：874KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4niigata4.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F542KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261025-hyo-niigata.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ����8�� �iPDF�F685KB�j",
+      "label": "4回 東京8日 （PDF：685KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo8.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F501KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261024-hyo-tokyo.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���s8�� �iPDF�F674KB�j",
+      "label": "4回 京都8日 （PDF：674KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto8.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F400KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261024-hyo-kyoto.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� �V��3�� �iPDF�F685KB�j",
+      "label": "4回 新潟3日 （PDF：685KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4niigata3.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F539KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261024-hyo-niigata.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ����7�� �iPDF�F632KB�j",
+      "label": "4回 東京7日 （PDF：632KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo7.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F390KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261018-hyo-tokyo.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���s7�� �iPDF�F639KB�j",
+      "label": "4回 京都7日 （PDF：639KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto7.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F420KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261018-hyo-kyoto.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� �V��2�� �iPDF�F673KB�j",
+      "label": "4回 新潟2日 （PDF：673KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4niigata2.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F586KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261018-hyo-niigata.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ����6�� �iPDF�F639KB�j",
+      "label": "4回 東京6日 （PDF：639KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo6.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F452KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261017-hyo-tokyo.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���s6�� �iPDF�F666KB�j",
+      "label": "4回 京都6日 （PDF：666KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto6.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F388KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261017-hyo-kyoto.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� �V��1�� �iPDF�F686KB�j",
+      "label": "4回 新潟1日 （PDF：686KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4niigata1.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F673KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261017-hyo-niigata.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ����5�� �iPDF�F664KB�j",
+      "label": "4回 東京5日 （PDF：664KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo5.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F524KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261012-hyo-tokyo.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���s5�� �iPDF�F650KB�j",
+      "label": "4回 京都5日 （PDF：650KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto5.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F519KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261012-hyo-kyoto.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ����4�� �iPDF�F691KB�j",
+      "label": "4回 東京4日 （PDF：691KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo4.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F624KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261011-hyo-tokyo.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���s4�� �iPDF�F703KB�j",
+      "label": "4回 京都4日 （PDF：703KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto4.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F563KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261011-hyo-kyoto.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ����3�� �iPDF�F900KB�j",
+      "label": "4回 東京3日 （PDF：900KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo3.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F515KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261010-hyo-tokyo.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���s3�� �iPDF�F782KB�j",
+      "label": "4回 京都3日 （PDF：782KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto3.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F469KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261010-hyo-kyoto.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ����2�� �iPDF�F746KB�j",
+      "label": "4回 東京2日 （PDF：746KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo2.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F657KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261004-hyo-tokyo.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���s2�� �iPDF�F737KB�j",
+      "label": "4回 京都2日 （PDF：737KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto2.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F710KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261004-hyo-kyoto.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ����1�� �iPDF�F692KB�j",
+      "label": "4回 東京1日 （PDF：692KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo1.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F642KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261003-hyo-tokyo.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���s1�� �iPDF�F700KB�j",
+      "label": "4回 京都1日 （PDF：700KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto1.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F600KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20261003-hyo-kyoto.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���R9�� �iPDF�F719KB�j",
+      "label": "4回 中山9日 （PDF：719KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama9.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F582KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20260927-hyo-nakayama.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ��_9�� �iPDF�F676KB�j",
+      "label": "4回 阪神9日 （PDF：676KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin9.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F394KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20260927-hyo-hanshin.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���R8�� �iPDF�F661KB�j",
+      "label": "4回 中山8日 （PDF：661KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama8.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F505KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20260926-hyo-nakayama.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ��_8�� �iPDF�F435KB�j",
+      "label": "4回 阪神8日 （PDF：435KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin8.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F506KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20260926-hyo-hanshin.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���R7�� �iPDF�F837KB�j",
+      "label": "4回 中山7日 （PDF：837KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama7.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F519KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20260922-hyo-nakayama.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ��_7�� �iPDF�F805KB�j",
+      "label": "4回 阪神7日 （PDF：805KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin7.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F536KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20260921-hyo-hanshin.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���R6�� �iPDF�F698KB�j",
+      "label": "4回 中山6日 （PDF：698KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama6.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F632KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20260920-hyo-nakayama.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ��_6�� �iPDF�F670KB�j",
+      "label": "4回 阪神6日 （PDF：670KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin6.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F475KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20260920-hyo-hanshin.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���R5�� �iPDF�F674KB�j",
+      "label": "4回 中山5日 （PDF：674KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama5.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F410KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20260919-hyo-nakayama.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ��_5�� �iPDF�F676KB�j",
+      "label": "4回 阪神5日 （PDF：676KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin5.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F386KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20260919-hyo-hanshin.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���R4�� �iPDF�F687KB�j",
+      "label": "4回 中山4日 （PDF：687KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama4.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F520KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20260913-hyo-nakayama.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ��_4�� �iPDF�F652KB�j",
+      "label": "4回 阪神4日 （PDF：652KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin4.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F493KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20260913-hyo-hanshin.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ���R3�� �iPDF�F702KB�j",
+      "label": "4回 中山3日 （PDF：702KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama3.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F552KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20260912-hyo-nakayama.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4�� ��_3�� �iPDF�F660KB�j",
+      "label": "4回 阪神3日 （PDF：660KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin3.pdf",
       "year": 2026
     },
     {
-      "label": "�����[�� �iPDF�F478KB�j",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/20260912-hyo-hanshin.pdf",
-      "year": 2026
-    },
-    {
-      "label": "��1�� �iPDF�F616KB�j",
+      "label": "第1日 （PDF：616KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F655KB�j",
+      "label": "第2日 （PDF：655KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F758KB�j",
+      "label": "第3日 （PDF：758KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F659KB�j",
+      "label": "第4日 （PDF：659KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F694KB�j",
+      "label": "第5日 （PDF：694KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F670KB�j",
+      "label": "第6日 （PDF：670KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F761KB�j",
+      "label": "第7日 （PDF：761KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F693KB�j",
+      "label": "第8日 （PDF：693KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo8.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F424KB�j",
+      "label": "第1日 （PDF：424KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2sapporo1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F708KB�j",
+      "label": "第2日 （PDF：708KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2sapporo2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F729KB�j",
+      "label": "第3日 （PDF：729KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2sapporo3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F675KB�j",
+      "label": "第4日 （PDF：675KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2sapporo4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F667KB�j",
+      "label": "第5日 （PDF：667KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2sapporo5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F678KB�j",
+      "label": "第6日 （PDF：678KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2sapporo6.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F697KB�j",
+      "label": "第1日 （PDF：697KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F684KB�j",
+      "label": "第2日 （PDF：684KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F691KB�j",
+      "label": "第3日 （PDF：691KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F647KB�j",
+      "label": "第4日 （PDF：647KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F615KB�j",
+      "label": "第5日 （PDF：615KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F712KB�j",
+      "label": "第6日 （PDF：712KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F656KB�j",
+      "label": "第7日 （PDF：656KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F627KB�j",
+      "label": "第8日 （PDF：627KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate8.pdf",
       "year": 2026
     },
     {
-      "label": "��9�� �iPDF�F663KB�j",
+      "label": "第9日 （PDF：663KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate9.pdf",
       "year": 2026
     },
     {
-      "label": "��10�� �iPDF�F657KB�j",
+      "label": "第10日 （PDF：657KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate10.pdf",
       "year": 2026
     },
     {
-      "label": "��11�� �iPDF�F642KB�j",
+      "label": "第11日 （PDF：642KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate11.pdf",
       "year": 2026
     },
     {
-      "label": "��12�� �iPDF�F674KB�j",
+      "label": "第12日 （PDF：674KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate12.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F666KB�j",
+      "label": "第1日 （PDF：666KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1fukushima1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F700KB�j",
+      "label": "第2日 （PDF：700KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1fukushima2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F628KB�j",
+      "label": "第3日 （PDF：628KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1fukushima3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F732KB�j",
+      "label": "第4日 （PDF：732KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1fukushima4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F696KB�j",
+      "label": "第5日 （PDF：696KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1fukushima5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F695KB�j",
+      "label": "第6日 （PDF：695KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1fukushima6.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F506KB�j",
+      "label": "第1日 （PDF：506KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2fukushima1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F724KB�j",
+      "label": "第2日 （PDF：724KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2fukushima2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F669KB�j",
+      "label": "第3日 （PDF：669KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2fukushima3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F702KB�j",
+      "label": "第4日 （PDF：702KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2fukushima4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F722KB�j",
+      "label": "第5日 （PDF：722KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2fukushima5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F740KB�j",
+      "label": "第6日 （PDF：740KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2fukushima6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F688KB�j",
+      "label": "第7日 （PDF：688KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2fukushima7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F696KB�j",
+      "label": "第8日 （PDF：696KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2fukushima8.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F728KB�j",
+      "label": "第1日 （PDF：728KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1niigata1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F714KB�j",
+      "label": "第2日 （PDF：714KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1niigata2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F482KB�j",
+      "label": "第3日 （PDF：482KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1niigata3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F689KB�j",
+      "label": "第4日 （PDF：689KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1niigata4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F733KB�j",
+      "label": "第5日 （PDF：733KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1niigata5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F675KB�j",
+      "label": "第6日 （PDF：675KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1niigata6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F711KB�j",
+      "label": "第7日 （PDF：711KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1niigata7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F923KB�j",
+      "label": "第8日 （PDF：923KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1niigata8.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F700KB�j",
+      "label": "第1日 （PDF：700KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2niigata1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F687KB�j",
+      "label": "第2日 （PDF：687KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2niigata2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F692KB�j",
+      "label": "第3日 （PDF：692KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2niigata3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F699KB�j",
+      "label": "第4日 （PDF：699KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2niigata4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F684KB�j",
+      "label": "第5日 （PDF：684KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2niigata5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F655KB�j",
+      "label": "第6日 （PDF：655KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2niigata6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F746KB�j",
+      "label": "第7日 （PDF：746KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2niigata7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F681KB�j",
+      "label": "第8日 （PDF：681KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2niigata8.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F436KB�j",
+      "label": "第1日 （PDF：436KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3niigata1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F659KB�j",
+      "label": "第2日 （PDF：659KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3niigata2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F705KB�j",
+      "label": "第3日 （PDF：705KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3niigata3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F681KB�j",
+      "label": "第4日 （PDF：681KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3niigata4.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F686KB�j",
+      "label": "第1日 （PDF：686KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4niigata1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F673KB�j",
+      "label": "第2日 （PDF：673KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4niigata2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F685KB�j",
+      "label": "第3日 （PDF：685KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4niigata3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F874KB�j",
+      "label": "第4日 （PDF：874KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4niigata4.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F665KB�j",
+      "label": "第1日 （PDF：665KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1tokyo1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F696KB�j",
+      "label": "第2日 （PDF：696KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1tokyo2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F593KB�j",
+      "label": "第3日 （PDF：593KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1tokyo3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F655KB�j",
+      "label": "第4日 （PDF：655KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1tokyo4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F650KB�j",
+      "label": "第5日 （PDF：650KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1tokyo5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F673KB�j",
+      "label": "第6日 （PDF：673KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1tokyo6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F634KB�j",
+      "label": "第7日 （PDF：634KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1tokyo7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F814KB�j",
+      "label": "第8日 （PDF：814KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1tokyo8.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F673KB�j",
+      "label": "第1日 （PDF：673KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F686KB�j",
+      "label": "第2日 （PDF：686KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F688KB�j",
+      "label": "第3日 （PDF：688KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F689KB�j",
+      "label": "第4日 （PDF：689KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F432KB�j",
+      "label": "第5日 （PDF：432KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F703KB�j",
+      "label": "第6日 （PDF：703KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F662KB�j",
+      "label": "第7日 （PDF：662KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F712KB�j",
+      "label": "第8日 （PDF：712KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo8.pdf",
       "year": 2026
     },
     {
-      "label": "��9�� �iPDF�F700KB�j",
+      "label": "第9日 （PDF：700KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo9.pdf",
       "year": 2026
     },
     {
-      "label": "��10�� �iPDF�F690KB�j",
+      "label": "第10日 （PDF：690KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo10.pdf",
       "year": 2026
     },
     {
-      "label": "��11�� �iPDF�F751KB�j",
+      "label": "第11日 （PDF：751KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo11.pdf",
       "year": 2026
     },
     {
-      "label": "��12�� �iPDF�F967KB�j",
+      "label": "第12日 （PDF：967KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo12.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F709KB�j",
+      "label": "第1日 （PDF：709KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3tokyo1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F733KB�j",
+      "label": "第2日 （PDF：733KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3tokyo2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F681KB�j",
+      "label": "第3日 （PDF：681KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3tokyo3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F686KB�j",
+      "label": "第4日 （PDF：686KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3tokyo4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F711KB�j",
+      "label": "第5日 （PDF：711KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3tokyo5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F716KB�j",
+      "label": "第6日 （PDF：716KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3tokyo6.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F692KB�j",
+      "label": "第1日 （PDF：692KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F746KB�j",
+      "label": "第2日 （PDF：746KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F900KB�j",
+      "label": "第3日 （PDF：900KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F691KB�j",
+      "label": "第4日 （PDF：691KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F664KB�j",
+      "label": "第5日 （PDF：664KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F639KB�j",
+      "label": "第6日 （PDF：639KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F632KB�j",
+      "label": "第7日 （PDF：632KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F685KB�j",
+      "label": "第8日 （PDF：685KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo8.pdf",
       "year": 2026
     },
     {
-      "label": "��9�� �iPDF�F659KB�j",
+      "label": "第9日 （PDF：659KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo9.pdf",
       "year": 2026
     },
     {
-      "label": "��10�� �iPDF�F694KB�j",
+      "label": "第10日 （PDF：694KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo10.pdf",
       "year": 2026
     },
     {
-      "label": "��11�� �iPDF�F733KB�j",
+      "label": "第11日 （PDF：733KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo11.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F682KB�j",
+      "label": "第1日 （PDF：682KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1nakayama1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F657KB�j",
+      "label": "第2日 （PDF：657KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1nakayama2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F628KB�j",
+      "label": "第3日 （PDF：628KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1nakayama3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F474KB�j",
+      "label": "第4日 （PDF：474KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1nakayama4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F727KB�j",
+      "label": "第5日 （PDF：727KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1nakayama5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F650KB�j",
+      "label": "第6日 （PDF：650KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1nakayama6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F750KB�j",
+      "label": "第7日 （PDF：750KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1nakayama7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F646KB�j",
+      "label": "第8日 （PDF：646KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1nakayama8.pdf",
       "year": 2026
     },
     {
-      "label": "��9�� �iPDF�F708KB�j",
+      "label": "第9日 （PDF：708KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1nakayama9.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F698KB�j",
+      "label": "第1日 （PDF：698KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2nakayama1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F716KB�j",
+      "label": "第2日 （PDF：716KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2nakayama2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F674KB�j",
+      "label": "第3日 （PDF：674KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2nakayama3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F736KB�j",
+      "label": "第4日 （PDF：736KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2nakayama4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F719KB�j",
+      "label": "第5日 （PDF：719KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2nakayama5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F713KB�j",
+      "label": "第6日 （PDF：713KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2nakayama6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F652KB�j",
+      "label": "第7日 （PDF：652KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2nakayama7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F702KB�j",
+      "label": "第8日 （PDF：702KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2nakayama8.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F706KB�j",
+      "label": "第1日 （PDF：706KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3nakayama1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F682KB�j",
+      "label": "第2日 （PDF：682KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3nakayama2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F678KB�j",
+      "label": "第3日 （PDF：678KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3nakayama3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F718KB�j",
+      "label": "第4日 （PDF：718KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3nakayama4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F651KB�j",
+      "label": "第5日 （PDF：651KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3nakayama5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F680KB�j",
+      "label": "第6日 （PDF：680KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3nakayama6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F641KB�j",
+      "label": "第7日 （PDF：641KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3nakayama7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F730KB�j",
+      "label": "第8日 （PDF：730KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3nakayama8.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F711KB�j",
+      "label": "第1日 （PDF：711KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F678KB�j",
+      "label": "第2日 （PDF：678KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F702KB�j",
+      "label": "第3日 （PDF：702KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F687KB�j",
+      "label": "第4日 （PDF：687KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F674KB�j",
+      "label": "第5日 （PDF：674KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F698KB�j",
+      "label": "第6日 （PDF：698KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F837KB�j",
+      "label": "第7日 （PDF：837KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F661KB�j",
+      "label": "第8日 （PDF：661KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama8.pdf",
       "year": 2026
     },
     {
-      "label": "��9�� �iPDF�F719KB�j",
+      "label": "第9日 （PDF：719KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama9.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F644KB�j",
+      "label": "第1日 （PDF：644KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1chukyo1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F715KB�j",
+      "label": "第2日 （PDF：715KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1chukyo2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F649KB�j",
+      "label": "第3日 （PDF：649KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1chukyo3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F680KB�j",
+      "label": "第4日 （PDF：680KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1chukyo4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F658KB�j",
+      "label": "第5日 （PDF：658KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1chukyo5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F743KB�j",
+      "label": "第6日 （PDF：743KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1chukyo6.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F647KB�j",
+      "label": "第1日 （PDF：647KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2chukyo1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F690KB�j",
+      "label": "第2日 （PDF：690KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2chukyo2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F693KB�j",
+      "label": "第3日 （PDF：693KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2chukyo3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F681KB�j",
+      "label": "第4日 （PDF：681KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2chukyo4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F664KB�j",
+      "label": "第5日 （PDF：664KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2chukyo5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F703KB�j",
+      "label": "第6日 （PDF：703KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2chukyo6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F702KB�j",
+      "label": "第7日 （PDF：702KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2chukyo7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F667KB�j",
+      "label": "第8日 （PDF：667KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2chukyo8.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F424KB�j",
+      "label": "第1日 （PDF：424KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3chukyo1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F676KB�j",
+      "label": "第2日 （PDF：676KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3chukyo2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F479KB�j",
+      "label": "第3日 （PDF：479KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3chukyo3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F656KB�j",
+      "label": "第4日 （PDF：656KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3chukyo4.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F705KB�j",
+      "label": "第1日 （PDF：705KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kyoto1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F673KB�j",
+      "label": "第2日 （PDF：673KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kyoto2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F688KB�j",
+      "label": "第3日 （PDF：688KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kyoto3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F741KB�j",
+      "label": "第4日 （PDF：741KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kyoto4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F739KB�j",
+      "label": "第5日 （PDF：739KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kyoto5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F628KB�j",
+      "label": "第6日 （PDF：628KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kyoto6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F723KB�j",
+      "label": "第7日 （PDF：723KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kyoto7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F684KB�j",
+      "label": "第8日 （PDF：684KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kyoto8.pdf",
       "year": 2026
     },
     {
-      "label": "��9�� �iPDF�F677KB�j",
+      "label": "第9日 （PDF：677KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kyoto9.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F608KB�j",
+      "label": "第1日 （PDF：608KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2kyoto1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F659KB�j",
+      "label": "第2日 （PDF：659KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2kyoto2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F607KB�j",
+      "label": "第3日 （PDF：607KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2kyoto3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F623KB�j",
+      "label": "第4日 （PDF：623KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2kyoto4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F656KB�j",
+      "label": "第5日 （PDF：656KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2kyoto5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F663KB�j",
+      "label": "第6日 （PDF：663KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2kyoto6.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F680KB�j",
+      "label": "第1日 （PDF：680KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3kyoto1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F699KB�j",
+      "label": "第2日 （PDF：699KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3kyoto2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F670KB�j",
+      "label": "第3日 （PDF：670KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3kyoto3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F700KB�j",
+      "label": "第4日 （PDF：700KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3kyoto4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F439KB�j",
+      "label": "第5日 （PDF：439KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3kyoto5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F676KB�j",
+      "label": "第6日 （PDF：676KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3kyoto6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F680KB�j",
+      "label": "第7日 （PDF：680KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3kyoto7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F688KB�j",
+      "label": "第8日 （PDF：688KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3kyoto8.pdf",
       "year": 2026
     },
     {
-      "label": "��9�� �iPDF�F697KB�j",
+      "label": "第9日 （PDF：697KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3kyoto9.pdf",
       "year": 2026
     },
     {
-      "label": "��10�� �iPDF�F689KB�j",
+      "label": "第10日 （PDF：689KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3kyoto10.pdf",
       "year": 2026
     },
     {
-      "label": "��11�� �iPDF�F718KB�j",
+      "label": "第11日 （PDF：718KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3kyoto11.pdf",
       "year": 2026
     },
     {
-      "label": "��12�� �iPDF�F907KB�j",
+      "label": "第12日 （PDF：907KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3kyoto12.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F700KB�j",
+      "label": "第1日 （PDF：700KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F737KB�j",
+      "label": "第2日 （PDF：737KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F782KB�j",
+      "label": "第3日 （PDF：782KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F703KB�j",
+      "label": "第4日 （PDF：703KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F650KB�j",
+      "label": "第5日 （PDF：650KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F666KB�j",
+      "label": "第6日 （PDF：666KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F639KB�j",
+      "label": "第7日 （PDF：639KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F674KB�j",
+      "label": "第8日 （PDF：674KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto8.pdf",
       "year": 2026
     },
     {
-      "label": "��9�� �iPDF�F413KB�j",
+      "label": "第9日 （PDF：413KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto9.pdf",
       "year": 2026
     },
     {
-      "label": "��10�� �iPDF�F688KB�j",
+      "label": "第10日 （PDF：688KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto10.pdf",
       "year": 2026
     },
     {
-      "label": "��11�� �iPDF�F710KB�j",
+      "label": "第11日 （PDF：710KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto11.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F663KB�j",
+      "label": "第1日 （PDF：663KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hanshin1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F658KB�j",
+      "label": "第2日 （PDF：658KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hanshin2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F647KB�j",
+      "label": "第3日 （PDF：647KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hanshin3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F695KB�j",
+      "label": "第4日 （PDF：695KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hanshin4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F649KB�j",
+      "label": "第5日 （PDF：649KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hanshin5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F678KB�j",
+      "label": "第6日 （PDF：678KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hanshin6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F646KB�j",
+      "label": "第7日 （PDF：646KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hanshin7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F675KB�j",
+      "label": "第8日 （PDF：675KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hanshin8.pdf",
       "year": 2026
     },
     {
-      "label": "��9�� �iPDF�F595KB�j",
+      "label": "第9日 （PDF：595KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hanshin9.pdf",
       "year": 2026
     },
     {
-      "label": "��10�� �iPDF�F702KB�j",
+      "label": "第10日 （PDF：702KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hanshin10.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F617KB�j",
+      "label": "第1日 （PDF：617KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2hanshin1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F661KB�j",
+      "label": "第2日 （PDF：661KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2hanshin2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F651KB�j",
+      "label": "第3日 （PDF：651KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2hanshin3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F703KB�j",
+      "label": "第4日 （PDF：703KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2hanshin4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F650KB�j",
+      "label": "第5日 （PDF：650KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2hanshin5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F722KB�j",
+      "label": "第6日 （PDF：722KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2hanshin6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F653KB�j",
+      "label": "第7日 （PDF：653KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2hanshin7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F725KB�j",
+      "label": "第8日 （PDF：725KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2hanshin8.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F697KB�j",
+      "label": "第1日 （PDF：697KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3hanshin1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F699KB�j",
+      "label": "第2日 （PDF：699KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3hanshin2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F651KB�j",
+      "label": "第3日 （PDF：651KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3hanshin3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F704KB�j",
+      "label": "第4日 （PDF：704KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3hanshin4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F759KB�j",
+      "label": "第5日 （PDF：759KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3hanshin5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F708KB�j",
+      "label": "第6日 （PDF：708KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3hanshin6.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F659KB�j",
+      "label": "第1日 （PDF：659KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F694KB�j",
+      "label": "第2日 （PDF：694KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F660KB�j",
+      "label": "第3日 （PDF：660KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F652KB�j",
+      "label": "第4日 （PDF：652KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F676KB�j",
+      "label": "第5日 （PDF：676KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F670KB�j",
+      "label": "第6日 （PDF：670KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F805KB�j",
+      "label": "第7日 （PDF：805KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F435KB�j",
+      "label": "第8日 （PDF：435KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin8.pdf",
       "year": 2026
     },
     {
-      "label": "��9�� �iPDF�F676KB�j",
+      "label": "第9日 （PDF：676KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin9.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F677KB�j",
+      "label": "第1日 （PDF：677KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kokura1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F708KB�j",
+      "label": "第2日 （PDF：708KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kokura2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F720KB�j",
+      "label": "第3日 （PDF：720KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kokura3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F693KB�j",
+      "label": "第4日 （PDF：693KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kokura4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F678KB�j",
+      "label": "第5日 （PDF：678KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kokura5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F714KB�j",
+      "label": "第6日 （PDF：714KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kokura6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F692KB�j",
+      "label": "第7日 （PDF：692KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kokura7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F702KB�j",
+      "label": "第8日 （PDF：702KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kokura8.pdf",
       "year": 2026
     },
     {
-      "label": "��9�� �iPDF�F655KB�j",
+      "label": "第9日 （PDF：655KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kokura9.pdf",
       "year": 2026
     },
     {
-      "label": "��10�� �iPDF�F713KB�j",
+      "label": "第10日 （PDF：713KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kokura10.pdf",
       "year": 2026
     },
     {
-      "label": "��11�� �iPDF�F684KB�j",
+      "label": "第11日 （PDF：684KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kokura11.pdf",
       "year": 2026
     },
     {
-      "label": "��12�� �iPDF�F733KB�j",
+      "label": "第12日 （PDF：733KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1kokura12.pdf",
       "year": 2026
     },
     {
-      "label": "��1�� �iPDF�F655KB�j",
+      "label": "第1日 （PDF：655KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2kokura1.pdf",
       "year": 2026
     },
     {
-      "label": "��2�� �iPDF�F697KB�j",
+      "label": "第2日 （PDF：697KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2kokura2.pdf",
       "year": 2026
     },
     {
-      "label": "��3�� �iPDF�F717KB�j",
+      "label": "第3日 （PDF：717KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2kokura3.pdf",
       "year": 2026
     },
     {
-      "label": "��4�� �iPDF�F690KB�j",
+      "label": "第4日 （PDF：690KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2kokura4.pdf",
       "year": 2026
     },
     {
-      "label": "��5�� �iPDF�F662KB�j",
+      "label": "第5日 （PDF：662KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2kokura5.pdf",
       "year": 2026
     },
     {
-      "label": "��6�� �iPDF�F691KB�j",
+      "label": "第6日 （PDF：691KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2kokura6.pdf",
       "year": 2026
     },
     {
-      "label": "��7�� �iPDF�F710KB�j",
+      "label": "第7日 （PDF：710KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2kokura7.pdf",
       "year": 2026
     },
     {
-      "label": "��8�� �iPDF�F722KB�j",
+      "label": "第8日 （PDF：722KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2kokura8.pdf",
       "year": 2026
     }
