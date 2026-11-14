@@ -301,7 +301,7 @@ class _JraHtmlTableParser(HTMLParser):
 
 def _race_identity_from_pdf_url(source_url: str, source_text: str):
     match = re.search(
-        r"/(20\\d{2})-(\\d)(sapporo|hakodate|fukushima|niigata|tokyo|nakayama|chukyo|kyoto|hanshin|kokura)(\\d+)\\.pdf$",
+        r"/(20\d{2})-(\d)(sapporo|hakodate|fukushima|niigata|tokyo|nakayama|chukyo|kyoto|hanshin|kokura)(\d+)\.pdf$",
         source_url,
         re.IGNORECASE,
     )
@@ -341,14 +341,14 @@ def _parse_official_result_html(html: str, *, identity: dict, race_number: int,
     parser = _JraHtmlTableParser()
     parser.feed(html)
     text = " ".join(parser.page_text)
-    race_name_match = re.search(r"(?:第\\d+競走\\s*)?([^ ]{2,30}?)\\s+(?:2歳|3歳|4歳|障害)", text)
+    race_name_match = re.search(r"(?:第\d+競走\s*)?([^ ]{2,30}?)\s+(?:2歳|3歳|4歳|障害)", text)
     race_name = race_name_match.group(1) if race_name_match else None
-    distance_match = re.search(r"コース\\s*[：:]\\s*([0-9,，]+)\\s*メートル", text)
+    distance_match = re.search(r"コース\s*[：:]\s*([0-9,，]+)\s*メートル", text)
     distance = _distance(distance_match.group(1)) if distance_match else None
     surface = "ダート" if "ダート・" in text else ("芝" if "芝・" in text else ("障害" if "障害" in text else None))
-    going_match = re.search(r"(?:芝|ダート|障害)\\s*(良|稍重|重|不良)", text)
+    going_match = re.search(r"(?:芝|ダート|障害)\s*(良|稍重|重|不良)", text)
     going = going_match.group(1) if going_match else None
-    last3f_match = re.search(r"上り\\s*4F\\s*([0-9.]+)\\s*[-―ー]\\s*3F\\s*([0-9.]+)", text)
+    last3f_match = re.search(r"上り\s*4F\s*([0-9.]+)\s*[-―ー]\s*3F\s*([0-9.]+)", text)
     last4f = _seconds(last3f_match.group(1)) if last3f_match else None
     last3f = _seconds(last3f_match.group(2)) if last3f_match else None
 
@@ -357,14 +357,14 @@ def _parse_official_result_html(html: str, *, identity: dict, race_number: int,
         if len(cells) < 8:
             continue
         placing_text = cells[0].strip()
-        number_match = re.fullmatch(r"\\s*(\\d{1,2})\\s*", cells[2])
+        number_match = re.fullmatch(r"\s*(\d{1,2})\s*", cells[2])
         if not number_match:
             continue
         horse_number = int(number_match.group(1))
         if not 1 <= horse_number <= 18:
             continue
-        horse_name = re.sub(r"\\s+", "", re.sub(r"Image:.*", "", cells[3])).strip()
-        sex_age = re.search(r"(牡|牝|セ)\\s*([0-9０-９]{1,2})", cells[4])
+        horse_name = re.sub(r"\s+", "", re.sub(r"Image:.*", "", cells[3])).strip()
+        sex_age = re.search(r"(牡|牝|セ)\s*([0-9０-９]{1,2})", cells[4])
         if not horse_name or not sex_age:
             continue
         sex, age = sex_age.groups()
@@ -373,7 +373,7 @@ def _parse_official_result_html(html: str, *, identity: dict, race_number: int,
             continue
         frame_match = re.search(r"([1-8])", cells[1])
         frame = int(frame_match.group(1)) if frame_match else None
-        time_match = re.search(r"([0-9]{1,2}):([0-9]{2})\\.([0-9])", cells[7])
+        time_match = re.search(r"([0-9]{1,2}):([0-9]{2})\.([0-9])", cells[7])
         finish_time = None
         finish_seconds = None
         if time_match:
@@ -381,12 +381,12 @@ def _parse_official_result_html(html: str, *, identity: dict, race_number: int,
             if ss < 60:
                 finish_time = f"{mm}:{ss:02d}.{tenth}"
                 finish_seconds = mm * 60 + ss + tenth / 10
-        placing_match = re.fullmatch(r"\\s*(\\d{1,2})\\s*", placing_text)
+        placing_match = re.fullmatch(r"\s*(\d{1,2})\s*", placing_text)
         finish = int(placing_match.group(1)) if placing_match and finish_seconds is not None else None
         status = placing_text if placing_text in {"競走中止", "失格", "中止", "取消", "除外"} else None
         if not frame:
             frame = 1
-        runner_last3f = _seconds(re.search(r"[0-9]+\\.[0-9]+", cells[10]).group(0)) if len(cells) > 10 and re.search(r"[0-9]+\\.[0-9]+", cells[10]) else None
+        runner_last3f = _seconds(re.search(r"[0-9]+\.[0-9]+", cells[10]).group(0)) if len(cells) > 10 and re.search(r"[0-9]+\.[0-9]+", cells[10]) else None
         records.append({
             "frame": frame, "horse_number": horse_number, "horse_name": horse_name,
             "sex": sex, "age": age, "finish_time": finish_time,
