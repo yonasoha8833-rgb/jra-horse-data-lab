@@ -34,6 +34,16 @@ ul{padding-left:22px}
 <div id="items"></div>
 </section>
 <section class="panel">
+<h2>馬名検索・過去成績</h2>
+<p id="horseStatus" class="muted">馬別成績データを読み込んでいます…</p>
+<div class="controls">
+<input id="horseKeyword" type="search" placeholder="馬名を入力（部分一致）" aria-label="馬名で検索">
+<select id="horseTrack" aria-label="競馬場で絞り込み"><option value="">全競馬場</option><option>札幌</option><option>函館</option><option>福島</option><option>新潟</option><option>東京</option><option>中山</option><option>中京</option><option>京都</option><option>阪神</option><option>小倉</option></select>
+</div>
+<div id="horseResults"></div>
+<p class="muted small">能力指数は出走頭数で着順を0〜100点に換算し、直近5走を重み付けした参考値です。速度指数や勝率予測ではありません。</p>
+</section>
+<section class="panel">
 <h2>分析機能の開発状況</h2>
 <ul>
 <li>JRA公式成績PDF一覧：利用可能</li>
