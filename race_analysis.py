@@ -463,8 +463,14 @@ def summarize_running_style_pace_performance(
         pace = summarize_race_pace(lap_times, distance)
         if pace is None:
             continue
-        field_size = _number(first.get("field_size"))
-        if field_size is None or field_size < 2 or not field_size.is_integer():
+        field_size = next(
+            (
+                value for value in (_number(row.get("field_size")) for row in rows)
+                if value is not None and value >= 2 and value.is_integer()
+            ),
+            None,
+        )
+        if field_size is None:
             field_size = len(rows)
         for row in rows:
             runner_id = str(row.get("horse_number") or row.get("horse_name") or "").strip()
@@ -503,6 +509,27 @@ def summarize_running_style_pace_performance(
             "win_rate": round(wins / starts, 4),
             "top3_rate": round(top3 / starts, 4),
             "average_field_normalized_finish_score": round(mean(normalized), 1),
+            "individual_last3f_sample_count": sum(
+                1 for row, _, _ in outcomes
+                if (lambda value: value is not None and value > 0)(
+                    _number(row.get("individual_last3f", row.get("last3f")))
+                )
+            ),
+            "average_individual_last3f": (
+                round(mean([
+                    value
+                    for row, _, _ in outcomes
+                    if (value := _number(row.get("individual_last3f", row.get("last3f"))) ) is not None
+                    and value > 0
+                ]), 2)
+                if any(
+                    (lambda value: value is not None and value > 0)(
+                        _number(row.get("individual_last3f", row.get("last3f")))
+                    )
+                    for row, _, _ in outcomes
+                )
+                else None
+            ),
             "sample_sufficient": starts >= max(min_starts, 10),
             "interpretation": "過去レースの記述統計です。少数標本や条件差があるため、将来の勝率を示すものではありません。",
         })
