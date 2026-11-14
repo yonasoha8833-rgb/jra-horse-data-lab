@@ -24,6 +24,7 @@ DATE_RE = re.compile(r"(\d{1,2})月\s*(\d{1,2})日")
 FIELD_SIZE_RE = re.compile(r"[（(]\s*([0-9０-９]{1,2})\s*頭\s*[）)]")
 DISTANCE_RE = re.compile(r"([0-9０-９]{1,2}[,，][0-9０-９]{3}|[0-9０-９]{3,4})\s*(?:ｍ|m|メートル)")
 RESULT_STATUS_RE = re.compile(r"(競走中止|失格|中止|取消|除外)")
+GOING_RE = re.compile(r"(?:晴|曇|雨|小雨|小雪|雪)\\s*(良|稍重|重|不良)")
 LAST3F_RE = re.compile(r"上り\s*4F\s*([0-9.．]+)\s*[―ー-]\s*3F\s*([0-9.．]+)")
 LAP_RE = re.compile(r"ハロンタイム\s*([0-9.．―ー-]+)")
 
@@ -156,6 +157,8 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
                 break
 
         track = _track(header)
+        going_match = GOING_RE.search(header)
+        going = going_match.group(1) if going_match else None
         race_name_match = re.search(r"第\s*\d+\s*競走\s*(.*?)\s*[0-9０-９]{1,2}(?:[,，][0-9０-９]{3}|[0-9０-９]{2,3})", header)
         race_name = race_name_match.group(1).strip() if race_name_match else None
 
@@ -217,6 +220,7 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
                 "race_name": race_name,
                 "surface": surface,
                 "distance": distance,
+                "going": going,
                 "finish": finish_position if is_placed else None,
                 "field_size": len(runners),
                 "declared_field_size": declared_field_size,
