@@ -86,14 +86,27 @@ def validate_replay_records(rows: list[dict]) -> list[dict]:
 
 
 def deduplicate_records(rows: list[dict]) -> list[dict]:
-    """Keep one row per source PDF and horse number, preserving malformed keys."""
+    """Keep the most complete row per source PDF and horse number."""
+    if not isinstance(rows, list):
+        raise ValueError("Stored replay records must be a list")
     unique = {}
+    unkeyed = []
     for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise ValueError(f"Stored replay record {index + 1} is not an object")
         source = row.get("source_url")
         number = row.get("horse_number")
-        key = (source, number) if source and number is not None else ("__unkeyed__", index)
-        unique[key] = row
-    return list(unique.values())
+        if not source or number is None:
+            unkeyed.append(row)
+            continue
+        key = (source, number)
+        current = unique.get(key)
+        score = sum(value is not None and value != "" for value in row.values())
+        current_score = (sum(value is not None and value != "" for value in current.values())
+                         if current is not None else -1)
+        if score > current_score:
+            unique[key] = row
+    return list(unique.values()) + unkeyed
 
 
 def main() -> None:
@@ -107,8 +120,17 @@ def main() -> None:
 
     catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
     old = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
+    if not isinstance(old, dict):
+        raise SystemExit("Existing replay results file must contain a JSON object")
     records = old.get("records", [])
-    processed = set(old.get("processed_sources", []))
+    if not isinstance(records, list):
+        raise SystemExit("Existing replay results records must be a list")
+    processed_sources = old.get("processed_sources", [])
+    if not isinstance(processed_sources, list) or any(
+        not isinstance(url, str) or not url for url in processed_sources
+    ):
+        raise SystemExit("Existing processed_sources must be a list of non-empty URLs")
+    processed = set(processed_sources)
     failures = {
         item["url"]: item for item in old.get("import_failures", [])
         if isinstance(item, dict) and item.get("url")
