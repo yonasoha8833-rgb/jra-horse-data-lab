@@ -34,6 +34,16 @@ class RaceAnalysisTests(unittest.TestCase):
         # Race-level closing 3F must never be mislabeled as an individual figure.
         self.assertIsNone(horse["average_last3f"])
 
+    def test_official_individual_last3f_is_aggregated(self):
+        rows = [
+            {"horse_name": "個別上がり馬", "finish": 1,
+             "race_last3f": 34.8, "individual_last3f": 33.7},
+            {"horse_name": "個別上がり馬", "finish": 2,
+             "race_last3f": 35.2, "individual_last3f": 34.1},
+        ]
+        horse = summarize_horses(rows)[0]
+        self.assertEqual(horse["average_last3f"], 33.9)
+
     def test_missing_metrics_stay_empty(self):
         horse = next(x for x in summarize_horses(self.rows) if x["horse_name"] == "別の馬")
         self.assertIsNone(horse["average_time_seconds"])
