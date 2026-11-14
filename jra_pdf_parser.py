@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import re
 from datetime import date
+
+from html.parser import HTMLParser
+from urllib.parse import quote
 import shutil
 import subprocess
 import tempfile
@@ -254,6 +257,179 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
     return records
 
 
+
+TRACK_CODES = {
+    "sapporo": "01", "hakodate": "02", "fukushima": "03",
+    "niigata": "04", "tokyo": "05", "nakayama": "06",
+    "chukyo": "07", "kyoto": "08", "hanshin": "09", "kokura": "10",
+}
+
+
+class _JraHtmlTableParser(HTMLParser):
+    """Collect visible table cells and page text from an official JRA result page."""
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.rows = []
+        self.page_text = []
+        self._row = None
+        self._cell = None
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "tr":
+            self._row = []
+        elif tag in ("td", "th") and self._row is not None:
+            self._cell = []
+
+    def handle_data(self, data):
+        value = data.strip()
+        if not value:
+            return
+        self.page_text.append(value)
+        if self._cell is not None:
+            self._cell.append(value)
+
+    def handle_endtag(self, tag):
+        if tag in ("td", "th") and self._cell is not None and self._row is not None:
+            self._row.append(" ".join(self._cell))
+            self._cell = None
+        elif tag == "tr" and self._row is not None:
+            if self._row:
+                self.rows.append(self._row)
+            self._row = None
+            self._cell = None
+
+
+def _race_identity_from_pdf_url(source_url: str, source_text: str):
+    match = re.search(
+        r"/(20\\d{2})-(\\d)(sapporo|hakodate|fukushima|niigata|tokyo|nakayama|chukyo|kyoto|hanshin|kokura)(\\d+)\\.pdf$",
+        source_url,
+        re.IGNORECASE,
+    )
+    date_match = DATE_RE.search(source_text)
+    if not match or not date_match:
+        return None
+    year, meeting, track_key, day = match.groups()
+    month, date_day = map(int, date_match.groups())
+    try:
+        race_date = date(int(year), month, date_day)
+    except ValueError:
+        return None
+    return {
+        "year": int(year), "meeting": int(meeting), "track_key": track_key.lower(),
+        "track": next((name for name in TRACKS if name in {
+            "sapporo":"札幌", "hakodate":"函館", "fukushima":"福島",
+            "niigata":"新潟", "tokyo":"東京", "nakayama":"中山",
+            "chukyo":"中京", "kyoto":"京都", "hanshin":"阪神", "kokura":"小倉"
+        }[track_key.lower()]), None),
+        "day": int(day), "date": race_date.isoformat(),
+    }
+
+
+def _official_result_url(identity: dict, race_number: int) -> str:
+    track_code = TRACK_CODES[identity["track_key"]]
+    date_digits = identity["date"].replace("-", "")
+    cname = (
+        f"pw01sde01{track_code}{identity['year']}"
+        f"{identity['meeting']:02d}{identity['day']:02d}"
+        f"{race_number:02d}{date_digits}/A3"
+    )
+    return "https://own.jra.jp/JRADB/accessS.html?CNAME=" + quote(cname, safe="/")
+
+
+def _parse_official_result_html(html: str, *, identity: dict, race_number: int,
+                                source_url: str) -> list[dict[str, Any]]:
+    parser = _JraHtmlTableParser()
+    parser.feed(html)
+    text = " ".join(parser.page_text)
+    race_name_match = re.search(r"(?:第\\d+競走\\s*)?([^ ]{2,30}?)\\s+(?:2歳|3歳|4歳|障害)", text)
+    race_name = race_name_match.group(1) if race_name_match else None
+    distance_match = re.search(r"コース\\s*[：:]\\s*([0-9,，]+)\\s*メートル", text)
+    distance = _distance(distance_match.group(1)) if distance_match else None
+    surface = "ダート" if "ダート・" in text else ("芝" if "芝・" in text else ("障害" if "障害" in text else None))
+    going_match = re.search(r"(?:芝|ダート|障害)\\s*(良|稍重|重|不良)", text)
+    going = going_match.group(1) if going_match else None
+    last3f_match = re.search(r"上り\\s*4F\\s*([0-9.]+)\\s*[-―ー]\\s*3F\\s*([0-9.]+)", text)
+    last4f = _seconds(last3f_match.group(1)) if last3f_match else None
+    last3f = _seconds(last3f_match.group(2)) if last3f_match else None
+
+    records = []
+    for cells in parser.rows:
+        if len(cells) < 8:
+            continue
+        placing_text = cells[0].strip()
+        number_match = re.fullmatch(r"\\s*(\\d{1,2})\\s*", cells[2])
+        if not number_match:
+            continue
+        horse_number = int(number_match.group(1))
+        if not 1 <= horse_number <= 18:
+            continue
+        horse_name = re.sub(r"\\s+", "", re.sub(r"Image:.*", "", cells[3])).strip()
+        sex_age = re.search(r"(牡|牝|セ)\\s*([0-9０-９]{1,2})", cells[4])
+        if not horse_name or not sex_age:
+            continue
+        sex, age = sex_age.groups()
+        age = int(_ascii_digits(age))
+        if not 2 <= age <= 20:
+            continue
+        frame_match = re.search(r"([1-8])", cells[1])
+        frame = int(frame_match.group(1)) if frame_match else None
+        time_match = re.search(r"([0-9]{1,2}):([0-9]{2})\\.([0-9])", cells[7])
+        finish_time = None
+        finish_seconds = None
+        if time_match:
+            mm, ss, tenth = map(int, time_match.groups())
+            if ss < 60:
+                finish_time = f"{mm}:{ss:02d}.{tenth}"
+                finish_seconds = mm * 60 + ss + tenth / 10
+        placing_match = re.fullmatch(r"\\s*(\\d{1,2})\\s*", placing_text)
+        finish = int(placing_match.group(1)) if placing_match and finish_seconds is not None else None
+        status = placing_text if placing_text in {"競走中止", "失格", "中止", "取消", "除外"} else None
+        if not frame:
+            frame = 1
+        runner_last3f = _seconds(re.search(r"[0-9]+\\.[0-9]+", cells[10]).group(0)) if len(cells) > 10 and re.search(r"[0-9]+\\.[0-9]+", cells[10]) else None
+        records.append({
+            "frame": frame, "horse_number": horse_number, "horse_name": horse_name,
+            "sex": sex, "age": age, "finish_time": finish_time,
+            "finish_time_seconds": finish_seconds, "result_status": status,
+            "dead_heat": False, "runner_validation_warnings": [],
+            "date": identity["date"], "track": identity["track"],
+            "race_number": race_number, "race_name": race_name,
+            "surface": surface, "distance": distance, "going": going,
+            "finish": finish, "field_size": 0, "declared_field_size": None,
+            "race_validation_warnings": [], "race_last3f": last3f,
+            "race_last4f": last4f, "race_lap_times": None,
+            "individual_last3f": runner_last3f, "source_url": source_url,
+            "extraction_status": "official_html",
+        })
+    for row in records:
+        row["field_size"] = len(records)
+    return records
+
+
+def _download_official_html_results(source_url: str, source_text: str) -> list[dict[str, Any]]:
+    identity = _race_identity_from_pdf_url(source_url, source_text)
+    if not identity:
+        print(f"Official HTML fallback skipped: meeting identity unavailable for {source_url}")
+        return []
+    all_records = []
+    for race_number in range(1, 13):
+        url = _official_result_url(identity, race_number)
+        try:
+            request = Request(url, headers={"User-Agent": "JRA-HORSE-DATA-LAB/0.3"})
+            with urlopen(request, timeout=15) as response:
+                html = response.read().decode("utf-8", errors="replace")
+            rows = _parse_official_result_html(
+                html, identity=identity, race_number=race_number, source_url=source_url
+            )
+            if rows:
+                all_records.extend(rows)
+        except Exception as exc:
+            print(f"Official HTML result unavailable: race={race_number}, error={type(exc).__name__}: {exc}")
+    print(f"Official HTML fallback: {len(all_records)} runner rows from {source_url}")
+    return all_records
+
+
+
 def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Keep only OCR races whose parsed runner count matches the printed field size."""
     races: dict[tuple, list[dict[str, Any]]] = {}
@@ -342,7 +518,9 @@ def extract_pdf(pdf_bytes: bytes, *, source_url: str = "") -> list[dict[str, Any
             f"parsed_rows={len(ocr_records)}, accepted_rows={len(accepted)}"
         )
         print(f"OCR text sample: {ocr_lines[:20]!r}")
-        return accepted
+        if accepted:
+            return accepted
+        return _download_official_html_results(source_url, ocr_text or text)
 
 
 def download_and_extract(url: str, *, timeout: int = 45) -> list[dict[str, Any]]:
