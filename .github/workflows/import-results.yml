@@ -9,6 +9,7 @@ on:
       - .github/workflows/import-results.yml
       - jra_pdf_parser.py
       - import_results.py
+      - tests/**
   schedule:
     - cron: "30 7 * * *"
   workflow_dispatch:
