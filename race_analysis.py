@@ -89,6 +89,65 @@ def _summarize_running_styles(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def analyze_race_scenario(runners: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    """Estimate pace pressure from declared runner styles and score heuristic fit.
+
+    This is a coarse scenario aid, not a race prediction. Missing styles are
+    excluded from pressure counts and receive no individual fit score.
+    """
+    entries = list(runners)
+    prepared = []
+    for row in entries:
+        style = row.get("running_style")
+        if style not in {"逃げ", "先行", "差し", "追込"}:
+            style = classify_running_style(row.get("corner_positions"), row.get("field_size"))
+        prepared.append((row, style))
+
+    known = [style for _, style in prepared if style]
+    leaders = known.count("逃げ")
+    forward = leaders + known.count("先行")
+    known_count = len(known)
+    if known_count == 0:
+        pace = None
+        label = "判定材料不足"
+    elif leaders >= 3 or forward / known_count >= 0.55:
+        pace = "前半速い"
+        label = "ハイペース寄り"
+    elif leaders <= 1 and forward / known_count <= 0.30:
+        pace = "後半速い"
+        label = "スローペース寄り"
+    else:
+        pace = "ほぼ均等"
+        label = "平均ペース寄り"
+
+    scores = {"逃げ": 50, "先行": 50, "差し": 50, "追込": 50}
+    if pace == "前半速い":
+        scores.update({"逃げ": 35, "先行": 45, "差し": 75, "追込": 70})
+    elif pace == "後半速い":
+        scores.update({"逃げ": 75, "先行": 70, "差し": 45, "追込": 35})
+    elif pace == "ほぼ均等":
+        scores.update({"逃げ": 55, "先行": 60, "差し": 55, "追込": 45})
+
+    horse_scores = []
+    for row, style in prepared:
+        horse_scores.append({
+            "horse_name": row.get("horse_name"),
+            "horse_number": row.get("horse_number"),
+            "running_style": style,
+            "scenario_fit_score": scores[style] if style and pace else None,
+        })
+    return {
+        "scenario": label,
+        "estimated_pace_shape": pace,
+        "known_style_count": known_count,
+        "leader_count": leaders,
+        "front_runner_count": forward,
+        "style_coverage": round(known_count / len(entries), 4) if entries else 0.0,
+        "horse_scores": horse_scores,
+        "warning": "脚質の頭数から作る簡易シナリオ評価です。確率・着順予測ではなく、馬場、枠順、騎手、展開変化は反映していません。",
+    }
+
+
 def summarize_horses(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     """Aggregate normalized race rows by horse name.
 
