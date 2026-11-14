@@ -1,9 +1,33 @@
+import io
 import unittest
 
-from jra_replay_catalog import parse_listing_html
+from jra_replay_catalog import parse_listing_html, read_limited_html
+
+
+class FakeResponse(io.BytesIO):
+    def __init__(self, body, headers=None):
+        super().__init__(body)
+        self.headers = headers or {}
 
 
 class JraReplayCatalogTests(unittest.TestCase):
+    def test_reads_html_within_limit(self):
+        self.assertEqual(read_limited_html(FakeResponse(b"<html/>", {"Content-Length": "7"}), 10), b"<html/>")
+
+    def test_rejects_oversized_html_from_header(self):
+        with self.assertRaisesRegex(ValueError, "size limit"):
+            read_limited_html(FakeResponse(b"", {"Content-Length": "11"}), 10)
+
+    def test_rejects_malformed_html_content_length(self):
+        for value in ("unknown", "-1", "1.5"):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "Content-Length"):
+                    read_limited_html(FakeResponse(b"x", {"Content-Length": value}), 10)
+
+    def test_rejects_oversized_html_stream_without_header(self):
+        with self.assertRaisesRegex(ValueError, "size limit"):
+            read_limited_html(FakeResponse(b"x" * 11), 10)
+
     def test_extracts_pdf_links_and_race_metadata(self):
         html = """
         <table><tr>
