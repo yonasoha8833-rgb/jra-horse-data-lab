@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import urllib.request
 from pathlib import Path
+from urllib.parse import urlsplit
 
 MAX_PDF_BYTES = 30 * 1024 * 1024
 DEFAULT_URL = (
@@ -18,6 +19,9 @@ DEFAULT_URL = (
 
 
 def download_pdf(url: str, destination: Path, max_bytes: int = MAX_PDF_BYTES) -> None:
+    parsed_url = urlsplit(url)
+    if parsed_url.scheme != "https" or parsed_url.hostname != "www.jra.go.jp":
+        raise ValueError("Only HTTPS URLs on www.jra.go.jp are permitted")
     request = urllib.request.Request(
         url, headers={"User-Agent": "JRA-Horse-Data-Lab/1.0"}
     )
