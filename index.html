@@ -101,6 +101,20 @@ const horseResults=document.getElementById('horseResults');
 const horseCompare=document.getElementById('horseCompare');
 let horseRecords=[];
 const selectedHorses=new Map();
+function appendRecentForm(card,rows){
+ const recent=rows.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,5);
+ if(!recent.length)return;
+ const details=document.createElement('details');details.className='small';
+ const summary=document.createElement('summary');summary.textContent='近5走の成績推移';details.append(summary);
+ const sequence=document.createElement('div');sequence.style.display='flex';sequence.style.flexWrap='wrap';sequence.style.gap='8px';sequence.style.margin='10px 0';
+ recent.forEach((r,index)=>{const item=document.createElement('div');item.style.minWidth='54px';item.style.padding='6px';item.style.border='1px solid #40516a';item.style.borderRadius='8px';item.style.textAlign='center';const result=document.createElement('strong');result.textContent=r.finish?String(r.finish)+'着':(r.result_status||'着順不明');result.style.display='block';const date=document.createElement('span');date.textContent=r.date||'日付不明';date.style.display='block';date.className='muted';const track=document.createElement('span');track.textContent=r.track||'競馬場不明';track.style.display='block';track.className='muted';item.append(result,date,track);sequence.append(item);});
+ details.append(sequence);
+ const placed=rows.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).filter(r=>Number.isFinite(Number(r.finish))&&Number(r.finish)>0);
+ const averages=(list)=>list.length?list.reduce((sum,r)=>sum+Number(r.finish),0)/list.length:null;
+ const latest=placed.slice(0,3),previous=placed.slice(3,6);
+ if(latest.length){const note=document.createElement('p');note.className='muted';let text='直近'+latest.length+'走の平均着順 '+averages(latest).toFixed(2);if(previous.length===3){const delta=averages(previous)-averages(latest);text+=' ／ その前3走との比較 '+(delta>0?'改善':delta<0?'低下':'同水準')+'（'+Math.abs(delta).toFixed(2)+'着分）';}else{text+=' ／ 比較には合計6走以上の着順データが必要です。';}note.textContent=text;details.append(note);}
+ card.append(details);
+}
 function appendConditionBreakdown(card,rows){
  const overallWins=rows.filter(r=>Number(r.finish)===1).length;
  const overallWinRate=rows.length?overallWins/rows.length*100:0;
@@ -159,6 +173,7 @@ function renderHorses(){
   const times=rows.map(r=>Number(r.finish_time_seconds)).filter(v=>Number.isFinite(v)&&v>0);
   const last3fs=rows.map(r=>Number(r.individual_last3f)).filter(v=>Number.isFinite(v)&&v>0);
   if(finishes.length||times.length||last3fs.length||rows.some(r=>r.result_status)){const extra=document.createElement('p');extra.className='muted small';const parts=[];if(finishes.length)parts.push('平均着順 '+(finishes.reduce((a,b)=>a+b,0)/finishes.length).toFixed(2));if(times.length)parts.push('平均走破 '+(times.reduce((a,b)=>a+b,0)/times.length).toFixed(2)+'秒');if(last3fs.length)parts.push('個別平均上がり3F '+(last3fs.reduce((a,b)=>a+b,0)/last3fs.length).toFixed(2)+'秒');const statuses=rows.filter(r=>r.result_status).map(r=>r.result_status);if(statuses.length)parts.push('状態記録 '+statuses.length+'件（'+[...new Set(statuses)].join('・')+'）');extra.textContent=parts.join(' ／ ');card.append(extra);}
+  appendRecentForm(card,rows);
   appendConditionBreakdown(card,rows);
   const scoreValue=horseScore(rows);
   if(scoreValue!==null){const score=document.createElement('p');score.className='small';score.textContent='着順ベース参考指数：'+scoreValue.toFixed(1)+' / 100';card.append(score);}
