@@ -1,6 +1,6 @@
 import unittest
 
-from race_analysis import filter_records, performance_score, recent_form_summary, summarize_conditions, summarize_horses
+from race_analysis import distance_band, filter_records, performance_score, recent_form_summary, summarize_conditions, summarize_distance_bands, summarize_horses
 
 
 class RaceAnalysisTests(unittest.TestCase):
@@ -138,6 +138,31 @@ class RaceAnalysisTests(unittest.TestCase):
         ])
         self.assertIsNone(result["trend"])
         self.assertIsNone(result["previous_three_average_finish"])
+
+
+
+    def test_distance_band_boundaries_and_invalid_values(self):
+        self.assertEqual(distance_band(1400), "短距離（1000〜1400m）")
+        self.assertEqual(distance_band(1401), "マイル（1401〜1800m）")
+        self.assertEqual(distance_band(1800), "マイル（1401〜1800m）")
+        self.assertEqual(distance_band(1801), "中距離（1801〜2200m）")
+        self.assertEqual(distance_band(2201), "長距離（2201〜5000m）")
+        self.assertIsNone(distance_band(999))
+        self.assertIsNone(distance_band(None))
+        self.assertIsNone(distance_band(5001))
+
+    def test_distance_band_summary_requires_minimum_sample(self):
+        rows = [
+            {"distance": 1200, "finish": 1},
+            {"distance": 1400, "finish": 2},
+            {"distance": 1300, "finish": 3},
+            {"distance": 1600, "finish": 1},
+        ]
+        result = summarize_distance_bands(rows, min_starts=3)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["condition"], "短距離（1000〜1400m）")
+        self.assertEqual(result[0]["starts"], 3)
+        self.assertEqual(result[0]["wins"], 1)
 
 
     def test_filters(self):
