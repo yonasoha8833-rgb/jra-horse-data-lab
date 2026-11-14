@@ -474,8 +474,8 @@ class RaceAnalysisTests(unittest.TestCase):
         )
         self.assertEqual(result["condition_sample_count"], 2)
         self.assertEqual(result["matched_condition"], "芝ダート・距離帯")
-        self.assertGreater(result["score"], result["condition_score"])
-        self.assertLess(result["score"], result["overall_score"])
+        self.assertGreater(result["score"], result["overall_score"])
+        self.assertLess(result["score"], result["condition_score"])
 
     def test_condition_adjusted_score_uses_most_specific_supported_group(self):
         rows = [
