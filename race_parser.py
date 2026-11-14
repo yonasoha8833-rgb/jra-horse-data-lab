@@ -15,7 +15,7 @@ from pathlib import Path
 
 TIME_RE = re.compile(r"(?P<time>\d{1,2}[:：]\d{2}[.．]\d)")
 RACE_RE = re.compile(r"第\s*(\d+)\s*競走")
-HORSE_START_RE = re.compile(r"(?m)(?:^|\n)\s*(\d{1,2})\s+(\d{1,2})\s*\n")
+HORSE_START_RE = re.compile(r"(?m)(?:^|\n)\s*([1-8])\s*(1[0-8]|[1-9])\s*\n")
 
 
 def clean_text(value: str) -> str:
