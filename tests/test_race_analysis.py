@@ -522,7 +522,7 @@ class RaceAnalysisTests(unittest.TestCase):
         result = summarize_relative_last3f(rows)
         scores = {item["horse_name"]: item["average_relative_score"] for item in result}
         self.assertEqual(scores, {"最速馬": 100.0, "中間馬": 50.0, "最遅馬": 0.0})
-        self.assertEqual(result[0]["conditions"]["surface"][0]["sample_count"], 1)
+        self.assertEqual(result[0]["conditions"]["surface"], [])
 
     def test_relative_last3f_excludes_incomplete_races_and_tolerates_ties(self):
         rows = [
