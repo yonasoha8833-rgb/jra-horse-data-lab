@@ -1,6 +1,6 @@
 import unittest
 
-from jra_pdf_parser import parse_race_text
+from jra_pdf_parser import _complete_ocr_records, parse_race_text
 
 
 SAMPLE = """
@@ -249,6 +249,15 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["track"], "東京")
         self.assertEqual(rows[0]["surface"], "ダート")
         self.assertEqual(rows[2]["finish_time_seconds"], rows[1]["finish_time_seconds"])
+
+    def test_ocr_fallback_keeps_only_races_with_full_declared_field(self):
+        rows = parse_race_text(SAMPLE)
+        self.assertEqual(len(_complete_ocr_records(rows)), 2)
+        self.assertEqual(_complete_ocr_records(rows[:1]), [])
+        self.assertTrue(all(
+            row["extraction_status"] == "ocr_fallback_basic_fields"
+            for row in _complete_ocr_records(rows)
+        ))
 
 
 if __name__ == "__main__":
