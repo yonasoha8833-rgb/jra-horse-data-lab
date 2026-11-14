@@ -9,6 +9,34 @@ import import_results
 
 class ImportResultsTests(unittest.TestCase):
 
+    def test_sanitize_existing_records_drops_invalid_legacy_ocr_race(self):
+        ordinary = {"source_url": "manual", "horse_number": 1}
+        invalid_ocr = [
+            {
+                "source_url": "ocr.pdf", "date": "2026-09-26",
+                "race_number": 7, "horse_number": number, "frame": frame,
+                "declared_field_size": 2,
+                "extraction_status": "ocr_fallback_basic_fields",
+            }
+            for number, frame in ((1, 1), (1, 1))
+        ]
+        valid_ocr = [
+            {
+                "source_url": "valid.pdf", "date": "2026-09-26",
+                "race_number": 1, "horse_number": number, "frame": number,
+                "declared_field_size": 2,
+                "extraction_status": "ocr_fallback_basic_fields",
+            }
+            for number in (1, 2)
+        ]
+        cleaned = import_results.sanitize_existing_records(
+            [ordinary, *invalid_ocr, *valid_ocr]
+        )
+        self.assertEqual(len(cleaned), 3)
+        self.assertEqual(cleaned[0], ordinary)
+        self.assertEqual({row["horse_number"] for row in cleaned[1:]}, {1, 2})
+        self.assertTrue(all(row["source_url"] == "valid.pdf" for row in cleaned[1:]))
+
     def test_quality_report_counts_race_warnings_and_missing_fields(self):
         records = [
             {
