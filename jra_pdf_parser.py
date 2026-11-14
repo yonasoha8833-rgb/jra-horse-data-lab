@@ -164,7 +164,7 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
 
         runners = []
         for line in block:
-            runner = _runner(line)
+            runner = _runner(line.strip())
             if runner:
                 runners.append(runner)
 
