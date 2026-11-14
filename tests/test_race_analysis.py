@@ -1,6 +1,6 @@
 import unittest
 
-from race_analysis import filter_records, performance_score, summarize_horses
+from race_analysis import filter_records, performance_score, summarize_conditions, summarize_horses
 
 
 class RaceAnalysisTests(unittest.TestCase):
@@ -90,6 +90,29 @@ class RaceAnalysisTests(unittest.TestCase):
         ]
         self.assertEqual(performance_score(rows), 66.7)
         self.assertIsNone(performance_score([{"finish": 1}]))
+
+
+    def test_condition_summary_requires_minimum_sample_and_ignores_unknowns(self):
+        rows = [
+            {"going": "良", "finish": 1},
+            {"going": "良", "finish": 2},
+            {"going": "良", "finish": 4},
+            {"going": "重", "finish": 1},
+            {"going": None, "finish": 1},
+        ]
+        result = summarize_conditions(rows, "going", min_starts=3)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["condition"], "良")
+        self.assertEqual(result[0]["starts"], 3)
+        self.assertEqual(result[0]["wins"], 1)
+        self.assertEqual(result[0]["top3"], 2)
+        self.assertEqual(result[0]["win_rate"], 0.3333)
+        self.assertEqual(result[0]["top3_rate"], 0.6667)
+
+    def test_condition_summary_rejects_zero_minimum(self):
+        with self.assertRaises(ValueError):
+            summarize_conditions([], "going", min_starts=0)
+
 
     def test_filters(self):
         result = filter_records(self.rows, track="東京", surface="芝", distance=1600)
