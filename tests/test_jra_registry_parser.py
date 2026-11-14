@@ -28,6 +28,10 @@ class JraRegistryParserTests(unittest.TestCase):
         rows = parse_registry_text("馬A 2023-01631\n馬B 2023-01631")
         self.assertEqual(len(rows), 1)
 
+    def test_duplicate_registration_number_is_rejected_for_all_names(self):
+        rows = parse_registry_text("馬A 2023-01631\\n馬B 2023-01631")
+        self.assertEqual(rows, [])
+
     def test_unique_name_index_excludes_same_name_conflicts(self):
         rows = [
             {"horse_name": "同名馬", "horse_registration_number": "2023-00001"},
