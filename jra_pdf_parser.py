@@ -270,16 +270,16 @@ def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]
     return accepted
 
 
-def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str | None:
+def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 5) -> str | None:
     """OCR a bounded number of pages when the PDF text layer yields no runner rows."""
     if not shutil.which("pdftoppm") or not shutil.which("tesseract"):
         return None
     prefix = temp_dir / "ocr-page"
     subprocess.run(
-        ["pdftoppm", "-f", "1", "-l", str(max_pages), "-r", "250", "-png",
+        ["pdftoppm", "-f", "1", "-l", str(max_pages), "-r", "180", "-png",
          str(pdf_path), str(prefix)],
         check=True,
-        timeout=120,
+        timeout=90,
         capture_output=True,
         text=True,
     )
@@ -291,7 +291,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
         result = subprocess.run(
             ["tesseract", str(page), "stdout", "-l", "jpn+eng", "--psm", "6"],
             check=True,
-            timeout=45,
+            timeout=30,
             capture_output=True,
             text=True,
         )
@@ -315,12 +315,28 @@ def extract_pdf(pdf_bytes: bytes, *, source_url: str = "") -> list[dict[str, Any
         text = txt_path.read_text(encoding="utf-8", errors="replace")
         records = parse_race_text(text, source_url=source_url)
         if records:
+            print(f"PDF text layer: {len(records)} rows from {source_url}")
             return records
 
+        text_lines = text.splitlines()
+        header_count = sum(1 for line in text_lines if RACE_RE.search(line))
+        runner_line_count = sum(1 for line in text_lines if _runner(line.strip()))
+        print(
+            f"PDF text layer yielded no runners: {source_url}; "
+            f"lines={len(text_lines)}, race_headers={header_count}, "
+            f"runner_candidates={runner_line_count}; trying OCR"
+        )
         ocr_text = _ocr_pdf_text(pdf_path, temp_dir)
         if not ocr_text:
+            print(f"OCR unavailable or empty: {source_url}")
             return []
-        return _complete_ocr_records(parse_race_text(ocr_text, source_url=source_url))
+        ocr_records = parse_race_text(ocr_text, source_url=source_url)
+        accepted = _complete_ocr_records(ocr_records)
+        print(
+            f"OCR result: {source_url}; chars={len(ocr_text)}, "
+            f"parsed_rows={len(ocr_records)}, accepted_rows={len(accepted)}"
+        )
+        return accepted
 
 
 def download_and_extract(url: str, *, timeout: int = 45) -> list[dict[str, Any]]:
