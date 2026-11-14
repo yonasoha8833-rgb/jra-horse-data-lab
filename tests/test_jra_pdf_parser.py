@@ -1,6 +1,6 @@
 import unittest
 
-from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _pair_identifier_columns, _build_ocr_runner_lines, parse_race_text
+from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _build_ocr_runner_lines, parse_race_text
 
 
 SAMPLE = """
@@ -422,6 +422,41 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(paired, [
             (100.5, (1, 1)), (140.5, (5, 5)), (180.5, (3, 3))
         ])
+
+    def test_infers_frame_column_from_complete_horse_number_sequence(self):
+        rows = _infer_identifier_pairs_from_complete_horse_column(
+            [(100.0, 1), (140.0, 2), (180.0, 3), (220.0, 4),
+             (260.0, 5), (300.0, 6), (340.0, 7), (380.0, 8)]
+        )
+        self.assertEqual(
+            rows,
+            [(100.0, (1, 1)), (140.0, (2, 2)), (180.0, (3, 3)),
+             (220.0, (4, 4)), (260.0, (5, 5)), (300.0, (6, 6)),
+             (340.0, (7, 7)), (380.0, (8, 8))],
+        )
+
+    def test_infers_official_frame_assignments_for_complete_twelve_horse_field(self):
+        rows = _infer_identifier_pairs_from_complete_horse_column(
+            [(float(number * 10), number) for number in range(1, 13)]
+        )
+        self.assertEqual([pair for _, pair in rows], [
+            (1, 1), (2, 2), (3, 3), (4, 4), (5, 5),
+            (5, 6), (6, 7), (6, 8), (7, 9), (7, 10), (8, 11), (8, 12),
+        ])
+
+    def test_does_not_infer_frames_from_incomplete_or_duplicate_horse_numbers(self):
+        self.assertEqual(
+            _infer_identifier_pairs_from_complete_horse_column(
+                [(100.0, 1), (140.0, 2), (180.0, 4)]
+            ),
+            [],
+        )
+        self.assertEqual(
+            _infer_identifier_pairs_from_complete_horse_column(
+                [(100.0, 1), (140.0, 2), (180.0, 2)]
+            ),
+            [],
+        )
 
     def test_rejects_misaligned_separate_identifier_columns(self):
         self.assertEqual(_pair_identifier_columns(
