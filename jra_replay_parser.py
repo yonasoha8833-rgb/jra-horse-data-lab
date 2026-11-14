@@ -22,7 +22,7 @@ INDIVIDUAL_LAST3F_RE = re.compile(r"(?<![0-9.])([0-9０-９]{2,3}[.．][0-9０-�
 DATE_RE = re.compile(r"(20\d{2})[.／/年](\d{1,2})[.／/月](\d{1,2})")
 DISTANCE_RE = re.compile(r"(芝|ダート|ダ|障)\s*([0-9０-９,，]{3,5})\s*(?:㍍|ｍ|m|メートル)")
 GOING_RE = re.compile(r"[・\s](良|稍重|重|不良)")
-CORNER_RE = re.compile(r"(?<![0-9])\d{1,2}(?:\s*[-－]\s*\d{1,2}){2,3}(?![0-9])")
+CORNER_RE = re.compile(r"(?<![0-9])\d{1,2}(?:\s*[-－]\s*\d{1,2}){1,3}(?![0-9])")
 
 
 def _ascii_digits(value: str) -> str:
