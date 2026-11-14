@@ -147,7 +147,7 @@ function renderHorses(){
   const identity=registration?'登録番号:'+registration:'馬名:'+name;
   const choose=document.createElement('label');choose.className='small';choose.style.display='block';choose.style.marginTop='6px';
   const check=document.createElement('input');check.type='checkbox';check.style.width='auto';check.checked=selectedHorses.has(identity);check.disabled=!check.checked&&selectedHorses.size>=3;
-  check.addEventListener('change',()=>{if(check.checked)selectedHorses.set(identity,{name:name,rows:rows.slice()});else selectedHorses.delete(identity);updateHorseComparison();renderHorses();});
+  check.addEventListener('change',()=>{if(check.checked){const allRows=horseRecords.filter(r=>{const reg=String(r.horse_registration_number||'').trim();return (reg?'登録番号:'+reg:'馬名:'+String(r.horse_name||'馬名不明'))===identity;});selectedHorses.set(identity,{name:name,rows:allRows});}else selectedHorses.delete(identity);updateHorseComparison();renderHorses();});
   choose.append(check,document.createTextNode(' 比較対象に追加'));card.append(choose);
   const stat=document.createElement('p');stat.className='muted small';stat.textContent='勝率 '+(wins/rows.length*100).toFixed(1)+'% ／ 複勝率 '+(top3/rows.length*100).toFixed(1)+'%';card.append(stat);
   const finishes=rows.map(r=>Number(r.finish)).filter(v=>Number.isFinite(v)&&v>0);
