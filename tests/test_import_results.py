@@ -30,6 +30,7 @@ class ImportResultsTests(unittest.TestCase):
                 "race_validation_warnings": ["duplicate_horse_number:2"],
                 "track": "東京",
                 "distance": 1600,
+                "going": "良",
                 "finish_time_seconds": None,
                 "runner_validation_warnings": ["invalid_finish_time_seconds"],
             },
