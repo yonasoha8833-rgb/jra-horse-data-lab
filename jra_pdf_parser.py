@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any
+from urllib.request import Request, urlopen
 
 TRACKS = ("札幌", "函館", "福島", "新潟", "東京", "中山", "中京", "京都", "阪神", "小倉")
 RUNNER_RE = re.compile(
