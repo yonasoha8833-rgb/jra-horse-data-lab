@@ -152,6 +152,23 @@ function horseConditionAdjustedScore(conditionRows,allRows,minStarts=3,priorStre
  return {score:adjusted,baseline,conditionScore,sampleCount:valid.length,confidence:valid.length>=10?'高め':'中程度'};
 }
 
+
+function horseDataConfidence(rows){
+ const required=['date','track','surface','distance','going','finish','field_size'];
+ if(!rows.length)return {label:'データなし',valid:0,completeness:0,detail:'成績記録がありません'};
+ const valid=rows.filter(r=>{
+  const finish=Number(r.finish),field=Number(r.field_size);
+  return Number.isInteger(finish)&&Number.isInteger(field)&&field>1&&finish>=1&&finish<=field;
+ }).length;
+ const available=rows.reduce((sum,r)=>sum+required.filter(key=>r[key]!==null&&r[key]!==undefined&&String(r[key]).trim()!=='').length,0);
+ const completeness=available/(rows.length*required.length);
+ let label='低';
+ if(valid>=10&&completeness>=0.9)label='高';
+ else if(valid>=5&&completeness>=0.75)label='中';
+ const detail='有効着順 '+valid+'件／必須項目充足率 '+(completeness*100).toFixed(0)+'%';
+ return {label,valid,completeness,detail};
+}
+
 function updateHorseComparison(){
  horseCompare.replaceChildren();
  if(!selectedHorses.size)return;
@@ -184,7 +201,7 @@ function updateHorseComparison(){
  });
  const table=document.createElement('table');table.style.width='100%';table.style.borderCollapse='collapse';
  const head=document.createElement('tr');
- ['馬名','出走','勝利','勝率','複勝率','全体指数','条件補正指数','上がり相対','参考統合指数'].forEach(label=>{const th=document.createElement('th');th.textContent=label;th.style.textAlign='left';th.style.padding='6px';head.append(th);});table.append(head);
+ ['馬名','出走','勝利','勝率','複勝率','全体指数','条件補正指数','上がり相対','参考統合指数','信頼度'].forEach(label=>{const th=document.createElement('th');th.textContent=label;th.style.textAlign='left';th.style.padding='6px';head.append(th);});table.append(head);
  selectedHorses.forEach(item=>{
   const rows=filterRows(item.rows);
   const wins=rows.filter(r=>Number(r.finish)===1).length;
@@ -192,12 +209,13 @@ function updateHorseComparison(){
   const adjusted=horseConditionAdjustedScore(rows,item.rows);
   const relative=horseRelativeLast3fSummary(rows,horseRecords);
   const integrated=adjusted.score!==null&&relative.averageScore!==null?adjusted.score*0.8+relative.averageScore*0.2:null;
+  const confidence=horseDataConfidence(rows);
   const tr=document.createElement('tr');
-  const values=[item.name,rows.length?rows.length+'戦':'—',rows.length?wins+'勝':'—',rows.length?(wins/rows.length*100).toFixed(1)+'%':'—',rows.length?(top3/rows.length*100).toFixed(1)+'%':'—',adjusted.baseline===null?'—':adjusted.baseline.toFixed(1),adjusted.score===null?'—':adjusted.score.toFixed(1)+(adjusted.sampleCount<3?'*':''),relative.averageScore===null?'—':relative.averageScore.toFixed(1)+'（'+relative.sampleCount+'走）',integrated===null?'—':integrated.toFixed(1)];
+  const values=[item.name,rows.length?rows.length+'戦':'—',rows.length?wins+'勝':'—',rows.length?(wins/rows.length*100).toFixed(1)+'%':'—',rows.length?(top3/rows.length*100).toFixed(1)+'%':'—',adjusted.baseline===null?'—':adjusted.baseline.toFixed(1),adjusted.score===null?'—':adjusted.score.toFixed(1)+(adjusted.sampleCount<3?'*':''),relative.averageScore===null?'—':relative.averageScore.toFixed(1)+'（'+relative.sampleCount+'走）',integrated===null?'—':integrated.toFixed(1),confidence.label+'（'+confidence.valid+'件）'];
   values.forEach(value=>{const td=document.createElement('td');td.textContent=value;td.style.padding='6px';td.style.borderTop='1px solid #40516a';tr.append(td);});
   table.append(tr);
  });horseCompare.append(table);
- const note=document.createElement('p');note.className='muted small';note.textContent='全体指数は頭数補正した直近5走の参考値です。条件補正指数は選択条件の頭数補正着順平均を全体指数へ5走分相当で縮約し、条件データ3走未満では全体指数を使用します（*は条件データ不足）。上がり相対は同一レース内で3頭以上を比較できた出走のみ集計します。参考統合指数は条件補正指数80％・上がり相対20％の暫定値で、上がり比較データがない場合は表示しません。各指数は勝率や将来の結果を示すものではありません。';horseCompare.append(note);
+ const note=document.createElement('p');note.className='muted small';note.textContent='信頼度は有効着順件数と日付・競馬場・コース・距離・馬場状態・着順・頭数の充足率による目安です。高：有効10件以上かつ充足率90％以上、中：有効5件以上かつ充足率75％以上、それ以外は低。条件補正指数の*は条件データ3走未満です。全体指数は頭数補正した直近5走の参考値、条件補正指数は条件成績を全体指数へ5走分相当で縮約した値です。上がり相対は同一レース内で3頭以上を比較できた出走のみ集計し、参考統合指数は条件補正指数80％・上がり相対20％の暫定値です。指数は勝率や将来の結果を示すものではありません。';horseCompare.append(note);
  const clear=document.createElement('button');clear.type='button';clear.textContent='比較を解除';clear.addEventListener('click',()=>{selectedHorses.clear();comparisonCondition='all';updateHorseComparison();renderHorses();});horseCompare.append(clear);
 }
 
@@ -507,7 +525,7 @@ Promise.all([
  const quality=d.quality_report&&typeof d.quality_report==='object'?d.quality_report:{};
  quality.records_with_individual_last3f=horseRecords.filter(r=>r.individual_last3f!=null).length;
  quality.records_missing_individual_last3f=horseRecords.filter(r=>r.individual_last3f==null).length;
- importMeta.textContent='年度別PDF '+(Array.isArray(d.processed_sources)?d.processed_sources.length:0)+'件 ／ 重賞PDF '+(Array.isArray(replayData.processed_sources)?replayData.processed_sources.length:0)+'件 ／ 重賞PDFの個別上がり '+replayRecords.filter(r=>r.individual_last3f!=null).length+'件（既存記録へ反映 '+replayMatched+'件・重賞PDF単独 '+replayAdded+'件・照合候補複数 '+replayAmbiguous+'件）'+(window.__importFailures.length?' ／ 年度別PDF失敗 '+window.__importFailures.length+'件':'')+(Number(quality.warning_race_count)?' ／ 要確認レース '+Number(quality.warning_race_count)+'件':'');
+ importMeta.textContent='収録出走記録 '+horseRecords.length+'件 ／ 年度別PDF '+(Array.isArray(d.processed_sources)?d.processed_sources.length:0)+'件 ／ 重賞PDF '+(Array.isArray(replayData.processed_sources)?replayData.processed_sources.length:0)+'件 ／ 重賞PDFの個別上がり '+replayRecords.filter(r=>r.individual_last3f!=null).length+'件（既存記録へ反映 '+replayMatched+'件・重賞PDF単独 '+replayAdded+'件・照合候補複数 '+replayAmbiguous+'件）'+(window.__importFailures.length?' ／ 年度別PDF失敗 '+window.__importFailures.length+'件':'')+(Number(quality.warning_race_count)?' ／ 要確認レース '+Number(quality.warning_race_count)+'件':'');
  horseStatus.after(importMeta);
  const qualityDetails=document.createElement('details');qualityDetails.className='small';
  const qualitySummary=document.createElement('summary');qualitySummary.textContent='データ品質の詳細を表示';qualityDetails.append(qualitySummary);
