@@ -76,7 +76,44 @@ fetch('./data/catalog.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Erro
  status.textContent='最終確認：'+checked+'（日本時間）';
  render();
 }).catch(e=>{status.textContent='データを読み込めませんでした。時間をおいて再読み込みしてください。';count.textContent='';});
-keyword.addEventListener('input',render);
+
+const horseStatus=document.getElementById('horseStatus');
+const horseKeyword=document.getElementById('horseKeyword');
+const horseTrack=document.getElementById('horseTrack');
+const horseResults=document.getElementById('horseResults');
+let horseRecords=[];
+function renderHorses(){
+ const q=horseKeyword.value.trim().toLocaleLowerCase();
+ const track=horseTrack.value;
+ const matched=horseRecords.filter(r=>(!track||r.track===track)&&(!q||String(r.horse_name||'').toLocaleLowerCase().includes(q)));
+ horseResults.replaceChildren();
+ if(!horseRecords.length){horseStatus.textContent='馬別データはまだありません。GitHub Actionsの「Import JRA race results」を実行してください。';return;}
+ horseStatus.textContent=matched.length+'件の出走記録（全'+horseRecords.length+'件）';
+ if(!matched.length){const p=document.createElement('p');p.className='muted';p.textContent='該当する馬はいません。';horseResults.append(p);return;}
+ const grouped=new Map();
+ matched.forEach(r=>{const name=r.horse_name||'馬名不明';if(!grouped.has(name))grouped.set(name,[]);grouped.get(name).push(r);});
+ [...grouped.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ja')).forEach(([name,rows])=>{
+  rows.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+  const wins=rows.filter(r=>Number(r.finish)===1).length;
+  const top3=rows.filter(r=>[1,2,3].includes(Number(r.finish))).length;
+  const card=document.createElement('div');card.className='item';
+  const title=document.createElement('strong');title.textContent=name+'　'+rows.length+'戦 '+wins+'勝';card.append(title);
+  const stat=document.createElement('p');stat.className='muted small';stat.textContent='勝率 '+(wins/rows.length*100).toFixed(1)+'% ／ 複勝率 '+(top3/rows.length*100).toFixed(1)+'%';card.append(stat);
+  rows.forEach(r=>{
+   const line=document.createElement('p');line.className='small';
+   const bits=[r.date||'日付不明',r.track||'競馬場不明',r.race_number?String(r.race_number)+'R':'',r.surface||'',r.distance?String(r.distance)+'m':'',r.finish?String(r.finish)+'着':'',r.finish_time||'タイム未取得'];
+   line.textContent=bits.filter(Boolean).join('・');card.append(line);
+  });
+  horseResults.append(card);
+ });
+}
+fetch('./data/race_results.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('not imported');return r.json();}).then(d=>{
+ horseRecords=Array.isArray(d.records)?d.records:[];
+ renderHorses();
+}).catch(()=>{horseRecords=[];horseStatus.textContent='馬別データはまだありません。PDF取り込み後にここへ表示されます。';});
+horseKeyword.addEventListener('input',renderHorses);
+horseTrack.addEventListener('change',renderHorses);
+\nkeyword.addEventListener('input',render);
 year.addEventListener('change',render);
 })();
 </script>
