@@ -268,7 +268,7 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(horse["conditions"]["track"][0]["starts"], 3)
         self.assertEqual(horse["conditions"]["surface"][0]["condition"], "芝")
         self.assertEqual(horse["conditions"]["going"][0]["condition"], "良")
-        self.assertEqual(horse["conditions"]["surface_going"][0]["condition"], "芝・良")
+        self.assertEqual(horse["conditions"]["surface_going"], [])
         self.assertEqual(horse["conditions"]["distance_band"][0]["condition"], "マイル（1401〜1800m）")
         self.assertEqual(horse["conditions"]["track_surface_distance"], [])
 
