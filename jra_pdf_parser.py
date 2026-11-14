@@ -555,7 +555,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                         result.stdout, encoding="utf-8"
                     )
                     (destination / f"{page.stem}-{side}-numbers.txt").write_text(
-                        number_result.stdout, encoding="utf-8"
+                        number_tsv, encoding="utf-8"
                     )
 
                 race_number = page_index * 2 + side_index + 1
