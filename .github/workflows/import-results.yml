@@ -2,7 +2,7 @@ name: Import JRA race results
 
 concurrency:
   group: jra-results-import
-  cancel-in-progress: false
+  cancel-in-progress: false # Keep imports serialized so data commits cannot race.
 on:
   push:
     paths:
