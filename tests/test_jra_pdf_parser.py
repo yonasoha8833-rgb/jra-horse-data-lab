@@ -115,6 +115,16 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(len(rows), 2)
         self.assertIsNone(rows[0]["date"])
 
+    def test_ocr_header_metadata_on_adjacent_lines_is_parsed(self):
+        text = SAMPLE.replace(
+            "11月 8日 晴良 （2026年5東京） 第1競走 2歳未勝利 1，600ｍ",
+            "第1競走 2歳未勝利\\n11月 8日 晴良 （2026年5東京）\\n1，600ｍ",
+        )
+        rows = parse_race_text(text)
+        self.assertEqual(rows[0]["date"], "2026-11-08")
+        self.assertEqual(rows[0]["track"], "東京")
+        self.assertEqual(rows[0]["distance"], 1600)
+
     def test_leap_day_is_validated_with_race_year(self):
         text = SAMPLE.replace("11月 8日", "2月 29日").replace("2026年", "2024年")
         rows = parse_race_text(text)
