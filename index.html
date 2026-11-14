@@ -223,8 +223,8 @@ function renderStylePacePerformance(records){
  target.replaceChildren();
  const races=new Map();
  records.forEach(row=>{
-  const number=String(row.race_number||'').trim();if(!number)return;
-  const key=[row.source_url||'',row.date||'',row.track||'',number].join('|');
+  const number=String(row.race_number||'').trim(),source=String(row.source_url||'').trim();if(!number&&!source)return;
+  const key=[source,row.date||'',row.track||'',number||'__source_pdf__'].join('|');
   if(!races.has(key))races.set(key,[]);
   races.get(key).push(row);
  });
