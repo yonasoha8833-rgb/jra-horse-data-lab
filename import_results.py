@@ -44,6 +44,7 @@ def build_quality_report(records: list[dict]) -> dict:
         "records_missing_track": sum(1 for row in records if not row.get("track")),
         "records_missing_distance": sum(1 for row in records if row.get("distance") is None),
         "records_missing_finish_time": sum(1 for row in records if row.get("finish_time_seconds") is None),
+        "records_with_invalid_finish_time": sum(1 for row in records if "invalid_finish_time_seconds" in row.get("runner_validation_warnings", [])),
     }
 
 
