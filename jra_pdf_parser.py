@@ -16,11 +16,11 @@ from urllib.request import Request, urlopen
 TRACKS = ("札幌", "函館", "福島", "新潟", "東京", "中山", "中京", "京都", "阪神", "小倉")
 RUNNER_RE = re.compile(
     # JRA extraction may separate frame/horse numbers ("2 2") or join them ("811").
-    r"^\\s*(\\d)\\s*(\\d{1,2})\\s+(.+?)\\s+(牡|牝|セ)\\s*([0-9０-９]+)",
+    r"^\s*(\d)\s*(\d{1,2})\s+(.+?)\s+(牡|牝|セ)\s*([0-9０-９]+)",
 )
 RACE_RE = re.compile(r"第\s*(\d+)\s*競走")
 DATE_RE = re.compile(r"(\d{1,2})月\s*(\d{1,2})日")
-DISTANCE_RE = re.compile(r"([0-9０-９]{1,2}[,，][0-9０-９]{3})")
+DISTANCE_RE = re.compile(r"([0-9０-９]{1,2}[,，][0-9０-９]{3}|[0-9０-９]{3,4})")
 LAST3F_RE = re.compile(r"上り\s*4F\s*([0-9.．]+)\s*[―ー-]\s*3F\s*([0-9.．]+)")
 LAP_RE = re.compile(r"ハロンタイム\s*([0-9.．―ー-]+)")
 
@@ -120,7 +120,7 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
                 break
 
         track = _track(header)
-        race_name_match = re.search(r"第\s*\d+\s*競走\s*(.*?)\s*[0-9０-９]{1,2}[,，][0-9０-９]{3}", header)
+        race_name_match = re.search(r"第\s*\d+\s*競走\s*(.*?)\s*[0-9０-９]{1,2}(?:[,，][0-9０-９]{3}|[0-9０-９]{2,3})", header)
         race_name = race_name_match.group(1).strip() if race_name_match else None
 
         runners = []
