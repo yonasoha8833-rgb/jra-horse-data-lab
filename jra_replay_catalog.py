@@ -68,14 +68,14 @@ def find_pdf_link(html: str, page_url: str) -> str | None:
     parser = _HrefParser()
     parser.feed(html)
     for href in parser.hrefs:
-        if re.search(r"\\.pdf(?:$|[?#])", href, re.I):
+        if re.search(r"\.pdf(?:$|[?#])", href, re.I):
             return urljoin(page_url, href)
     return None
 
 
 def fetch_result_pdf_url(result_url: str) -> str | None:
     """Resolve a result-page link to its underlying PDF, or return direct PDF URL."""
-    if re.search(r"\\.pdf(?:$|[?#])", result_url, re.I):
+    if re.search(r"\.pdf(?:$|[?#])", result_url, re.I):
         return result_url
     request = Request(result_url, headers={"User-Agent": "JRA-Horse-Data-Lab/1.0"})
     with urlopen(request, timeout=30) as response:
@@ -120,7 +120,7 @@ def parse_listing_html(html: str, *, year: int, listing_url: str) -> list[dict]:
         for link in row["links"]:
             href = link.get("href") or ""
             link_text = link.get("text") or ""
-            is_pdf = bool(re.search(r"\\.pdf(?:$|[?#])", href, re.I))
+            is_pdf = bool(re.search(r"\.pdf(?:$|[?#])", href, re.I))
             if not href or (not is_pdf and "レース結果" not in link_text):
                 continue
             result_url = urljoin(listing_url, href)
@@ -130,7 +130,7 @@ def parse_listing_html(html: str, *, year: int, listing_url: str) -> list[dict]:
                 "year": year,
                 "race_metadata": metadata,
             }
-            if re.search(r"\\.pdf(?:$|[?#])", href, re.I):
+            if re.search(r"\.pdf(?:$|[?#])", href, re.I):
                 item["url"] = result_url
             items.append(item)
     return items
