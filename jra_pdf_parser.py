@@ -21,6 +21,7 @@ RUNNER_RE = re.compile(
 RACE_RE = re.compile(r"第\s*(\d+)\s*競走")
 DATE_RE = re.compile(r"(\d{1,2})月\s*(\d{1,2})日")
 DISTANCE_RE = re.compile(r"([0-9０-９]{1,2}[,，][0-9０-９]{3}|[0-9０-９]{3,4})\s*(?:ｍ|m|メートル)")
+RESULT_STATUS_RE = re.compile(r"(競走中止|失格|中止|取消|除外)")
 LAST3F_RE = re.compile(r"上り\s*4F\s*([0-9.．]+)\s*[―ー-]\s*3F\s*([0-9.．]+)")
 LAP_RE = re.compile(r"ハロンタイム\s*([0-9.．―ー-]+)")
 
@@ -65,6 +66,8 @@ def _runner(line: str) -> dict[str, Any] | None:
     time_match = re.search(r"(?<![0-9])([0-9０-９]{1,2})[：:]([0-9０-９]{2})[.．]([0-9０-９])", tail)
     finish_time = None
     finish_time_seconds = None
+    status_match = RESULT_STATUS_RE.search(tail)
+    result_status = status_match.group(1) if status_match else None
     if time_match:
         minutes, seconds, tenth = map(int, (_ascii_digits(v) for v in time_match.groups()))
         finish_time = f"{minutes}:{seconds:02d}.{tenth}"
@@ -80,6 +83,7 @@ def _runner(line: str) -> dict[str, Any] | None:
         "age": int(_ascii_digits(age)),
         "finish_time": finish_time,
         "finish_time_seconds": finish_time_seconds,
+        "result_status": result_status,
     }
 
 
@@ -152,7 +156,8 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
         for runner in runners:
             # A runner without a recorded finish time may be a non-finisher,
             # so never assign it a placing or shift later finishers upward.
-            if runner["finish_time_seconds"] is not None:
+            is_placed = runner["finish_time_seconds"] is not None and runner["result_status"] is None
+            if is_placed:
                 finish_position += 1
             records.append({
                 **runner,
@@ -162,7 +167,7 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
                 "race_name": race_name,
                 "surface": surface,
                 "distance": distance,
-                "finish": finish_position if runner["finish_time_seconds"] is not None else None,
+                "finish": finish_position if is_placed else None,
                 "field_size": len(runners),
                 "race_last3f": last3f,
                 "race_last4f": last4f,
