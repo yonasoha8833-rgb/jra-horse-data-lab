@@ -435,8 +435,8 @@ class JraPdfParserTests(unittest.TestCase):
 
     def test_ocr_tsv_lines_converts_crop_coordinates_to_panel_coordinates(self):
         tsv = (
-            "level\\tpage_num\\tblock_num\\tpar_num\\tline_num\\tword_num\\tleft\\ttop\\twidth\\theight\\tconf\\ttext\\n"
-            "5\\t1\\t1\\t1\\t1\\t1\\t0\\t20\\t10\\t10\\t90\\t1\\n"
+            "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+            "5\t1\t1\t1\t1\t1\t0\t20\t10\t10\t90\t1\n"
         )
         lines = _ocr_tsv_lines(tsv, scale=5, y_offset=30)
         self.assertEqual(lines, [(35.0, "1")])
