@@ -44,6 +44,26 @@ class JraReplayParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["going"], "良")
         self.assertEqual(rows[0]["source_type"], "jra_graded_race_replay_pdf")
 
+    def test_parses_realistic_single_line_pdf_table_rows(self):
+        text = """2025年10月5日（日曜） 東京競馬場 芝1,800メートル 曇・良
+1 ⑨ レーベンスティール 牡5 57 津村明秀 1:44.0 3-3-3-3 33.3 484（±0） 7.7⑤ 田中博康（美浦）
+2 ⑧ ホウオウビスケッツ 牡5 57 岩田康誠 1/2 1-1-1-1 33.8 508（-6） 4.3② 奥村武（美浦）
+3 ⑩ サトノシャイニング 牡3 55 武豊 3/4 2-2-2-2 33.7 498（+2） 2.4① 杉山晴紀（栗東）
+"""
+        rows = parse_replay_text(text, race_metadata={"race_number": 11})
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(
+            [(row["horse_number"], row["horse_name"], row["individual_last3f"])
+             for row in rows],
+            [
+                (9, "レーベンスティール", 33.3),
+                (8, "ホウオウビスケッツ", 33.8),
+                (10, "サトノシャイニング", 33.7),
+            ],
+        )
+        self.assertEqual(rows[0]["corner_positions"], "3-3-3-3")
+        self.assertEqual(rows[0]["race_number"], 11)
+
     def test_does_not_guess_missing_runner_closing_time(self):
         text = SAMPLE.replace("33.8 508（－６）", "508（－６）")
         rows = parse_replay_text(text)
