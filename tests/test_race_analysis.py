@@ -36,6 +36,22 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(horse["identity_basis"], "horse_name_only")
         self.assertFalse(horse["identity_verified"])
 
+    def test_horse_summary_does_not_count_duplicate_runner_rows_twice(self):
+        row = {
+            "horse_name": "重複防止馬", "date": "2026-11-01", "track": "東京",
+            "race_number": 1, "horse_number": 3, "source_url": "race.pdf",
+            "finish": 1,
+        }
+        result = summarize_horses([row, dict(row)])
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["starts"], 1)
+        self.assertEqual(result[0]["wins"], 1)
+
+    def test_horse_summary_keeps_rows_without_complete_runner_identity(self):
+        row = {"horse_name": "識別情報不足馬", "date": "2026-11-01", "finish": 2}
+        result = summarize_horses([row, dict(row)])
+        self.assertEqual(result[0]["starts"], 2)
+
     def test_horse_summary(self):
         result = summarize_horses(self.rows)
         horse = next(x for x in result if x["horse_name"] == "サンプルホース")
