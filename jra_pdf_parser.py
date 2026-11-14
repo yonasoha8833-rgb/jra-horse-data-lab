@@ -619,6 +619,8 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     horse_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"(?:[1-9]|1[0-8])"
                 )
                 identifier_rows = _pair_identifier_columns(frame_rows, horse_rows)
+                # Keep row-local OCR diagnostics separate from the full-panel pass.
+                row_diagnostics = []
                 # OCR each runner row independently to avoid cross-column merging.
                 if len(identifier_rows) >= 2:
                     centers = [row[0] for row in identifier_rows]
@@ -644,6 +646,11 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 ).stdout.strip()
                                 row_texts.append(row_result)
                             row_lines = _build_ocr_runner_lines(identifier_rows, row_texts)
+                            row_diagnostics = [
+                                f"row={index + 1} frame={pair[1][0]} horse={pair[1][1]} text={row_text!r}"
+                                for index, (pair, row_text) in enumerate(zip(identifier_rows, row_texts))
+                            ]
+                            row_diagnostics.append(f"assembled_runner_lines={row_lines!r}")
                             if row_lines:
                                 # Keep race/date/track metadata from the panel OCR.
                                 # Replace only runner-like lines with the row-local OCR.
@@ -665,6 +672,12 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     )
                     (destination / f"{page.stem}-{side}-numbers.txt").write_text(
                         number_tsv, encoding="utf-8"
+                    )
+                    (destination / f"{page.stem}-{side}-rows.txt").write_text(
+                        "\\n".join(row_diagnostics)
+                        + "\\n--- metadata and parser input ---\\n"
+                        + "\\n".join(clean_lines),
+                        encoding="utf-8",
                     )
 
                 race_number = page_index * 2 + side_index + 1
