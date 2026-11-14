@@ -16,6 +16,7 @@ Settings → Pages → Build and deployment → Deploy from a branch → main / 
 ### 入力レコードの主なキー
 
 - `horse_name`: 馬名（必須）
+- `horse_registration_number`: JRA等の公式登録番号（取得できる場合）。馬別集計はこの番号を優先し、未取得時は馬名による仮集計として扱います。
 - `date`: 開催日（YYYY-MM-DD）
 - `track`: 競馬場
 - `surface`: 芝・ダート
