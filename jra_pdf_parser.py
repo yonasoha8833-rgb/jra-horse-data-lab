@@ -294,7 +294,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
             text=True,
         )
         chunks.append(result.stdout)
-    return "\\n".join(chunks)
+    return "\n".join(chunks)
 
 
 def extract_pdf(pdf_bytes: bytes, *, source_url: str = "") -> list[dict[str, Any]]:
