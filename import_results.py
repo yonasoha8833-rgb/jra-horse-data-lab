@@ -55,6 +55,18 @@ def build_quality_report(records: list[dict]) -> dict:
             if isinstance(row.get("runner_validation_warnings"), list)
             and "invalid_finish_time_seconds" in row["runner_validation_warnings"]
         ),
+        "records_with_individual_last3f": sum(
+            1 for row in records if row.get("individual_last3f") is not None
+        ),
+        "records_missing_individual_last3f": sum(
+            1 for row in records if row.get("individual_last3f") is None
+        ),
+        "records_with_horse_registration_number": sum(
+            1 for row in records if str(row.get("horse_registration_number") or "").strip()
+        ),
+        "records_missing_horse_registration_number": sum(
+            1 for row in records if not str(row.get("horse_registration_number") or "").strip()
+        ),
     }
 
 
