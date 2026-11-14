@@ -98,6 +98,13 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertIsNone(rows[0]["result_status"])
         self.assertEqual(rows[0]["finish"], 1)
 
+
+    def test_status_word_after_time_must_be_terminal(self):
+        text = SAMPLE.replace("1：39．0", "1：39．0 備考：中止予定")
+        rows = parse_race_text(text)
+        self.assertIsNone(rows[0]["result_status"])
+        self.assertEqual(rows[0]["finish"], 1)
+
     def test_status_after_finish_time_is_detected(self):
         text = SAMPLE.replace("1：39．0", "1：39．0 失格")
         rows = parse_race_text(text)
