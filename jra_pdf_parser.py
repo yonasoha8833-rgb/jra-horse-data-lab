@@ -60,6 +60,14 @@ def _runner(line: str) -> dict[str, Any] | None:
     if not match:
         return None
     frame, number, name, sex, age = match.groups()
+    tail = line[match.end():]
+    time_match = re.search(r"(?<![0-9])([0-9０-９]{1,2})[：:]([0-9０-９]{2})[.．]([0-9０-９])", tail)
+    finish_time = None
+    finish_time_seconds = None
+    if time_match:
+        minutes, seconds, tenth = map(int, (_ascii_digits(v) for v in time_match.groups()))
+        finish_time = f"{minutes}:{seconds:02d}.{tenth}"
+        finish_time_seconds = minutes * 60 + seconds + tenth / 10
     name = re.sub(r"\s+", "", name).strip()
     if not name or name in {"枠", "番", "馬番"}:
         return None
@@ -69,6 +77,8 @@ def _runner(line: str) -> dict[str, Any] | None:
         "horse_name": name,
         "sex": sex,
         "age": int(_ascii_digits(age)),
+        "finish_time": finish_time,
+        "finish_time_seconds": finish_time_seconds,
     }
 
 
