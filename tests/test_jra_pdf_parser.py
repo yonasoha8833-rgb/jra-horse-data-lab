@@ -405,11 +405,11 @@ class JraPdfParserTests(unittest.TestCase):
 
 
     def test_ocr_identifier_reader_handles_separators_and_compact_numbers(self):
-        pairs = _ocr_identifier_pairs("4\\\\6\\n6 }10\\n3} 3\\n711\\n8 |14")
+        pairs = _ocr_identifier_pairs("4\\6\n6 }10\n3} 3\n711\n8 |14")
         self.assertEqual(pairs, [(4, 6), (6, 10), (3, 3), (7, 11), (8, 14)])
 
     def test_ocr_identifier_reader_marks_unreadable_rows_instead_of_guessing(self):
-        pairs = _ocr_identifier_pairs("a}7\\n4|19")
+        pairs = _ocr_identifier_pairs("a}7\n4|19")
         self.assertEqual(pairs, [None, (4, 19)])
 
 
