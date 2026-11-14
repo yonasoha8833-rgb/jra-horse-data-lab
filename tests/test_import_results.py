@@ -19,6 +19,7 @@ class ImportResultsTests(unittest.TestCase):
                 "race_validation_warnings": ["duplicate_horse_number:2"],
                 "track": "東京",
                 "distance": 1600,
+                "going": "良",
                 "finish_time_seconds": 99.0,
             },
             {
@@ -50,6 +51,7 @@ class ImportResultsTests(unittest.TestCase):
         self.assertEqual(report["records_missing_date"], 1)
         self.assertEqual(report["records_missing_track"], 1)
         self.assertEqual(report["records_missing_distance"], 1)
+        self.assertEqual(report["records_missing_going"], 1)
         self.assertEqual(report["records_missing_finish_time"], 2)
         self.assertEqual(report["records_with_invalid_finish_time"], 1)
 
