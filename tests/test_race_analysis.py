@@ -1,6 +1,6 @@
 import unittest
 
-from race_analysis import analyze_race_scenario, classify_running_style, parse_corner_positions, distance_band, filter_records, parse_lap_times, performance_score, condition_adjusted_performance_score, recent_form_summary, summarize_race_pace, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles, summarize_running_style_pace_performance
+from race_analysis import analyze_race_scenario, classify_running_style, parse_corner_positions, distance_band, filter_records, parse_lap_times, performance_score, condition_adjusted_performance_score, recent_form_summary, summarize_race_pace, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles, summarize_relative_last3f, summarize_running_style_pace_performance
 
 
 class RaceAnalysisTests(unittest.TestCase):
@@ -508,6 +508,55 @@ class RaceAnalysisTests(unittest.TestCase):
             condition_adjusted_performance_score([], {}, min_condition_starts=0)
         with self.assertRaises(ValueError):
             condition_adjusted_performance_score([], {}, prior_strength=-1)
+
+
+    def test_relative_last3f_compares_runners_within_same_race(self):
+        rows = [
+            {"horse_name": "最速馬", "date": "2026-11-01", "track": "東京", "race_number": 1,
+             "surface": "芝", "distance": 1600, "going": "良", "last3f": 33.0},
+            {"horse_name": "中間馬", "date": "2026-11-01", "track": "東京", "race_number": 1,
+             "surface": "芝", "distance": 1600, "going": "良", "last3f": 34.0},
+            {"horse_name": "最遅馬", "date": "2026-11-01", "track": "東京", "race_number": 1,
+             "surface": "芝", "distance": 1600, "going": "良", "last3f": 35.0},
+        ]
+        result = summarize_relative_last3f(rows)
+        scores = {item["horse_name"]: item["average_relative_score"] for item in result}
+        self.assertEqual(scores, {"最速馬": 100.0, "中間馬": 50.0, "最遅馬": 0.0})
+        self.assertEqual(result[0]["conditions"]["surface"][0]["sample_count"], 1)
+
+    def test_relative_last3f_excludes_incomplete_races_and_tolerates_ties(self):
+        rows = [
+            {"horse_name": "同着A", "date": "2026-11-01", "track": "東京", "race_number": 1, "last3f": 33.0},
+            {"horse_name": "同着B", "date": "2026-11-01", "track": "東京", "race_number": 1, "last3f": 33.0},
+            {"horse_name": "3番手", "date": "2026-11-01", "track": "東京", "race_number": 1, "last3f": 34.0},
+            {"horse_name": "データ不足", "date": "2026-11-02", "track": "東京", "race_number": 2, "last3f": 34.0},
+            {"horse_name": "欠損", "date": "2026-11-01", "track": "東京", "race_number": 1, "last3f": None},
+        ]
+        result = summarize_relative_last3f(rows)
+        scores = {item["horse_name"]: item["average_relative_score"] for item in result}
+        self.assertAlmostEqual(scores["同着A"], 75.0)
+        self.assertAlmostEqual(scores["同着B"], 75.0)
+        self.assertEqual(scores["3番手"], 0.0)
+        self.assertNotIn("データ不足", scores)
+        self.assertNotIn("欠損", scores)
+
+    def test_relative_last3f_requires_minimum_comparable_starts_for_conditions(self):
+        rows = []
+        for race_number, times in [(1, [33.0, 34.0, 35.0]), (2, [33.5, 34.5, 35.5])]:
+            for index, value in enumerate(times):
+                rows.append({
+                    "horse_name": "対象馬" if index == 0 else f"相手{race_number}-{index}",
+                    "date": f"2026-11-0{race_number}", "track": "東京",
+                    "race_number": race_number, "surface": "芝", "distance": 1600,
+                    "last3f": value,
+                })
+        target = next(item for item in summarize_relative_last3f(rows) if item["horse_name"] == "対象馬")
+        self.assertEqual(target["comparable_starts"], 2)
+        self.assertEqual(target["conditions"]["surface"], [])
+        with self.assertRaises(ValueError):
+            summarize_relative_last3f(rows, min_race_runners=1)
+        with self.assertRaises(ValueError):
+            summarize_relative_last3f(rows, min_condition_starts=0)
 
 
 if __name__ == "__main__":
