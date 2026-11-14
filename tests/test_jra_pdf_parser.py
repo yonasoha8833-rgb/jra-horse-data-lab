@@ -1,6 +1,6 @@
 import unittest
 
-from jra_pdf_parser import _complete_ocr_records, parse_race_text
+from jra_pdf_parser import _complete_ocr_records, _ocr_identifier_pairs, parse_race_text
 
 
 SAMPLE = """
@@ -402,6 +402,15 @@ class JraPdfParserTests(unittest.TestCase):
         rows = parse_race_text(text)
         self.assertEqual(len(rows), 2)
         self.assertTrue(all(row["race_number"] == 3 for row in rows))
+
+
+    def test_ocr_identifier_reader_handles_separators_and_compact_numbers(self):
+        pairs = _ocr_identifier_pairs("4\\\\6\\n6 }10\\n3} 3\\n711\\n8 |14")
+        self.assertEqual(pairs, [(4, 6), (6, 10), (3, 3), (7, 11), (8, 14)])
+
+    def test_ocr_identifier_reader_marks_unreadable_rows_instead_of_guessing(self):
+        pairs = _ocr_identifier_pairs("a}7\\n4|19")
+        self.assertEqual(pairs, [None, (4, 19)])
 
 
 if __name__ == "__main__":
