@@ -284,6 +284,44 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["surface"], "ダート")
         self.assertEqual(rows[2]["finish_time_seconds"], rows[1]["finish_time_seconds"])
 
+    def test_ocr_fallback_infers_full_field_from_unique_jra_frame_layout(self):
+        frame_by_number = {
+            **{number: number for number in range(1, 7)},
+            7: 7, 8: 7, 9: 8, 10: 8,
+        }
+        rows = [
+            {
+                "source_url": "official.pdf",
+                "date": "2026-11-14",
+                "race_number": 1,
+                "horse_number": number,
+                "frame": frame_by_number[number],
+                "declared_field_size": None,
+            }
+            for number in range(1, 11)
+        ]
+        accepted = _complete_ocr_records(rows)
+        self.assertEqual(len(accepted), 10)
+        self.assertTrue(all(row["declared_field_size"] == 10 for row in accepted))
+
+    def test_ocr_fallback_rejects_ambiguous_or_incomplete_inferred_field(self):
+        frame_by_number = {
+            **{number: number for number in range(1, 7)},
+            7: 7, 8: 7, 9: 8, 10: 8,
+        }
+        rows = [
+            {
+                "source_url": "official.pdf",
+                "date": "2026-11-14",
+                "race_number": 1,
+                "horse_number": number,
+                "frame": frame_by_number[number],
+                "declared_field_size": None,
+            }
+            for number in range(1, 10)
+        ]
+        self.assertEqual(_complete_ocr_records(rows), [])
+
     def test_ocr_fallback_keeps_only_races_with_full_declared_field(self):
         rows = parse_race_text(SAMPLE)
         self.assertEqual(len(_complete_ocr_records(rows)), 2)
