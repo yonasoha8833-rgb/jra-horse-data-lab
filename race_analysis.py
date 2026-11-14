@@ -97,6 +97,43 @@ def filter_records(
 
 
 
+
+def recent_form_summary(
+    records: Iterable[dict[str, Any]],
+    *,
+    recent_count: int = 5,
+) -> dict[str, Any]:
+    """Summarize the latest results and compare the latest three with prior three.
+
+    Only dated, valid placing records are used for the trend comparison.
+    A lower average finishing position indicates improvement.
+    """
+    if recent_count < 1:
+        raise ValueError("recent_count must be at least 1")
+    dated = []
+    for row in records:
+        finish = _number(row.get("finish"))
+        date_value = str(row.get("date") or "")
+        if finish is not None and finish > 0 and date_value:
+            dated.append((date_value, row))
+    dated.sort(key=lambda item: item[0], reverse=True)
+    latest = [row for _, row in dated[:recent_count]]
+    placings = [float(_number(row.get("finish"))) for row in latest]
+    latest_three = placings[:3]
+    previous_three = [float(_number(row.get("finish"))) for _, row in dated[3:6]]
+    latest_average = round(mean(latest_three), 2) if latest_three else None
+    previous_average = round(mean(previous_three), 2) if len(previous_three) == 3 else None
+    trend = None
+    if latest_average is not None and previous_average is not None:
+        difference = previous_average - latest_average
+        trend = "improving" if difference > 0 else "declining" if difference < 0 else "stable"
+    return {
+        "recent_results": latest,
+        "latest_three_average_finish": latest_average,
+        "previous_three_average_finish": previous_average,
+        "trend": trend,
+    }
+
 def summarize_conditions(
     records: Iterable[dict[str, Any]],
     field: str,
