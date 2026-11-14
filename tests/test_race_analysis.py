@@ -1,6 +1,6 @@
 import unittest
 
-from race_analysis import distance_band, filter_records, performance_score, recent_form_summary, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races
+from race_analysis import distance_band, filter_records, performance_score, recent_form_summary, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions
 
 
 class RaceAnalysisTests(unittest.TestCase):
@@ -206,6 +206,44 @@ class RaceAnalysisTests(unittest.TestCase):
         race = summarize_races(rows)[0]
         self.assertEqual(race["winner_count"], 2)
         self.assertIsNone(race["winning_time_seconds"])
+
+
+
+    def test_race_condition_summary_counts_each_race_once(self):
+        rows = []
+        for race_number, winning_time, last3f in [(1, 92.0, 34.0), (2, 93.0, 35.0), (3, 91.0, 33.0)]:
+            for horse_number, finish in [(1, 1), (2, 2), (3, 3), (4, None)]:
+                rows.append({
+                    "source_url": "same-pdf", "date": "2026-11-01", "track": "東京",
+                    "race_number": race_number, "surface": "芝", "distance": 1600,
+                    "going": "良", "horse_number": horse_number, "finish": finish,
+                    "finish_time_seconds": winning_time if finish == 1 else None,
+                    "race_last3f": last3f,
+                })
+        result = summarize_race_conditions(rows, dimension="track", min_races=3)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["races"], 3)
+        self.assertEqual(result[0]["average_starters"], 4.0)
+        self.assertEqual(result[0]["average_winning_time_seconds"], 92.0)
+        self.assertEqual(result[0]["average_race_last3f"], 34.0)
+
+    def test_race_condition_summary_ignores_missing_values_and_small_samples(self):
+        rows = [
+            {"source_url": "pdf", "date": "2026-11-01", "track": "東京", "race_number": 1, "going": "良", "finish": 1, "finish_time_seconds": 90},
+            {"source_url": "pdf", "date": "2026-11-01", "track": "東京", "race_number": 2, "going": "良", "finish": 1, "finish_time_seconds": None},
+            {"source_url": "pdf", "date": "2026-11-01", "track": "東京", "race_number": 3, "going": "良", "finish": 1, "finish_time_seconds": 92},
+            {"source_url": "pdf", "date": "2026-11-01", "track": "東京", "race_number": 4, "going": None, "finish": 1},
+        ]
+        result = summarize_race_conditions(rows, dimension="going", min_races=3)
+        self.assertEqual(result[0]["races"], 3)
+        self.assertEqual(result[0]["average_winning_time_seconds"], 91.0)
+        self.assertEqual(result[0]["average_race_last3f"], None)
+
+    def test_race_condition_summary_validates_dimension_and_minimum(self):
+        with self.assertRaises(ValueError):
+            summarize_race_conditions([], dimension="horse_name")
+        with self.assertRaises(ValueError):
+            summarize_race_conditions([], min_races=0)
 
 
 
