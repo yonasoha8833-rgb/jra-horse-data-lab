@@ -46,6 +46,24 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(len(rows), 2)
         self.assertEqual(rows[0]["distance"], 1600)
 
+
+    def test_invalid_calendar_date_is_not_stored(self):
+        text = SAMPLE.replace("11月 8日", "2月 30日")
+        rows = parse_race_text(text)
+        self.assertEqual(len(rows), 2)
+        self.assertIsNone(rows[0]["date"])
+
+    def test_leap_day_is_validated_with_race_year(self):
+        text = SAMPLE.replace("11月 8日", "2月 29日").replace("2026年", "2024年")
+        rows = parse_race_text(text)
+        self.assertEqual(rows[0]["date"], "2024-02-29")
+
+    def test_implausible_distance_is_left_missing(self):
+        text = SAMPLE.replace("1，600ｍ", "99，999ｍ")
+        rows = parse_race_text(text)
+        self.assertEqual(len(rows), 2)
+        self.assertIsNone(rows[0]["distance"])
+
     def test_ignores_non_runner_lines(self):
         text = SAMPLE.replace("（2頭）", "（2頭）\n発走 9時55分")
         rows = parse_race_text(text)
