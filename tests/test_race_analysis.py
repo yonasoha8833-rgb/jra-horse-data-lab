@@ -44,6 +44,20 @@ class RaceAnalysisTests(unittest.TestCase):
         horse = summarize_horses(rows)[0]
         self.assertEqual(horse["average_last3f"], 33.9)
 
+
+    def test_result_statuses_are_counted_without_inventing_finish_places(self):
+        rows = [
+            {"horse_name": "状態集計馬", "finish": 1},
+            {"horse_name": "状態集計馬", "finish": None, "result_status": "競走中止"},
+            {"horse_name": "状態集計馬", "finish": None, "result_status": "失格"},
+            {"horse_name": "状態集計馬", "finish": None},
+        ]
+        horse = summarize_horses(rows)[0]
+        self.assertEqual(horse["starts"], 4)
+        self.assertEqual(horse["placed_starts"], 1)
+        self.assertEqual(horse["unplaced_starts"], 3)
+        self.assertEqual(horse["result_status_counts"], {"失格": 1, "競走中止": 1})
+
     def test_missing_metrics_stay_empty(self):
         horse = next(x for x in summarize_horses(self.rows) if x["horse_name"] == "別の馬")
         self.assertIsNone(horse["average_time_seconds"])
