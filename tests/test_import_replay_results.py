@@ -24,6 +24,13 @@ class ImportReplayResultsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "size limit"):
             read_limited_response(response, max_bytes=100)
 
+    def test_rejects_malformed_content_length(self):
+        for value in ("unknown", "-1", "1.5"):
+            with self.subTest(value=value):
+                response = FakeResponse(b"small", {"Content-Length": value})
+                with self.assertRaisesRegex(ValueError, "Content-Length"):
+                    read_limited_response(response, max_bytes=100)
+
     def test_rejects_stream_that_exceeds_limit_without_content_length(self):
         response = FakeResponse(b"x" * 101)
         with self.assertRaisesRegex(ValueError, "size limit"):
