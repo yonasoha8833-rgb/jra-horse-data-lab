@@ -115,7 +115,7 @@ def deduplicate_records(rows: list[dict]) -> list[dict]:
         score = sum(value is not None and value != "" for value in row.values())
         current_score = (sum(value is not None and value != "" for value in current.values())
                          if current is not None else -1)
-        if score > current_score:
+        if score >= current_score:
             unique[key] = row
     return list(unique.values()) + unkeyed
 
