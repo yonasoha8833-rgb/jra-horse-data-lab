@@ -30,6 +30,7 @@ class ImportResultsTests(unittest.TestCase):
                 "track": "東京",
                 "distance": 1600,
                 "finish_time_seconds": None,
+                "runner_validation_warnings": ["invalid_finish_time_seconds"],
             },
             {
                 "source_url": "https://example.test/b.pdf",
@@ -50,6 +51,7 @@ class ImportResultsTests(unittest.TestCase):
         self.assertEqual(report["records_missing_track"], 1)
         self.assertEqual(report["records_missing_distance"], 1)
         self.assertEqual(report["records_missing_finish_time"], 2)
+        self.assertEqual(report["records_with_invalid_finish_time"], 1)
 
     def test_failed_source_is_recorded_and_remains_retryable(self):
         with tempfile.TemporaryDirectory() as directory:
