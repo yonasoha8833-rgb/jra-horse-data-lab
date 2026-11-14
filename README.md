@@ -87,6 +87,17 @@ JRAの「レース成績データ」に掲載される重賞レース結果PDF�
 
 参考：JRA [競走馬登録馬名簿・馬名意味](https://jra.jp/datafile/resist/index.html)、[5大登録](https://www.jra.go.jp/keiba/5dai/)、JRA-VAN [馬毎レース情報の仕様](https://jra-van.jp/dlb/sdv/sdk/JV-Data4901.pdf)。
 
+### 公式登録名簿OCRの小規模実行ツール
+
+`ocr_jra_registry.py` を追加しました。JRA公式PDFを最大30MiBまでの範囲で取得し、指定した最大5ページだけを300dpi・日本語TesseractでOCRして、確認用テキストへ出力します。PDF署名とダウンロード容量を検査し、結果は成績データへ自動登録しません。
+
+実行環境に Poppler（`pdftoppm`）と Tesseract 日本語データ（`jpn`）が必要です。
+
+```bash
+python ocr_jra_registry.py --first-page 1 --last-page 2 --output registry_ocr_sample.txt
+```
+
+最初は1〜2ページだけを対象にし、出力された馬名・登録番号の対応を原本画像と目視で照合してください。OCRの誤認識・行ずれを評価するまでは、自動照合や既存成績への番号付与には使用しません。
 ### 公式登録名簿OCRパーサー（試験段階）
 
 `jra_registry_parser.py` は、JRA公式登録名簿PDFをOCRしたテキストから、同じ行に馬名と `YYYY-NNNNN` 形式の登録番号が明確に並ぶ場合だけ対応表候補を抽出します。登録番号が複数ある行、血統など別列の文字が番号の両側にある行、同じ登録番号が複数回出現する場合は採用しません。さらに `build_unique_name_index` は、同じ馬名が複数の登録番号に対応する場合、その馬名を照合対象から除外します。
