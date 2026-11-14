@@ -259,15 +259,30 @@ function renderHorses(){
  const track=horseTrack.value;
  const surface=horseSurface.value;
  const distance=horseDistance.value;
- const matched=horseRecords.filter(r=>(!track||r.track===track)&&(!surface||r.surface===surface)&&(!distance||String(r.distance)===distance)&&(!q||String(r.horse_name||'').toLocaleLowerCase().includes(q)));
+ const matchedCandidates=horseRecords.filter(r=>(!track||r.track===track)&&(!surface||r.surface===surface)&&(!distance||String(r.distance)===distance)&&(!q||String(r.horse_name||'').toLocaleLowerCase().includes(q)));
+ const seenRunnerKeys=new Set();
+ const matched=matchedCandidates.filter(r=>{
+  const parts=[r.source_url,r.date,r.track,r.race_number,r.horse_number].map(v=>String(v??'').trim());
+  if(parts.some(v=>!v))return true;
+  const key=parts.join('|');
+  if(seenRunnerKeys.has(key))return false;
+  seenRunnerKeys.add(key);
+  return true;
+ });
  horseResults.replaceChildren();
  updateHorseComparison();
  if(!horseRecords.length){horseStatus.textContent='馬別データはまだありません。GitHub Actionsの「Import JRA race results」を実行してください。';return;}
  const failures=Array.isArray(window.__importFailures)?window.__importFailures.length:0;
- horseStatus.textContent=matched.length+'件の出走記録（全'+horseRecords.length+'件）'+(failures?' ／ 取り込み失敗 '+failures+'件':'');
+ const duplicatesRemoved=matchedCandidates.length-matched.length;
+ horseStatus.textContent=matched.length+'件の出走記録（全'+horseRecords.length+'件）'+(duplicatesRemoved?' ／ 重複 '+duplicatesRemoved+'件を集計から除外':'')+(failures?' ／ 取り込み失敗 '+failures+'件':'');
  if(!matched.length){const p=document.createElement('p');p.className='muted';p.textContent='該当する馬はいません。';horseResults.append(p);return;}
  const grouped=new Map();
  matched.forEach(r=>{const name=r.horse_name||'馬名不明';const registration=String(r.horse_registration_number||'').trim();const key=registration?'登録番号:'+registration:'馬名:'+name;if(!grouped.has(key))grouped.set(key,{name:name,registration:registration,rows:[]});grouped.get(key).rows.push(r);});
+ const verifiedGroups=[...grouped.values()].filter(item=>item.registration).length;
+ const provisionalGroups=grouped.size-verifiedGroups;
+ const identityNote=document.createElement('p');identityNote.className='muted small';
+ identityNote.textContent='馬の識別：登録番号で確認済み '+verifiedGroups+'頭 ／ 馬名だけの仮集計 '+provisionalGroups+'頭。仮集計は同名の別馬が合算される可能性があります。';
+ horseResults.append(identityNote);
  [...grouped.entries()].sort((a,b)=>{const mode=horseSort.value;const rowsA=a[1].rows,rowsB=b[1].rows;const winsA=rowsA.filter(r=>Number(r.finish)===1).length,winsB=rowsB.filter(r=>Number(r.finish)===1).length;const rateA=winsA/rowsA.length,rateB=winsB/rowsB.length;const scoreA=horseScore(rowsA),scoreB=horseScore(rowsB);if(mode==='starts'&&rowsA.length!==rowsB.length)return rowsB.length-rowsA.length;if(mode==='wins'&&winsA!==winsB)return winsB-winsA;if(mode==='winRate'&&rateA!==rateB)return rateB-rateA;if(mode==='score'&&(scoreA!==scoreB))return (scoreB??-1)-(scoreA??-1);return a[1].name.localeCompare(b[1].name,'ja')||a[0].localeCompare(b[0]);}).forEach(entry=>{const name=entry[1].name;const registration=entry[1].registration;const rows=entry[1].rows;
   rows.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   const wins=rows.filter(r=>Number(r.finish)===1).length;
