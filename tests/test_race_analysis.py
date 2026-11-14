@@ -292,6 +292,8 @@ class RaceAnalysisTests(unittest.TestCase):
     def test_lap_parser_and_race_pace_summary(self):
         splits = [12.0, 11.8, 11.7, 11.9, 12.0, 12.2, 12.5, 12.7]
         self.assertEqual(parse_lap_times("12.0-11.8-11.7"), [12.0, 11.8, 11.7])
+        self.assertEqual(parse_lap_times("12.0 11.8 11.7"), [12.0, 11.8, 11.7])
+        self.assertEqual(parse_lap_times("12.0, 11.8, 11.7"), [12.0, 11.8, 11.7])
         self.assertIsNone(parse_lap_times("12.0-2O.8-11.7"))
         result = summarize_race_pace(splits, 1600)
         self.assertEqual(result["first_3f_seconds"], 35.5)
