@@ -40,7 +40,7 @@ class JraPdfParserTests(unittest.TestCase):
 
     def test_accepts_ocr_backslash_separator_between_frame_and_horse_number(self):
         rows = parse_race_text(
-            SAMPLE.replace("2 2 サノノファイター", "8\\\\12 サノノファイター")
+            SAMPLE.replace("2 2 サノノファイター", r"8\\12 サノノファイター")
         )
         self.assertEqual(rows[0]["frame"], 8)
         self.assertEqual(rows[0]["horse_number"], 12)
