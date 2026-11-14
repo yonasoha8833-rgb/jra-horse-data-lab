@@ -25,6 +25,15 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(horse["average_finish"], 2.0)
         self.assertEqual(horse["average_last3f"], 33.95)
 
+    def test_official_import_time_field_is_aggregated(self):
+        rows = [{"horse_name": "公式取込馬", "finish": 2,
+                 "finish_time_seconds": 91.25, "race_last3f": 35.1,
+                 "individual_last3f": None}]
+        horse = summarize_horses(rows)[0]
+        self.assertEqual(horse["average_time_seconds"], 91.25)
+        # Race-level closing 3F must never be mislabeled as an individual figure.
+        self.assertIsNone(horse["average_last3f"])
+
     def test_missing_metrics_stay_empty(self):
         horse = next(x for x in summarize_horses(self.rows) if x["horse_name"] == "別の馬")
         self.assertIsNone(horse["average_time_seconds"])
