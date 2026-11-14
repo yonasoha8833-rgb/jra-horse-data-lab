@@ -1,6 +1,6 @@
 import unittest
 
-from race_analysis import filter_records, summarize_horses
+from race_analysis import filter_records, performance_score, summarize_horses
 
 
 class RaceAnalysisTests(unittest.TestCase):
@@ -29,6 +29,14 @@ class RaceAnalysisTests(unittest.TestCase):
         horse = next(x for x in summarize_horses(self.rows) if x["horse_name"] == "別の馬")
         self.assertIsNone(horse["average_time_seconds"])
         self.assertIsNone(horse["average_last3f"])
+
+    def test_performance_score_normalizes_field_size_and_recent_starts(self):
+        rows = [
+            {"date": "2026-11-01", "finish": 1, "field_size": 10},
+            {"date": "2026-10-01", "finish": 10, "field_size": 10},
+        ]
+        self.assertEqual(performance_score(rows), 66.7)
+        self.assertIsNone(performance_score([{"finish": 1}]))
 
     def test_filters(self):
         result = filter_records(self.rows, track="東京", surface="芝", distance=1600)
