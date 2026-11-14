@@ -301,6 +301,12 @@ def summarize_conditions(
             continue
         wins = sum(1 for row in rows if _number(row.get("finish")) == 1)
         top3 = sum(1 for row in rows if _number(row.get("finish")) in (1, 2, 3))
+        individual_last3fs = [
+            value
+            for row in rows
+            if (value := _number(row.get("individual_last3f", row.get("last3f")))) is not None
+            and value > 0
+        ]
         summaries.append({
             "condition": condition,
             "starts": len(rows),
@@ -308,6 +314,10 @@ def summarize_conditions(
             "top3": top3,
             "win_rate": round(wins / len(rows), 4),
             "top3_rate": round(top3 / len(rows), 4),
+            "individual_last3f_sample_count": len(individual_last3fs),
+            "average_individual_last3f": (
+                round(mean(individual_last3fs), 2) if individual_last3fs else None
+            ),
         })
     return sorted(summaries, key=lambda item: (-item["starts"], item["condition"]))
 
