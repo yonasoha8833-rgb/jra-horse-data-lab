@@ -49,6 +49,43 @@ class _ListingParser(HTMLParser):
             self._row = None
 
 
+
+class _HrefParser(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.hrefs = []
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        for key in ("href", "src", "data"):
+            value = attrs.get(key)
+            if value:
+                self.hrefs.append(value)
+
+
+def find_pdf_link(html: str, page_url: str) -> str | None:
+    """Find a PDF linked from a JRA result page, including relative URLs."""
+    parser = _HrefParser()
+    parser.feed(html)
+    for href in parser.hrefs:
+        if re.search(r"\\.pdf(?:$|[?#])", href, re.I):
+            return urljoin(page_url, href)
+    return None
+
+
+def fetch_result_pdf_url(result_url: str) -> str | None:
+    """Resolve a result-page link to its underlying PDF, or return direct PDF URL."""
+    if re.search(r"\\.pdf(?:$|[?#])", result_url, re.I):
+        return result_url
+    request = Request(result_url, headers={"User-Agent": "JRA-Horse-Data-Lab/1.0"})
+    with urlopen(request, timeout=30) as response:
+        content_type = response.headers.get("Content-Type", "").lower()
+        body = response.read()
+        final_url = response.geturl()
+    if "pdf" in content_type or body.startswith(b"%PDF-"):
+        return final_url
+    return find_pdf_link(body.decode("utf-8", errors="replace"), final_url)
+
 def parse_listing_html(html: str, *, year: int, listing_url: str) -> list[dict]:
     parser = _ListingParser(year)
     parser.feed(html)
@@ -82,15 +119,18 @@ def parse_listing_html(html: str, *, year: int, listing_url: str) -> list[dict]:
         }
         for link in row["links"]:
             href = link.get("href") or ""
-            if not re.search(r"\.pdf(?:$|[?#])", href, re.I):
+            if not href:
                 continue
-            url = urljoin(listing_url, href)
-            items.append({
+            result_url = urljoin(listing_url, href)
+            item = {
                 "label": f"{race_date} {race_name} {track}",
-                "url": url,
+                "result_url": result_url,
                 "year": year,
                 "race_metadata": metadata,
-            })
+            }
+            if re.search(r"\\.pdf(?:$|[?#])", href, re.I):
+                item["url"] = result_url
+            items.append(item)
     return items
 
 
@@ -102,7 +142,16 @@ def fetch_year(year: int) -> list[dict]:
     request = Request(listing_url, headers={"User-Agent": "JRA-Horse-Data-Lab/1.0"})
     with urlopen(request, timeout=30) as response:
         html = response.read().decode("utf-8", errors="replace")
-    return parse_listing_html(html, year=year, listing_url=listing_url)
+    items = parse_listing_html(html, year=year, listing_url=listing_url)
+    resolved = []
+    for item in items:
+        pdf_url = item.get("url") or fetch_result_pdf_url(item["result_url"])
+        if not pdf_url:
+            print(f"WARNING: no PDF link found: {item['result_url']}")
+            continue
+        item["url"] = pdf_url
+        resolved.append(item)
+    return resolved
 
 
 def build_catalog(years: list[int]) -> dict:
