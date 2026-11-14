@@ -14,7 +14,7 @@ REGISTRATION_RE = re.compile(r"(?<![0-9])([0-9]{4}-[0-9]{5})(?![0-9])")
 def parse_registry_text(text: str) -> list[dict[str, Any]]:
     """Extract unambiguous name/registration pairs from OCR text lines."""
     results: list[dict[str, Any]] = []
-    seen_numbers: set[str] = set()
+    candidates: list[dict[str, str]] = []
     for raw_line in text.splitlines():
         line = re.sub(r"\s+", " ", raw_line).strip()
         matches = list(REGISTRATION_RE.finditer(line))
@@ -32,11 +32,12 @@ def parse_registry_text(text: str) -> list[dict[str, Any]]:
         if not name or len(name) > 30 or not re.search(r"[ぁ-んァ-ヶ一-龠]", name):
             continue
         number = match.group(1)
-        if number in seen_numbers:
-            continue
-        seen_numbers.add(number)
-        results.append({"horse_name": name, "horse_registration_number": number})
-    return results
+        candidates.append({"horse_name": name, "horse_registration_number": number})
+    number_counts: dict[str, int] = {}
+    for row in candidates:
+        number = row["horse_registration_number"]
+        number_counts[number] = number_counts.get(number, 0) + 1
+    return [row for row in candidates if number_counts[row["horse_registration_number"]] == 1]
 
 
 def build_unique_name_index(rows: list[dict[str, Any]]) -> dict[str, str]:
