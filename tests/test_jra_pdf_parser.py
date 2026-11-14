@@ -334,12 +334,27 @@ class JraPdfParserTests(unittest.TestCase):
 
     def test_ocr_fallback_keeps_only_races_with_full_declared_field(self):
         rows = parse_race_text(SAMPLE)
-        self.assertEqual(len(_complete_ocr_records(rows)), 2)
+        rows[0]["horse_number"], rows[0]["frame"] = 1, 1
+        rows[1]["horse_number"], rows[1]["frame"] = 2, 2
+        accepted = _complete_ocr_records(rows)
+        self.assertEqual(len(accepted), 2)
         self.assertEqual(_complete_ocr_records(rows[:1]), [])
         self.assertTrue(all(
             row["extraction_status"] == "ocr_fallback_basic_fields"
-            for row in _complete_ocr_records(rows)
+            for row in accepted
         ))
+
+    def test_ocr_fallback_rejects_duplicate_number_even_when_row_count_matches(self):
+        rows = parse_race_text(SAMPLE)
+        rows[0]["horse_number"], rows[0]["frame"] = 1, 1
+        rows[1]["horse_number"], rows[1]["frame"] = 1, 1
+        self.assertEqual(_complete_ocr_records(rows), [])
+
+    def test_ocr_fallback_rejects_wrong_frame_assignment(self):
+        rows = parse_race_text(SAMPLE)
+        rows[0]["horse_number"], rows[0]["frame"] = 1, 2
+        rows[1]["horse_number"], rows[1]["frame"] = 2, 2
+        self.assertEqual(_complete_ocr_records(rows), [])
 
 
 if __name__ == "__main__":
