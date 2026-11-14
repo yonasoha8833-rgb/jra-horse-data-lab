@@ -19,7 +19,7 @@ from urllib.request import Request, urlopen
 TRACKS = ("札幌", "函館", "福島", "新潟", "東京", "中山", "中京", "京都", "阪神", "小倉")
 RUNNER_RE = re.compile(
     # JRA extraction may separate frame/horse numbers ("2 2") or join them ("811").
-    r"^\s*([1-8])\s*[|/\\\\]*\s*(\d{1,2})\s+(.+?)\s+(牡|牝|セ)\s*([0-9０-９]+)",
+    r"^\s*([1-8])\s*[|/\\\\]*\s*(\d{1,2})\s*[|/\\\\]?\s*(.+?)\s*[|/\\\\]?\s*(牡|牝|セ)\s*([0-9０-９]+)",
 )
 RACE_RE = re.compile(r"第\s*(\d+)\s*競走")
 DATE_RE = re.compile(r"(\d{1,2})月\s*(\d{1,2})日")
