@@ -421,6 +421,90 @@ def summarize_race_pace(lap_times: Any, distance: Any) -> dict[str, Any] | None:
     }
 
 
+def summarize_running_style_pace_performance(
+    records: Iterable[dict[str, Any]],
+    *,
+    min_starts: int = 3,
+) -> list[dict[str, Any]]:
+    """Summarize actual outcomes by estimated running style and official race pace.
+
+    A race contributes only when its 200m lap data passes validation. Unknown
+    styles and invalid finishing positions are excluded rather than inferred.
+    Rates are descriptive historical statistics, not predictions.
+    """
+    if min_starts < 1:
+        raise ValueError("min_starts must be at least 1")
+
+    races: dict[tuple[str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in records:
+        race_number = str(row.get("race_number") or "").strip()
+        if not race_number:
+            continue
+        key = (
+            str(row.get("source_url") or "").strip(),
+            str(row.get("date") or "").strip(),
+            str(row.get("track") or "").strip(),
+            race_number,
+        )
+        races[key].append(row)
+
+    grouped: dict[tuple[str, str], list[tuple[dict[str, Any], int, int]]] = defaultdict(list)
+    seen: set[tuple[tuple[str, str, str, str], str]] = set()
+    for race_key, rows in races.items():
+        first = rows[0]
+        lap_times = next((row.get("race_lap_times") for row in rows
+                          if row.get("race_lap_times") is not None), None)
+        distance = next((row.get("distance") for row in rows
+                         if row.get("distance") is not None), first.get("distance"))
+        pace = summarize_race_pace(lap_times, distance)
+        if pace is None:
+            continue
+        field_size = _number(first.get("field_size"))
+        if field_size is None or field_size < 2 or not field_size.is_integer():
+            field_size = len(rows)
+        for row in rows:
+            runner_id = str(row.get("horse_number") or row.get("horse_name") or "").strip()
+            dedupe_key = (race_key, runner_id)
+            if runner_id and dedupe_key in seen:
+                continue
+            if runner_id:
+                seen.add(dedupe_key)
+            style = row.get("running_style")
+            if style not in {"逃げ", "先行", "差し", "追込"}:
+                style = classify_running_style(row.get("corner_positions"), field_size)
+            finish = _number(row.get("finish"))
+            if not style or finish is None or finish < 1 or finish > field_size or not finish.is_integer():
+                continue
+            grouped[(style, pace["pace_shape"])].append((row, int(finish), int(field_size)))
+
+    results = []
+    style_order = {"逃げ": 0, "先行": 1, "差し": 2, "追込": 3}
+    pace_order = {"前半速い": 0, "ほぼ均等": 1, "後半速い": 2}
+    for (style, pace_shape), outcomes in sorted(
+        grouped.items(), key=lambda item: (style_order[item[0][0]], pace_order[item[0][1]])
+    ):
+        starts = len(outcomes)
+        if starts < min_starts:
+            continue
+        wins = sum(1 for _, finish, _ in outcomes if finish == 1)
+        top3 = sum(1 for _, finish, _ in outcomes if finish <= 3)
+        normalized = [100.0 * (field_size - finish) / (field_size - 1)
+                      for _, finish, field_size in outcomes]
+        results.append({
+            "running_style": style,
+            "pace_shape": pace_shape,
+            "starts": starts,
+            "wins": wins,
+            "top3": top3,
+            "win_rate": round(wins / starts, 4),
+            "top3_rate": round(top3 / starts, 4),
+            "average_field_normalized_finish_score": round(mean(normalized), 1),
+            "sample_sufficient": starts >= max(min_starts, 10),
+            "interpretation": "過去レースの記述統計です。少数標本や条件差があるため、将来の勝率を示すものではありません。",
+        })
+    return results
+
+
 def summarize_races(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     """Aggregate runner rows into race-level summaries without guessing missing data."""
     grouped: dict[tuple[str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
