@@ -99,6 +99,8 @@ function renderHorses(){
   const card=document.createElement('div');card.className='item';
   const title=document.createElement('strong');title.textContent=name+'　'+rows.length+'戦 '+wins+'勝';card.append(title);
   const stat=document.createElement('p');stat.className='muted small';stat.textContent='勝率 '+(wins/rows.length*100).toFixed(1)+'% ／ 複勝率 '+(top3/rows.length*100).toFixed(1)+'%';card.append(stat);
+  const valid=rows.filter(r=>Number.isFinite(Number(r.finish))&&Number.isFinite(Number(r.field_size))&&Number(r.field_size)>1&&Number(r.finish)>=1&&Number(r.finish)<=Number(r.field_size)).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,5);
+  if(valid.length){const weighted=valid.reduce((sum,r,i)=>sum+(100*(Number(r.field_size)-Number(r.finish))/(Number(r.field_size)-1))*(valid.length-i),0);const weights=valid.length*(valid.length+1)/2;const score=document.createElement('p');score.className='small';score.textContent='着順ベース参考指数：'+(weighted/weights).toFixed(1)+' / 100';card.append(score);}
   rows.forEach(r=>{
    const line=document.createElement('p');line.className='small';
    const bits=[r.date||'日付不明',r.track||'競馬場不明',r.race_number?String(r.race_number)+'R':'',r.surface||'',r.distance?String(r.distance)+'m':'',r.finish?String(r.finish)+'着':'',r.finish_time||'タイム未取得'];
