@@ -10,7 +10,8 @@ import unicodedata
 from typing import Any
 
 REGISTRATION_RE = re.compile(r"(?<![0-9])([0-9]{4}-[0-9]{5})(?![0-9])")
-AMBIGUOUS_REGISTRATION_RE = re.compile(r"(?<![A-Za-z0-9])[0-9OIl|]{4}[-－ー][0-9OIl|]{5}(?![A-Za-z0-9])")\nAMBIGUOUS_OCR_CHAR_RE = re.compile(r"[OIl|]")
+AMBIGUOUS_REGISTRATION_RE = re.compile(r"(?<![A-Za-z0-9])[0-9OIl|]{4}[-－ー][0-9OIl|]{5}(?![A-Za-z0-9])")
+AMBIGUOUS_OCR_CHAR_RE = re.compile(r"[OIl|]")
 PREFIX_ANNOTATIONS = (
     "市場取引馬",
     "外",
