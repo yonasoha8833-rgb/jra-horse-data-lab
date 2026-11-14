@@ -102,13 +102,13 @@ function renderHorses(){
  horseStatus.textContent=matched.length+'件の出走記録（全'+horseRecords.length+'件）'+(failures?' ／ 取り込み失敗 '+failures+'件':'');
  if(!matched.length){const p=document.createElement('p');p.className='muted';p.textContent='該当する馬はいません。';horseResults.append(p);return;}
  const grouped=new Map();
- matched.forEach(r=>{const name=r.horse_name||'馬名不明';if(!grouped.has(name))grouped.set(name,[]);grouped.get(name).push(r);});
- [...grouped.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ja')).forEach(([name,rows])=>{
+ matched.forEach(r=>{const name=r.horse_name||'馬名不明';const registration=String(r.horse_registration_number||'').trim();const key=registration?'登録番号:'+registration:'馬名:'+name;if(!grouped.has(key))grouped.set(key,{name:name,registration:registration,rows:[]});grouped.get(key).rows.push(r);});
+ [...grouped.entries()].sort((a,b)=>a[1].name.localeCompare(b[1].name,'ja')||a[0].localeCompare(b[0])).forEach(entry=>{const name=entry[1].name;const registration=entry[1].registration;const rows=entry[1].rows;
   rows.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   const wins=rows.filter(r=>Number(r.finish)===1).length;
   const top3=rows.filter(r=>[1,2,3].includes(Number(r.finish))).length;
   const card=document.createElement('div');card.className='item';
-  const title=document.createElement('strong');title.textContent=name+'　'+rows.length+'戦 '+wins+'勝';card.append(title);
+  const title=document.createElement('strong');title.textContent=name+(registration?'（登録番号 '+registration+'）':'（馬名による仮集計）')+'　'+rows.length+'戦 '+wins+'勝';card.append(title);
   const stat=document.createElement('p');stat.className='muted small';stat.textContent='勝率 '+(wins/rows.length*100).toFixed(1)+'% ／ 複勝率 '+(top3/rows.length*100).toFixed(1)+'%';card.append(stat);
   const finishes=rows.map(r=>Number(r.finish)).filter(v=>Number.isFinite(v)&&v>0);
   const times=rows.map(r=>Number(r.finish_time_seconds)).filter(v=>Number.isFinite(v)&&v>0);
