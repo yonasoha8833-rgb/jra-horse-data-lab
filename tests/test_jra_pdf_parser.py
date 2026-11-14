@@ -350,6 +350,31 @@ class JraPdfParserTests(unittest.TestCase):
         rows[1]["horse_number"], rows[1]["frame"] = 1, 1
         self.assertEqual(_complete_ocr_records(rows), [])
 
+    def test_ocr_fallback_repairs_leading_one_only_when_full_frame_layout_proves_it(self):
+        frame_by_number = {
+            1: 1, 2: 2, 3: 3, 4: 4,
+            5: 5, 6: 5, 7: 6, 8: 6,
+            9: 7, 10: 7, 11: 8, 12: 8,
+        }
+        rows = [
+            {
+                "source_url": "official.pdf",
+                "date": "2026-11-14",
+                "race_number": 1,
+                "horse_number": number,
+                "frame": frame_by_number[number],
+                "declared_field_size": None,
+            }
+            for number in range(1, 13)
+        ]
+        # Typical OCR errors: 2 -> 12 and 5 -> 15.
+        rows[1]["horse_number"] = 12
+        rows[4]["horse_number"] = 15
+        accepted = _complete_ocr_records(rows)
+        self.assertEqual(len(accepted), 12)
+        self.assertEqual(sorted(row["horse_number"] for row in accepted), list(range(1, 13)))
+        self.assertTrue(all(row["declared_field_size"] == 12 for row in accepted))
+
     def test_ocr_fallback_rejects_wrong_frame_assignment(self):
         rows = parse_race_text(SAMPLE)
         rows[0]["horse_number"], rows[0]["frame"] = 1, 2
