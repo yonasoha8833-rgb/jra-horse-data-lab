@@ -734,6 +734,151 @@ def summarize_race_conditions(
 
 
 
+
+def summarize_relative_last3f(
+    records: Iterable[dict[str, Any]],
+    *,
+    min_race_runners: int = 3,
+    min_condition_starts: int = 3,
+) -> list[dict[str, Any]]:
+    """Summarize each horse's last-3F rank relative to runners in the same race.
+
+    The fastest valid individual last-3F receives 100 and the slowest 0.
+    Ties receive average ranks. A race is comparable only when its identity
+    and at least min_race_runners valid runner times are available.
+    """
+    if min_race_runners < 2:
+        raise ValueError("min_race_runners must be at least 2")
+    if min_condition_starts < 1:
+        raise ValueError("min_condition_starts must be at least 1")
+
+    races: dict[tuple[str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in records:
+        date = str(row.get("date") or "").strip()
+        track = str(row.get("track") or "").strip()
+        race_number = str(row.get("race_number") or "").strip()
+        last3f = _number(row.get("individual_last3f", row.get("last3f")))
+        if not (date and track and race_number and last3f is not None and last3f > 0):
+            continue
+        key = (str(row.get("source_url") or "").strip(), date, track, race_number)
+        races[key].append(row)
+
+    scored: list[dict[str, Any]] = []
+    for race_rows in races.values():
+        unique: dict[str, dict[str, Any]] = {}
+        for index, row in enumerate(race_rows):
+            registration = _registration_number(row.get("horse_registration_number"))
+            number = str(row.get("horse_number") or "").strip()
+            name = str(row.get("horse_name") or "").strip()
+            identity = (
+                "reg:" + registration if registration else
+                "number:" + number if number else
+                "name:" + name if name else "row:" + str(index)
+            )
+            unique.setdefault(identity, row)
+        runners = list(unique.values())
+        if len(runners) < min_race_runners:
+            continue
+
+        ranked = sorted(
+            (float(_number(row.get("individual_last3f", row.get("last3f")))), index)
+            for index, row in enumerate(runners)
+        )
+        ranks: dict[int, float] = {}
+        pos = 0
+        while pos < len(ranked):
+            end = pos + 1
+            while end < len(ranked) and ranked[end][0] == ranked[pos][0]:
+                end += 1
+            average_rank = ((pos + 1) + end) / 2
+            for _, index in ranked[pos:end]:
+                ranks[index] = average_rank
+            pos = end
+        for index, row in enumerate(runners):
+            score = 100.0 * (len(runners) - ranks[index]) / (len(runners) - 1)
+            scored.append({**row, "relative_last3f_score": score})
+
+    horses: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    seen: set[tuple[str, str, str, str, str]] = set()
+    for row in scored:
+        source = str(row.get("source_url") or "").strip()
+        date = str(row.get("date") or "").strip()
+        track = str(row.get("track") or "").strip()
+        race_number = str(row.get("race_number") or "").strip()
+        horse_number = str(row.get("horse_number") or "").strip()
+        if all((source, date, track, race_number, horse_number)):
+            runner_key = (source, date, track, race_number, horse_number)
+            if runner_key in seen:
+                continue
+            seen.add(runner_key)
+        name = str(row.get("horse_name") or "").strip()
+        if not name:
+            continue
+        registration = _registration_number(row.get("horse_registration_number"))
+        identity = ("registration", registration) if registration else ("name", name)
+        horses[identity].append(row)
+
+    results = []
+    dimensions = {
+        "track": "track",
+        "surface": "surface",
+        "distance_band": "distance_band",
+        "going": "going",
+        "surface_going": "surface_going",
+        "track_surface_distance": "track_surface_distance",
+    }
+    for identity, rows in sorted(horses.items()):
+        prepared = []
+        for row in rows:
+            item = dict(row)
+            band = distance_band(row.get("distance"))
+            if band:
+                item["distance_band"] = band
+            if row.get("surface") and row.get("going"):
+                item["surface_going"] = f'{row["surface"]}・{row["going"]}'
+            distance = _number(row.get("distance"))
+            if row.get("track") and row.get("surface") and distance is not None and distance.is_integer():
+                item["track_surface_distance"] = f'{row["track"]} {row["surface"]} {int(distance)}m'
+            prepared.append(item)
+
+        conditions = {}
+        for label, field in dimensions.items():
+            groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+            for row in prepared:
+                condition = str(row.get(field) or "").strip()
+                if condition:
+                    groups[condition].append(row)
+            summaries = []
+            for condition, items in groups.items():
+                if len(items) < min_condition_starts:
+                    continue
+                times = [
+                    value for item in items
+                    if (value := _number(item.get("individual_last3f", item.get("last3f")))) is not None
+                    and value > 0
+                ]
+                summaries.append({
+                    "condition": condition,
+                    "sample_count": len(items),
+                    "average_relative_score": round(mean(item["relative_last3f_score"] for item in items), 1),
+                    "average_individual_last3f": round(mean(times), 2) if times else None,
+                })
+            conditions[label] = sorted(
+                summaries, key=lambda item: (-item["sample_count"], item["condition"])
+            )
+        results.append({
+            "horse_name": str(rows[0].get("horse_name") or "").strip(),
+            "horse_registration_number": identity[1] if identity[0] == "registration" else None,
+            "identity_basis": "official_registration_number" if identity[0] == "registration" else "horse_name_only",
+            "identity_verified": identity[0] == "registration",
+            "comparable_starts": len(rows),
+            "average_relative_score": round(mean(row["relative_last3f_score"] for row in rows), 1),
+            "conditions": conditions,
+            "warning": "同一レース内の個別上がり3F順位を0〜100点に換算した相対指数です。異なるレース間の走破速度や勝率を示すものではありません。",
+        })
+    return results
+
+
 def summarize_horse_condition_profiles(
     records: Iterable[dict[str, Any]],
     *,
