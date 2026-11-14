@@ -24,7 +24,7 @@ DATE_RE = re.compile(r"(\d{1,2})月\s*(\d{1,2})日")
 FIELD_SIZE_RE = re.compile(r"[（(]\s*([0-9０-９]{1,2})\s*頭\s*[）)]")
 DISTANCE_RE = re.compile(r"([0-9０-９]{1,2}[,，][0-9０-９]{3}|[0-9０-９]{3,4})\s*(?:ｍ|m|メートル)")
 RESULT_STATUS_RE = re.compile(r"(競走中止|失格|中止|取消|除外)")
-GOING_RE = re.compile(r"(?:晴|曇|雨|小雨|小雪|雪)\\s*(良|稍重|重|不良)")
+GOING_RE = re.compile(r"(?:小雨|小雪|晴|曇|雨|雪)\s*(良|稍重|重|不良)")
 LAST3F_RE = re.compile(r"上り\s*4F\s*([0-9.．]+)\s*[―ー-]\s*3F\s*([0-9.．]+)")
 LAP_RE = re.compile(r"ハロンタイム\s*([0-9.．―ー-]+)")
 
