@@ -371,13 +371,36 @@ def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]
     return accepted
 
 
-def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str | None:
-    """OCR each JRA result panel separately and restore its known race number.
+def _ocr_identifier_pairs(text: str) -> list[tuple[int, int] | None]:
+    """Read frame/horse identifiers from the narrow, high-contrast number columns."""
+    pairs: list[tuple[int, int] | None] = []
+    for line in text.splitlines():
+        digits = re.findall(r"[1-8]", line)
+        # Keep compact three-digit forms such as 711 (frame 7, horse 11).
+        compact = re.fullmatch(r"\s*([1-8])\s*([1-9]|1[0-8])\s*", line)
+        if compact:
+            frame, number = map(int, compact.groups())
+        else:
+            separated = re.search(r"(?<!\d)([1-8])\s*[|/\\\\{}()\[\].,:;<>_ -]+\s*(1[0-8]|[1-9])(?!\d)", line)
+            if not separated:
+                # OCR may omit a separator but preserve a two- or three-digit pair.
+                compact_digits = "".join(digits)
+                if len(compact_digits) in (2, 3):
+                    frame, number = int(compact_digits[0]), int(compact_digits[1:])
+                else:
+                    pairs.append(None)
+                    continue
+            else:
+                frame, number = map(int, separated.groups())
+        if 1 <= frame <= 8 and 1 <= number <= 18:
+            pairs.append((frame, number))
+        else:
+            pairs.append(None)
+    return pairs
 
-    JRA result PDFs place two consecutive races on each page: left panel first,
-    right panel second. OCR frequently drops the printed race number, so use
-    this stable page/panel order instead of trusting a damaged OCR digit.
-    """
+
+def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str | None:
+    """OCR JRA panels, using a separate high-resolution pass for frame/horse columns."""
     if not shutil.which("pdftoppm") or not shutil.which("tesseract"):
         return None
     prefix = temp_dir / "ocr-page"
@@ -414,31 +437,74 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
             for side_index, (side, bounds) in enumerate(regions):
                 crop_path = temp_dir / f"{page.stem}-{side}.png"
                 crop = image.crop(bounds)
-                scaled_size = (crop.width * 5 // 3, crop.height * 5 // 3)
-                crop.resize(scaled_size, Image.Resampling.LANCZOS).save(crop_path)
+                crop.resize((crop.width * 5 // 3, crop.height * 5 // 3),
+                            Image.Resampling.LANCZOS).save(crop_path)
                 result = subprocess.run(
                     ["tesseract", str(crop_path), "stdout", "-l", "jpn+eng", "--psm", "6"],
-                    check=True,
-                    timeout=30,
-                    capture_output=True,
-                    text=True,
+                    check=True, timeout=30, capture_output=True, text=True,
                 )
+                clean_lines = [
+                    line for line in result.stdout.splitlines()
+                    if not RACE_RE.search(line)
+                ]
+
+                # The runner table has fixed columns. OCR the narrow frame/horse
+                # number strip separately at 5x; this avoids names and odds
+                # confusing the two small identifier fields.
+                panel_width, panel_height = bounds[2] - bounds[0], bounds[3] - bounds[1]
+                number_box = (
+                    int(panel_width * 0.043), int(panel_height * 0.292),
+                    int(panel_width * 0.112), int(panel_height * 0.542),
+                )
+                number_crop = image.crop((
+                    bounds[0] + number_box[0], bounds[1] + number_box[1],
+                    bounds[0] + number_box[2], bounds[1] + number_box[3],
+                ))
+                number_crop = number_crop.resize(
+                    (number_crop.width * 5, number_crop.height * 5),
+                    Image.Resampling.LANCZOS,
+                )
+                number_path = temp_dir / f"{page.stem}-{side}-numbers.png"
+                number_crop.save(number_path)
+                number_result = subprocess.run(
+                    ["tesseract", str(number_path), "stdout", "-l", "eng", "--psm", "6"],
+                    check=True, timeout=30, capture_output=True, text=True,
+                )
+                identifiers = _ocr_identifier_pairs(number_result.stdout)
+
+                # Replace only identifiers on rows already recognized as runners.
+                # If row counts disagree, retain the original OCR unchanged.
+                runner_indexes = [
+                    i for i, line in enumerate(clean_lines) if _runner(line.strip())
+                ]
+                if len(runner_indexes) == len(identifiers):
+                    for line_index, identifier in zip(runner_indexes, identifiers):
+                        if identifier is None:
+                            continue
+                        frame, number = identifier
+                        line = clean_lines[line_index]
+                        prefix_match = re.match(
+                            r"^\s*[1-8]\s*[|/\\\\{}()\[\].,:;<>_-]*\s*\d{1,2}",
+                            line,
+                        )
+                        if prefix_match:
+                            clean_lines[line_index] = (
+                                f"{frame}|{number} " + line[prefix_match.end():].lstrip()
+                            )
+
                 debug_dir = os.environ.get("JRA_OCR_DEBUG_DIR")
                 if debug_dir and page == pages[0]:
                     destination = Path(debug_dir)
                     destination.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(crop_path, destination / f"{page.stem}-{side}.png")
+                    shutil.copyfile(number_path, destination / f"{page.stem}-{side}-numbers.png")
                     (destination / f"{page.stem}-{side}.txt").write_text(
                         result.stdout, encoding="utf-8"
                     )
+                    (destination / f"{page.stem}-{side}-numbers.txt").write_text(
+                        number_result.stdout, encoding="utf-8"
+                    )
 
-                # Remove possibly hallucinated race headers. The PDF's page
-                # order is authoritative and avoids splitting a panel at a
-                # misread digit such as 第5競走 instead of 第1競走.
-                clean_lines = [
-                    line for line in result.stdout.splitlines()
-                    if not RACE_RE.search(line)
-                ]
                 race_number = page_index * 2 + side_index + 1
                 chunks.append(f"第{race_number}競走\n" + "\n".join(clean_lines))
     return "\n".join(chunks)
