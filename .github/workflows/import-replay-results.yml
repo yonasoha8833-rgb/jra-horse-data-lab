@@ -19,6 +19,10 @@ on:
         type: string
 permissions:
   contents: write
+# Prevent simultaneous imports from racing while committing generated JSON.
+concurrency:
+  group: jra-replay-import-main
+  cancel-in-progress: false
 jobs:
   import:
     runs-on: ubuntu-latest
