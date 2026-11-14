@@ -225,7 +225,8 @@ class RaceAnalysisTests(unittest.TestCase):
             {"source_url": "pdf-a", "date": "2026-11-01", "track": "東京", "race_number": 1,
              "race_name": "サンプル特別", "surface": "芝", "distance": 1600, "going": "良",
              "horse_number": 2, "horse_name": "勝ち馬", "finish": 1, "finish_time": "1:32.4",
-             "finish_time_seconds": 92.4, "race_last3f": 34.1},
+             "finish_time_seconds": 92.4, "race_last3f": 34.1,
+             "race_lap_times": [12.0, 11.8, 11.7, 11.9, 12.0, 12.2, 12.5, 12.7]},
             {"source_url": "pdf-a", "date": "2026-11-01", "track": "東京", "race_number": 1,
              "horse_number": 4, "horse_name": "2着馬", "finish": 2, "finish_time": "1:32.8"},
             {"source_url": "pdf-a", "date": "2026-11-01", "track": "東京", "race_number": 1,
@@ -246,6 +247,8 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(race["winning_time_seconds"], 92.4)
         self.assertEqual([item["horse_name"] for item in race["top_three"]], ["勝ち馬", "2着馬", "3着馬"])
         self.assertEqual(race["race_last3f"], 34.1)
+        self.assertEqual(race["pace_analysis"]["pace_shape"], "前半速い")
+        self.assertEqual(race["pace_analysis"]["first_3f_seconds"], 35.5)
 
     def test_race_summary_does_not_invent_winner_when_ambiguous(self):
         rows = [
