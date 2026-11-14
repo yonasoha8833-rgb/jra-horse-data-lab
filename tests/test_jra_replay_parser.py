@@ -81,6 +81,18 @@ class JraReplayParserTests(unittest.TestCase):
     def test_returns_empty_when_no_runner_table_exists(self):
         self.assertEqual(parse_replay_text("これは説明文だけです"), [])
 
+    def test_rejects_non_pdf_download_before_running_extractor(self):
+        from jra_replay_parser import extract_replay_pdf
+
+        with self.assertRaisesRegex(ValueError, "not a PDF"):
+            extract_replay_pdf(b"<html>access denied</html>")
+
+    def test_rejects_truncated_pdf_download(self):
+        from jra_replay_parser import extract_replay_pdf
+
+        with self.assertRaisesRegex(ValueError, "unexpectedly small"):
+            extract_replay_pdf(b"%PDF-1.4")
+
 
 if __name__ == "__main__":
     unittest.main()
