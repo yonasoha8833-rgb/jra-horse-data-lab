@@ -16,6 +16,21 @@ SAMPLE = """
 
 
 class JraPdfParserTests(unittest.TestCase):
+
+    def test_rejects_race_number_outside_official_range(self):
+        text = SAMPLE.replace("第1競走", "第13競走")
+        self.assertEqual(parse_race_text(text), [])
+
+    def test_invalid_finish_time_is_not_used_for_placing(self):
+        text = SAMPLE.replace("1：39．0", "1：99．0")
+        rows = parse_race_text(text)
+        self.assertEqual(len(rows), 2)
+        self.assertIsNone(rows[0]["finish_time"])
+        self.assertIsNone(rows[0]["finish_time_seconds"])
+        self.assertEqual(rows[0]["finish"], None)
+        self.assertEqual(rows[0]["runner_validation_warnings"], ["invalid_finish_time_seconds"])
+        self.assertEqual(rows[1]["finish"], 1)
+
     def test_accepts_compact_frame_and_horse_number(self):
         compact_sample = SAMPLE.replace("2 2 サノノファイター", "22 サノノファイター")
         rows = parse_race_text(compact_sample)
