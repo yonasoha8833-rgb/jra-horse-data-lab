@@ -16,6 +16,12 @@ SAMPLE = """
 
 
 class JraPdfParserTests(unittest.TestCase):
+    def test_accepts_compact_frame_and_horse_number(self):
+        compact_sample = SAMPLE.replace("2 2 サノノファイター", "22 サノノファイター")
+        rows = parse_race_text(compact_sample)
+        self.assertEqual(rows[0]["frame"], 2)
+        self.assertEqual(rows[0]["horse_number"], 2)
+
     def test_extracts_runner_and_race_level_fields(self):
         rows = parse_race_text(SAMPLE, source_url="https://example.test/race.pdf")
         self.assertEqual(len(rows), 2)
