@@ -1,6 +1,6 @@
 import unittest
 
-from race_analysis import analyze_race_scenario, classify_running_style, parse_corner_positions, distance_band, filter_records, parse_lap_times, performance_score, recent_form_summary, summarize_race_pace, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles, summarize_running_style_pace_performance
+from race_analysis import analyze_race_scenario, classify_running_style, parse_corner_positions, distance_band, filter_records, parse_lap_times, performance_score, condition_adjusted_performance_score, recent_form_summary, summarize_race_pace, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles, summarize_running_style_pace_performance
 
 
 class RaceAnalysisTests(unittest.TestCase):
@@ -458,6 +458,53 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(profile["conditions"]["track"], [])
         with self.assertRaises(ValueError):
             summarize_horse_condition_profiles(rows, min_starts=0)
+
+
+    def test_condition_adjusted_score_shrinks_small_condition_sample_to_overall(self):
+        rows = [
+            {"date": "2026-11-01", "finish": 1, "field_size": 10, "surface": "芝", "distance": 1600},
+            {"date": "2026-10-01", "finish": 10, "field_size": 10, "surface": "芝", "distance": 1600},
+            {"date": "2026-09-01", "finish": 10, "field_size": 10, "surface": "ダート", "distance": 1200},
+        ]
+        result = condition_adjusted_performance_score(
+            rows, {"surface": "芝", "distance": 1600}, min_condition_starts=2, prior_strength=5
+        )
+        self.assertEqual(result["condition_sample_count"], 2)
+        self.assertEqual(result["matched_condition"], "芝ダート・距離帯")
+        self.assertGreater(result["score"], result["condition_score"])
+        self.assertLess(result["score"], result["overall_score"])
+
+    def test_condition_adjusted_score_uses_most_specific_supported_group(self):
+        rows = [
+            {"finish": 1, "field_size": 10, "track": "東京", "surface": "芝", "distance": 1600}
+            for _ in range(3)
+        ] + [
+            {"finish": 8, "field_size": 10, "track": "京都", "surface": "芝", "distance": 1600}
+            for _ in range(3)
+        ]
+        result = condition_adjusted_performance_score(
+            rows, {"track": "東京", "surface": "芝", "distance": 1600},
+            min_condition_starts=3,
+        )
+        self.assertEqual(result["matched_condition"], "競馬場・芝ダート・距離")
+        self.assertEqual(result["condition_score"], 100.0)
+        self.assertEqual(result["condition_sample_count"], 3)
+
+    def test_condition_adjusted_score_falls_back_without_enough_matching_data(self):
+        result = condition_adjusted_performance_score(
+            [{"finish": 2, "field_size": 10, "surface": "芝"}],
+            {"surface": "芝"}, min_condition_starts=3,
+        )
+        self.assertEqual(result["score"], result["overall_score"])
+        self.assertIsNone(result["condition_score"])
+        self.assertEqual(result["confidence"], "総合成績のみ")
+
+    def test_condition_adjusted_score_handles_missing_baseline_and_invalid_options(self):
+        self.assertIsNone(condition_adjusted_performance_score([], {"surface": "芝"})["score"])
+        with self.assertRaises(ValueError):
+            condition_adjusted_performance_score([], {}, min_condition_starts=0)
+        with self.assertRaises(ValueError):
+            condition_adjusted_performance_score([], {}, prior_strength=-1)
 
 
 if __name__ == "__main__":
