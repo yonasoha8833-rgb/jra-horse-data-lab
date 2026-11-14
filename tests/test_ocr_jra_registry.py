@@ -30,14 +30,14 @@ class RegistryOcrToolTests(unittest.TestCase):
     def test_download_rejects_untrusted_host(self):
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaisesRegex(ValueError, 'Only HTTPS URLs'):
-                download_pdf('https://example.test/sample.pdf', Path(temp) / 'sample.pdf')
+                download_pdf('https://www.jra.go.jp/sample.pdf', Path(temp) / 'sample.pdf')
 
     @patch('ocr_jra_registry.urllib.request.urlopen')
     def test_download_accepts_pdf_signature(self, mocked_open):
         mocked_open.return_value = FakeResponse(b'%PDF-1.7 sample', {'Content-Type': 'application/pdf'})
         with tempfile.TemporaryDirectory() as temp:
             target = Path(temp) / 'sample.pdf'
-            download_pdf('https://example.test/sample.pdf', target)
+            download_pdf('https://www.jra.go.jp/sample.pdf', target)
             self.assertTrue(target.read_bytes().startswith(b'%PDF-'))
 
     @patch('ocr_jra_registry.urllib.request.urlopen')
@@ -45,14 +45,14 @@ class RegistryOcrToolTests(unittest.TestCase):
         mocked_open.return_value = FakeResponse(b'<html>denied</html>', {'Content-Type': 'text/html'})
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaisesRegex(ValueError, 'not a PDF'):
-                download_pdf('https://example.test/sample.pdf', Path(temp) / 'sample.pdf')
+                download_pdf('https://www.jra.go.jp/sample.pdf', Path(temp) / 'sample.pdf')
 
     @patch('ocr_jra_registry.urllib.request.urlopen')
     def test_download_rejects_excessive_content_length(self, mocked_open):
         mocked_open.return_value = FakeResponse(b'%PDF-1.7', {'Content-Length': str(MAX_PDF_BYTES + 1)})
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaisesRegex(ValueError, 'Content-Length'):
-                download_pdf('https://example.test/sample.pdf', Path(temp) / 'sample.pdf')
+                download_pdf('https://www.jra.go.jp/sample.pdf', Path(temp) / 'sample.pdf')
 
     def test_ocr_rejects_more_than_five_pages(self):
         with self.assertRaisesRegex(ValueError, 'five pages'):
