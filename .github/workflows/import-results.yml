@@ -37,7 +37,17 @@ jobs:
           sudo apt-get install -y poppler-utils tesseract-ocr tesseract-ocr-jpn
           python -m pip install Pillow
       - name: Import official results
+        env:
+          JRA_OCR_DEBUG_DIR: ocr-debug
         run: python import_results.py --limit "${{ inputs.limit || '3' }}"
+      - name: Upload OCR layout diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jra-ocr-layout-diagnostics
+          path: ocr-debug/
+          if-no-files-found: ignore
+          retention-days: 3
       - name: Commit imported records
         run: |
           git config user.name "github-actions[bot]"
