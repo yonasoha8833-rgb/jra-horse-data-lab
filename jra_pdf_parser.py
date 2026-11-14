@@ -135,14 +135,14 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
             continue
 
         # OCR often places meeting/date/distance metadata on adjacent lines.
-        header_window = "\\n".join(block[:8])
+        header_window = "\n".join(block[:8])
         date_match = DATE_RE.search(header_window)
         race_date = None
         if date_match:
             month, day = map(int, date_match.groups())
-            year_match = re.search(r"(20\\d{2})年", header_window)
+            year_match = re.search(r"(20\d{2})年", header_window)
             if not year_match and source_url:
-                year_match = re.search(r"/(20\\d{2})/", source_url)
+                year_match = re.search(r"/(20\d{2})/", source_url)
             if year_match:
                 year = int(year_match.group(1))
                 try:
@@ -164,10 +164,10 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
                 surface = "障害"
                 break
 
-        track = _track(header)
-        going_match = GOING_RE.search(header)
+        track = _track(header_window)
+        going_match = GOING_RE.search(header_window)
         going = going_match.group(1) if going_match else None
-        race_name_match = re.search(r"第\s*\d+\s*競走\s*(.*?)\s*[0-9０-９]{1,2}(?:[,，][0-9０-９]{3}|[0-9０-９]{2,3})", header)
+        race_name_match = re.search(r"第\s*\d+\s*競走\s*(.*?)\s*[0-9０-９]{1,2}(?:[,，][0-9０-９]{3}|[0-9０-９]{2,3})", header_window)
         race_name = race_name_match.group(1).strip() if race_name_match else None
 
         runners = []
