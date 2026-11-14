@@ -39,6 +39,9 @@ ul{padding-left:22px}
 <div class="controls">
 <input id="horseKeyword" type="search" placeholder="馬名を入力（部分一致）" aria-label="馬名で検索">
 <select id="horseTrack" aria-label="競馬場で絞り込み"><option value="">全競馬場</option><option>札幌</option><option>函館</option><option>福島</option><option>新潟</option><option>東京</option><option>中山</option><option>中京</option><option>京都</option><option>阪神</option><option>小倉</option></select>
+<select id="horseSurface" aria-label="芝・ダートで絞り込み"><option value="">芝・ダートすべて</option><option value="芝">芝</option><option value="ダート">ダート</option></select>
+<select id="horseDistance" aria-label="距離で絞り込み"><option value="">全距離</option></select>
+<select id="horseSort" aria-label="馬の並び順"><option value="name">馬名順</option><option value="starts">出走数が多い順</option><option value="wins">勝利数が多い順</option><option value="winRate">勝率が高い順</option><option value="score">参考指数が高い順</option></select>
 </div>
 <div id="horseResults"></div>
 <p class="muted small">能力指数は出走頭数で着順を0〜100点に換算し、直近5走を重み付けした参考値です。速度指数や勝率予測ではありません。</p>
@@ -90,12 +93,18 @@ fetch('./data/catalog.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Erro
 const horseStatus=document.getElementById('horseStatus');
 const horseKeyword=document.getElementById('horseKeyword');
 const horseTrack=document.getElementById('horseTrack');
+const horseSurface=document.getElementById('horseSurface');
+const horseDistance=document.getElementById('horseDistance');
+const horseSort=document.getElementById('horseSort');
 const horseResults=document.getElementById('horseResults');
 let horseRecords=[];
+function horseScore(rows){const valid=rows.filter(r=>Number.isFinite(Number(r.finish))&&Number.isFinite(Number(r.field_size))&&Number(r.field_size)>1&&Number(r.finish)>=1&&Number(r.finish)<=Number(r.field_size)).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,5);if(!valid.length)return null;const weighted=valid.reduce((sum,r,i)=>sum+(100*(Number(r.field_size)-Number(r.finish))/(Number(r.field_size)-1))*(valid.length-i),0);return weighted/(valid.length*(valid.length+1)/2);}
 function renderHorses(){
  const q=horseKeyword.value.trim().toLocaleLowerCase();
  const track=horseTrack.value;
- const matched=horseRecords.filter(r=>(!track||r.track===track)&&(!q||String(r.horse_name||'').toLocaleLowerCase().includes(q)));
+ const surface=horseSurface.value;
+ const distance=horseDistance.value;
+ const matched=horseRecords.filter(r=>(!track||r.track===track)&&(!surface||r.surface===surface)&&(!distance||String(r.distance)===distance)&&(!q||String(r.horse_name||'').toLocaleLowerCase().includes(q)));
  horseResults.replaceChildren();
  if(!horseRecords.length){horseStatus.textContent='馬別データはまだありません。GitHub Actionsの「Import JRA race results」を実行してください。';return;}
  const failures=Array.isArray(window.__importFailures)?window.__importFailures.length:0;
@@ -103,7 +112,7 @@ function renderHorses(){
  if(!matched.length){const p=document.createElement('p');p.className='muted';p.textContent='該当する馬はいません。';horseResults.append(p);return;}
  const grouped=new Map();
  matched.forEach(r=>{const name=r.horse_name||'馬名不明';const registration=String(r.horse_registration_number||'').trim();const key=registration?'登録番号:'+registration:'馬名:'+name;if(!grouped.has(key))grouped.set(key,{name:name,registration:registration,rows:[]});grouped.get(key).rows.push(r);});
- [...grouped.entries()].sort((a,b)=>a[1].name.localeCompare(b[1].name,'ja')||a[0].localeCompare(b[0])).forEach(entry=>{const name=entry[1].name;const registration=entry[1].registration;const rows=entry[1].rows;
+ [...grouped.entries()].sort((a,b)=>{const mode=horseSort.value;const rowsA=a[1].rows,rowsB=b[1].rows;const winsA=rowsA.filter(r=>Number(r.finish)===1).length,winsB=rowsB.filter(r=>Number(r.finish)===1).length;const rateA=winsA/rowsA.length,rateB=winsB/rowsB.length;const scoreA=horseScore(rowsA),scoreB=horseScore(rowsB);if(mode==='starts'&&rowsA.length!==rowsB.length)return rowsB.length-rowsA.length;if(mode==='wins'&&winsA!==winsB)return winsB-winsA;if(mode==='winRate'&&rateA!==rateB)return rateB-rateA;if(mode==='score'&&(scoreA!==scoreB))return (scoreB??-1)-(scoreA??-1);return a[1].name.localeCompare(b[1].name,'ja')||a[0].localeCompare(b[0]);}).forEach(entry=>{const name=entry[1].name;const registration=entry[1].registration;const rows=entry[1].rows;
   rows.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   const wins=rows.filter(r=>Number(r.finish)===1).length;
   const top3=rows.filter(r=>[1,2,3].includes(Number(r.finish))).length;
@@ -114,8 +123,8 @@ function renderHorses(){
   const times=rows.map(r=>Number(r.finish_time_seconds)).filter(v=>Number.isFinite(v)&&v>0);
   const last3fs=rows.map(r=>Number(r.individual_last3f)).filter(v=>Number.isFinite(v)&&v>0);
   if(finishes.length||times.length||last3fs.length||rows.some(r=>r.result_status)){const extra=document.createElement('p');extra.className='muted small';const parts=[];if(finishes.length)parts.push('平均着順 '+(finishes.reduce((a,b)=>a+b,0)/finishes.length).toFixed(2));if(times.length)parts.push('平均走破 '+(times.reduce((a,b)=>a+b,0)/times.length).toFixed(2)+'秒');if(last3fs.length)parts.push('個別平均上がり3F '+(last3fs.reduce((a,b)=>a+b,0)/last3fs.length).toFixed(2)+'秒');const statuses=rows.filter(r=>r.result_status).map(r=>r.result_status);if(statuses.length)parts.push('状態記録 '+statuses.length+'件（'+[...new Set(statuses)].join('・')+'）');extra.textContent=parts.join(' ／ ');card.append(extra);}
-  const valid=rows.filter(r=>Number.isFinite(Number(r.finish))&&Number.isFinite(Number(r.field_size))&&Number(r.field_size)>1&&Number(r.finish)>=1&&Number(r.finish)<=Number(r.field_size)).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,5);
-  if(valid.length){const weighted=valid.reduce((sum,r,i)=>sum+(100*(Number(r.field_size)-Number(r.finish))/(Number(r.field_size)-1))*(valid.length-i),0);const weights=valid.length*(valid.length+1)/2;const score=document.createElement('p');score.className='small';score.textContent='着順ベース参考指数：'+(weighted/weights).toFixed(1)+' / 100';card.append(score);}
+  const scoreValue=horseScore(rows);
+  if(scoreValue!==null){const score=document.createElement('p');score.className='small';score.textContent='着順ベース参考指数：'+scoreValue.toFixed(1)+' / 100';card.append(score);}
   rows.forEach(r=>{
    const line=document.createElement('p');line.className='small';
    const bits=[r.date||'日付不明',r.track||'競馬場不明',r.race_number?String(r.race_number)+'R':'',r.surface||'',r.distance?String(r.distance)+'m':'',r.finish?String(r.finish)+'着':'',r.result_status||'',r.finish_time||'タイム未取得'];if(Array.isArray(r.race_validation_warnings)&&r.race_validation_warnings.length)bits.push('レース情報要確認');if(Array.isArray(r.runner_validation_warnings)&&r.runner_validation_warnings.length)bits.push('走破タイム要確認');
@@ -126,6 +135,7 @@ function renderHorses(){
 }
 fetch('./data/race_results.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('not imported');return r.json();}).then(d=>{
  horseRecords=Array.isArray(d.records)?d.records:[];
+ [...new Set(horseRecords.map(r=>r.distance).filter(v=>Number.isFinite(Number(v))&&Number(v)>0))].sort((a,b)=>Number(a)-Number(b)).forEach(v=>{const o=document.createElement('option');o.value=String(v);o.textContent=String(v)+'m';horseDistance.append(o);});
  window.__importFailures=Array.isArray(d.import_failures)?d.import_failures:[];
  const importMeta=document.createElement('p');importMeta.className='muted small';
  const quality=d.quality_report||{};importMeta.textContent='取り込み済みPDF '+(Array.isArray(d.processed_sources)?d.processed_sources.length:0)+'件 ／ 記録 '+(Number(d.record_count)||horseRecords.length)+'件'+(window.__importFailures.length?' ／ 失敗 '+window.__importFailures.length+'件':'')+(Number(quality.warning_race_count)?' ／ 要確認レース '+Number(quality.warning_race_count)+'件':'');
@@ -134,6 +144,9 @@ fetch('./data/race_results.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new
 }).catch(()=>{horseRecords=[];horseStatus.textContent='馬別データはまだありません。PDF取り込み後にここへ表示されます。';});
 horseKeyword.addEventListener('input',renderHorses);
 horseTrack.addEventListener('change',renderHorses);
+horseSurface.addEventListener('change',renderHorses);
+horseDistance.addEventListener('change',renderHorses);
+horseSort.addEventListener('change',renderHorses);
 
 keyword.addEventListener('input',render);
 year.addEventListener('change',render);
