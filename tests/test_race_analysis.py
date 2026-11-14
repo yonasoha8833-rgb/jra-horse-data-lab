@@ -33,7 +33,7 @@ class RaceAnalysisTests(unittest.TestCase):
     def test_malformed_registration_number_does_not_verify_identity(self):
         horse = summarize_horses([{
             "horse_name": "形式不正番号の馬",
-            "horse_registration_number": "2020100001",
+            "horse_registration_number": "2020-10001",
             "finish": 1,
         }])[0]
         self.assertIsNone(horse["horse_registration_number"])
@@ -275,20 +275,20 @@ class RaceAnalysisTests(unittest.TestCase):
 
     def test_horse_condition_profiles_group_by_identity_and_conditions(self):
         rows = [
-            {"horse_name": "条件分析馬", "horse_registration_number": "2020100001",
+            {"horse_name": "条件分析馬", "horse_registration_number": "2020-10001",
              "track": "東京", "surface": "芝", "distance": 1600, "going": "良", "finish": 1},
-            {"horse_name": "条件分析馬", "horse_registration_number": "2020100001",
+            {"horse_name": "条件分析馬", "horse_registration_number": "2020-10001",
              "track": "東京", "surface": "芝", "distance": 1800, "going": "良", "finish": 2},
-            {"horse_name": "条件分析馬", "horse_registration_number": "2020100001",
+            {"horse_name": "条件分析馬", "horse_registration_number": "2020-10001",
              "track": "東京", "surface": "芝", "distance": 1600, "going": "重", "finish": 3},
-            {"horse_name": "条件分析馬", "horse_registration_number": "2020100001",
+            {"horse_name": "条件分析馬", "horse_registration_number": "2020-10001",
              "track": "京都", "surface": "ダート", "distance": 1200, "going": "良", "finish": 8},
-            {"horse_name": "別個体", "horse_registration_number": "2021100002",
+            {"horse_name": "別個体", "horse_registration_number": "2021-10002",
              "track": "東京", "surface": "芝", "distance": 1600, "going": "良", "finish": 1},
         ]
         profiles = summarize_horse_condition_profiles(rows, min_starts=3)
         self.assertEqual(len(profiles), 2)
-        horse = next(item for item in profiles if item["horse_registration_number"] == "2020100001")
+        horse = next(item for item in profiles if item["horse_registration_number"] == "2020-10001")
         self.assertTrue(horse["identity_verified"])
         self.assertEqual(horse["conditions"]["track"][0]["condition"], "東京")
         self.assertEqual(horse["conditions"]["track"][0]["starts"], 3)
@@ -297,6 +297,17 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(horse["conditions"]["surface_going"], [])
         self.assertEqual(horse["conditions"]["distance_band"][0]["condition"], "マイル（1401〜1800m）")
         self.assertEqual(horse["conditions"]["track_surface_distance"], [])
+
+    def test_horse_condition_profiles_ignore_duplicate_runner_rows(self):
+        row = {
+            "horse_name": "重複条件馬", "horse_registration_number": "2020-10001",
+            "source_url": "race.pdf", "date": "2026-11-01", "track": "東京",
+            "race_number": 1, "horse_number": 3, "surface": "芝",
+            "distance": 1600, "going": "良", "finish": 1,
+        }
+        profile = summarize_horse_condition_profiles([row, dict(row)])[0]
+        self.assertEqual(profile["starts"], 1)
+        self.assertEqual(profile["conditions"]["track"][0]["starts"], 1)
 
     def test_horse_condition_profiles_exclude_unknowns_and_validate_minimum(self):
         rows = [
