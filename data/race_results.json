@@ -1,0 +1,11 @@
+{
+  "source": "JRA official result PDFs listed in data/catalog.json",
+  "processed_sources": [],
+  "record_count": 0,
+  "records": [],
+  "notes": [
+    "finish is based on the order of recognized official result rows",
+    "race_last3f is the race-level closing 3F, not an individual horse figure",
+    "individual_last3f is intentionally null unless a source provides it"
+  ]
+}
