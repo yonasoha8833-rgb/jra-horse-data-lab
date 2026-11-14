@@ -33,7 +33,7 @@ class RaceAnalysisTests(unittest.TestCase):
     def test_malformed_registration_number_does_not_verify_identity(self):
         horse = summarize_horses([{
             "horse_name": "形式不正番号の馬",
-            "horse_registration_number": "2020-10001",
+            "horse_registration_number": "2020100001",
             "finish": 1,
         }])[0]
         self.assertIsNone(horse["horse_registration_number"])
