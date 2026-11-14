@@ -66,6 +66,13 @@ def _runner(line: str) -> dict[str, Any] | None:
     if not match:
         return None
     frame, number, name, sex, age = match.groups()
+    frame_number = int(_ascii_digits(frame))
+    horse_number = int(_ascii_digits(number))
+    horse_age = int(_ascii_digits(age))
+    # Reject impossible identifiers/ages from malformed text extraction.
+    # The broad age ceiling avoids excluding unusual historical records.
+    if not (1 <= frame_number <= 8 and 1 <= horse_number <= 18 and 2 <= horse_age <= 20):
+        return None
     tail = line[match.end():]
     time_match = re.search(r"(?<![0-9])([0-9０-９]{1,2})[：:]([0-9０-９]{2})[.．]([0-9０-９])", tail)
     finish_time = None
@@ -87,11 +94,11 @@ def _runner(line: str) -> dict[str, Any] | None:
     if not name or name in {"枠", "番", "馬番"}:
         return None
     return {
-        "frame": int(_ascii_digits(frame)),
-        "horse_number": int(_ascii_digits(number)),
+        "frame": frame_number,
+        "horse_number": horse_number,
         "horse_name": name,
         "sex": sex,
-        "age": int(_ascii_digits(age)),
+        "age": horse_age,
         "finish_time": finish_time,
         "finish_time_seconds": finish_time_seconds,
         "result_status": result_status,
