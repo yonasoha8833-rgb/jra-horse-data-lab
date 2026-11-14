@@ -66,7 +66,7 @@ python jra_replay_catalog.py --from-year 2025 --to-year 2026
 python import_replay_results.py --limit 1
 ```
 
-重賞PDFの馬別結果は `data/replay_results.json` に年度別全成績とは分けて保存します。これにより異なるPDF由来の同一レース記録を不用意に二重登録しません。画面読み込み時に開催日・競馬場・馬番・馬名が一致する既存記録へ個別上がり3Fとコーナー通過順位を補い、一致しない記録は重賞PDF由来の記録として追加表示します。GitHub Actions の **Import JRA graded-race replay results** から年度範囲と1回のPDF処理上限を指定して実行できます。最初は1件ずつ実行し、抽出結果を確認してください。
+重賞PDFの馬別結果は `data/replay_results.json` に年度別全成績とは分けて保存します。これにより異なるPDF由来の同一レース記録を不用意に二重登録しません。画面読み込み時に開催日・競馬場・馬番・馬名が一致する既存記録へ個別上がり3Fとコーナー通過順位を補います。照合候補が複数ある場合は、両データにレース番号があれば追加照合し、それでも一意に決まらない場合は誤った既存行へ結び付けず、重賞PDF由来の記録として別表示して件数を示します。一致しない記録も重賞PDF由来の記録として追加表示します。GitHub Actions の **Import JRA graded-race replay results** から年度範囲と1回のPDF処理上限を指定して実行できます。最初は1件ずつ実行し、抽出結果を確認してください。
 
 ## JRA重賞レース結果PDF（個別上がり3F）
 
