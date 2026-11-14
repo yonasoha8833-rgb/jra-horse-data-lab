@@ -28,7 +28,20 @@ def summarize_horses(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     Missing or unparseable values are excluded from numeric averages.
     """
     grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    seen_runners: set[tuple[str, str, str, str, str]] = set()
     for row in records:
+        # When a source and full race/runner identity are available, count that
+        # runner only once. Rows lacking any key component remain untouched.
+        source = str(row.get("source_url") or "").strip()
+        race_number = str(row.get("race_number") or "").strip()
+        horse_number = str(row.get("horse_number") or "").strip()
+        race_date = str(row.get("date") or "").strip()
+        track = str(row.get("track") or "").strip()
+        if all((source, race_number, horse_number, race_date, track)):
+            runner_key = (source, race_date, track, race_number, horse_number)
+            if runner_key in seen_runners:
+                continue
+            seen_runners.add(runner_key)
         name = str(row.get("horse_name") or "").strip()
         registration_number = str(row.get("horse_registration_number") or "").strip()
         if name:
