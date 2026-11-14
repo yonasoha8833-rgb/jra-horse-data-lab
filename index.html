@@ -118,7 +118,7 @@ function renderHorses(){
   if(valid.length){const weighted=valid.reduce((sum,r,i)=>sum+(100*(Number(r.field_size)-Number(r.finish))/(Number(r.field_size)-1))*(valid.length-i),0);const weights=valid.length*(valid.length+1)/2;const score=document.createElement('p');score.className='small';score.textContent='着順ベース参考指数：'+(weighted/weights).toFixed(1)+' / 100';card.append(score);}
   rows.forEach(r=>{
    const line=document.createElement('p');line.className='small';
-   const bits=[r.date||'日付不明',r.track||'競馬場不明',r.race_number?String(r.race_number)+'R':'',r.surface||'',r.distance?String(r.distance)+'m':'',r.finish?String(r.finish)+'着':'',r.result_status||'',r.finish_time||'タイム未取得'];
+   const bits=[r.date||'日付不明',r.track||'競馬場不明',r.race_number?String(r.race_number)+'R':'',r.surface||'',r.distance?String(r.distance)+'m':'',r.finish?String(r.finish)+'着':'',r.result_status||'',r.finish_time||'タイム未取得'];if(Array.isArray(r.race_validation_warnings)&&r.race_validation_warnings.length)bits.push('レース情報要確認');
    line.textContent=bits.filter(Boolean).join('・');card.append(line);
   });
   horseResults.append(card);
