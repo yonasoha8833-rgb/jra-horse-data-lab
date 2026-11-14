@@ -8,6 +8,49 @@ import import_results
 
 
 class ImportResultsTests(unittest.TestCase):
+
+    def test_quality_report_counts_race_warnings_and_missing_fields(self):
+        records = [
+            {
+                "source_url": "https://example.test/a.pdf",
+                "race_number": 1,
+                "date": "2026-11-08",
+                "horse_number": 2,
+                "race_validation_warnings": ["duplicate_horse_number:2"],
+                "track": "東京",
+                "distance": 1600,
+                "finish_time_seconds": 99.0,
+            },
+            {
+                "source_url": "https://example.test/a.pdf",
+                "race_number": 1,
+                "date": "2026-11-08",
+                "horse_number": 2,
+                "race_validation_warnings": ["duplicate_horse_number:2"],
+                "track": "東京",
+                "distance": 1600,
+                "finish_time_seconds": None,
+            },
+            {
+                "source_url": "https://example.test/b.pdf",
+                "race_number": 2,
+                "date": None,
+                "horse_number": 1,
+                "race_validation_warnings": [],
+                "track": None,
+                "distance": None,
+                "finish_time_seconds": None,
+            },
+        ]
+        report = import_results.build_quality_report(records)
+        self.assertEqual(report["race_count"], 2)
+        self.assertEqual(report["warning_race_count"], 1)
+        self.assertEqual(report["duplicate_number_race_count"], 1)
+        self.assertEqual(report["records_missing_date"], 1)
+        self.assertEqual(report["records_missing_track"], 1)
+        self.assertEqual(report["records_missing_distance"], 1)
+        self.assertEqual(report["records_missing_finish_time"], 2)
+
     def test_failed_source_is_recorded_and_remains_retryable(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
