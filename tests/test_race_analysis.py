@@ -232,6 +232,18 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(result[0]["top3"], 2)
         self.assertEqual(result[0]["win_rate"], 0.3333)
         self.assertEqual(result[0]["top3_rate"], 0.6667)
+        
+    def test_condition_summary_aggregates_individual_last3f_without_filling_missing(self):
+        rows = [
+            {"going": "良", "finish": 1, "individual_last3f": 33.4},
+            {"going": "良", "finish": 2, "individual_last3f": 34.2},
+            {"going": "良", "finish": 4, "individual_last3f": None},
+            {"going": "稍重", "finish": 1, "individual_last3f": 32.8},
+        ]
+        result = summarize_conditions(rows, "going", min_starts=3)
+        self.assertEqual(result[0]["individual_last3f_sample_count"], 2)
+        self.assertEqual(result[0]["average_individual_last3f"], 33.8)
+        self.assertEqual(result[0]["starts"], 3)
 
     def test_condition_summary_rejects_zero_minimum(self):
         with self.assertRaises(ValueError):
