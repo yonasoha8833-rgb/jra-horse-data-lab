@@ -59,5 +59,44 @@ class ImportResultsTests(unittest.TestCase):
             self.assertIn("No runner rows recognized", saved["import_failures"][0]["error"])
 
 
+    def test_new_sources_are_imported_before_retrying_old_failures(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            catalog = root / "catalog.json"
+            output = root / "race_results.json"
+            failed_url = "https://example.test/previously-failed.pdf"
+            new_url = "https://example.test/new.pdf"
+            catalog.write_text(json.dumps({"items": [
+                {"url": failed_url}, {"url": new_url},
+            ]}), encoding="utf-8")
+            output.write_text(json.dumps({
+                "records": [],
+                "processed_sources": [],
+                "import_failures": [{
+                    "url": failed_url,
+                    "attempts": 3,
+                    "last_attempt_utc": "2026-11-13T00:00:00+00:00",
+                    "error": "temporary error",
+                }],
+            }), encoding="utf-8")
+            extracted = [{
+                "source_url": new_url,
+                "race_number": 1,
+                "horse_number": 1,
+                "horse_name": "新規取込馬",
+                "finish": 1,
+            }]
+            with patch.object(import_results, "CATALOG", catalog), \
+                 patch.object(import_results, "OUTPUT", output), \
+                 patch.object(import_results, "download_and_extract", return_value=extracted) as download, \
+                 patch("sys.argv", ["import_results.py", "--limit", "1"]):
+                import_results.main()
+
+            download.assert_called_once_with(new_url)
+            saved = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(saved["processed_sources"], [new_url])
+            self.assertEqual(saved["import_failures"][0]["url"], failed_url)
+
+
 if __name__ == "__main__":
     unittest.main()
