@@ -279,6 +279,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
         ["pdftoppm", "-f", "1", "-l", str(max_pages), "-r", "250", "-png",
          str(pdf_path), str(prefix)],
         check=True,
+        timeout=120,
         capture_output=True,
         text=True,
     )
@@ -290,6 +291,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
         result = subprocess.run(
             ["tesseract", str(page), "stdout", "-l", "jpn+eng", "--psm", "6"],
             check=True,
+            timeout=45,
             capture_output=True,
             text=True,
         )
