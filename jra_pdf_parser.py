@@ -78,6 +78,7 @@ def _runner(line: str) -> dict[str, Any] | None:
     time_match = re.search(r"(?<![0-9])([0-9０-９]{1,2})[：:]([0-9０-９]{2})[.．]([0-9０-９])", tail)
     finish_time = None
     finish_time_seconds = None
+    runner_warnings: list[str] = []
     if time_match:
         # A status after the official time belongs to the result field. Do not
         # scan jockey/owner/trainer text, where the same word could be a name.
@@ -89,8 +90,11 @@ def _runner(line: str) -> dict[str, Any] | None:
     result_status = status_match.group(1) if status_match else None
     if time_match:
         minutes, seconds, tenth = map(int, (_ascii_digits(v) for v in time_match.groups()))
-        finish_time = f"{minutes}:{seconds:02d}.{tenth}"
-        finish_time_seconds = minutes * 60 + seconds + tenth / 10
+        if seconds < 60:
+            finish_time = f"{minutes}:{seconds:02d}.{tenth}"
+            finish_time_seconds = minutes * 60 + seconds + tenth / 10
+        else:
+            runner_warnings.append("invalid_finish_time_seconds")
     name = re.sub(r"\s+", "", name).strip()
     if not name or name in {"枠", "番", "馬番"}:
         return None
@@ -103,6 +107,7 @@ def _runner(line: str) -> dict[str, Any] | None:
         "finish_time": finish_time,
         "finish_time_seconds": finish_time_seconds,
         "result_status": result_status,
+        "runner_validation_warnings": runner_warnings,
     }
 
 
@@ -118,6 +123,9 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
         header = block[0]
         race_match = RACE_RE.search(header)
         if not race_match:
+            continue
+        race_number = int(race_match.group(1))
+        if not 1 <= race_number <= 12:
             continue
 
         date_match = DATE_RE.search(header)
@@ -205,7 +213,7 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
                 **runner,
                 "date": race_date,
                 "track": track,
-                "race_number": int(race_match.group(1)),
+                "race_number": race_number,
                 "race_name": race_name,
                 "surface": surface,
                 "distance": distance,
