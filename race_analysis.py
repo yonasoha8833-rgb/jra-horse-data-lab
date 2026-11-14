@@ -6,6 +6,7 @@ layer should provide one dictionary per runner using the documented keys.
 from __future__ import annotations
 
 from collections import defaultdict
+import re
 from statistics import mean
 from typing import Any, Iterable
 
@@ -17,6 +18,15 @@ def _number(value: Any) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+REGISTRATION_NUMBER_RE = re.compile(r"^20[0-9]{2}-[0-9]{5}$")
+
+
+def _registration_number(value: Any) -> str | None:
+    """Return only a well-formed JRA-style YYYY-NNNNN registration number."""
+    candidate = str(value or "").strip()
+    return candidate if REGISTRATION_NUMBER_RE.fullmatch(candidate) else None
 
 
 def summarize_horses(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -43,7 +53,7 @@ def summarize_horses(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
                 continue
             seen_runners.add(runner_key)
         name = str(row.get("horse_name") or "").strip()
-        registration_number = str(row.get("horse_registration_number") or "").strip()
+        registration_number = _registration_number(row.get("horse_registration_number"))
         if name:
             # Prefer an official registration identifier when a source provides it.
             # Name-only grouping remains provisional and is explicitly labeled.
