@@ -1,6 +1,6 @@
 import unittest
 
-from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, parse_race_text
+from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _pair_identifier_columns, parse_race_text
 
 
 SAMPLE = """
@@ -413,6 +413,33 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(pairs, [None, None])
 
 
+
+    def test_pairs_separately_ocrd_frame_and_horse_columns(self):
+        paired = _pair_identifier_columns(
+            [(100.0, 1), (140.0, 5), (180.0, 3)],
+            [(101.0, 1), (141.0, 5), (181.0, 3)],
+        )
+        self.assertEqual(paired, [
+            (100.5, (1, 1)), (140.5, (5, 5)), (180.5, (3, 3))
+        ])
+
+    def test_rejects_misaligned_separate_identifier_columns(self):
+        self.assertEqual(_pair_identifier_columns(
+            [(100.0, 1), (140.0, 5)],
+            [(100.0, 1), (170.0, 5)],
+        ), [])
+
+    def test_identifier_column_reader_keeps_only_valid_single_column_values(self):
+        tsv = (
+            "level\\tpage_num\\tblock_num\\tpar_num\\tline_num\\tword_num\\tleft\\ttop\\twidth\\theight\\tconf\\ttext\\n"
+            "5\\t1\\t1\\t1\\t1\\t1\\t0\\t20\\t10\\t10\\t90\\t5\\n"
+            "5\\t1\\t1\\t1\\t2\\t1\\t0\\t60\\t10\\t10\\t90\\t9\\n"
+            "5\\t1\\t1\\t1\\t3\\t1\\t0\\t100\\t10\\t10\\t90\\tO\\n"
+        )
+        self.assertEqual(
+            _ocr_identifier_column(tsv, scale=5, y_offset=30, allowed=r"[1-8]"),
+            [(35.0, 5), (43.0, 9)] if False else [(35.0, 5)]
+        )
 
     def test_ocr_identifier_rows_require_vertical_alignment(self):
         matched = _match_ocr_identifier_rows(
