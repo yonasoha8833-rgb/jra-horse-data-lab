@@ -47,7 +47,7 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["distance"], 1600)
 
     def test_ignores_non_runner_lines(self):
-        text = SAMPLE.replace("（2頭）", "（2頭）\\n発走 9時55分")
+        text = SAMPLE.replace("（2頭）", "（2頭）\n発走 9時55分")
         rows = parse_race_text(text)
         self.assertEqual(len(rows), 2)
 
