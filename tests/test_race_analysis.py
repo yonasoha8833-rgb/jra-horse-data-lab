@@ -1,6 +1,6 @@
 import unittest
 
-from race_analysis import distance_band, filter_records, performance_score, recent_form_summary, summarize_conditions, summarize_distance_bands, summarize_horses
+from race_analysis import distance_band, filter_records, performance_score, recent_form_summary, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races
 
 
 class RaceAnalysisTests(unittest.TestCase):
@@ -169,6 +169,44 @@ class RaceAnalysisTests(unittest.TestCase):
         result = filter_records(self.rows, track="東京", surface="芝", distance=1600)
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["horse_name"], "サンプルホース")
+
+
+    def test_race_summary_groups_runners_and_reports_official_top_three(self):
+        rows = [
+            {"source_url": "pdf-a", "date": "2026-11-01", "track": "東京", "race_number": 1,
+             "race_name": "サンプル特別", "surface": "芝", "distance": 1600, "going": "良",
+             "horse_number": 2, "horse_name": "勝ち馬", "finish": 1, "finish_time": "1:32.4",
+             "finish_time_seconds": 92.4, "race_last3f": 34.1},
+            {"source_url": "pdf-a", "date": "2026-11-01", "track": "東京", "race_number": 1,
+             "horse_number": 4, "horse_name": "2着馬", "finish": 2, "finish_time": "1:32.8"},
+            {"source_url": "pdf-a", "date": "2026-11-01", "track": "東京", "race_number": 1,
+             "horse_number": 7, "horse_name": "3着馬", "finish": 3, "finish_time": "1:33.0"},
+            {"source_url": "pdf-a", "date": "2026-11-01", "track": "東京", "race_number": 1,
+             "horse_number": 8, "horse_name": "競走中止馬", "finish": None},
+            {"source_url": "pdf-a", "date": "2026-11-01", "track": "東京", "race_number": 2,
+             "horse_number": 1, "horse_name": "別レース馬", "finish": 1},
+            {"source_url": "pdf-a", "date": "2026-11-01", "track": "東京", "horse_name": "番号なし"},
+        ]
+        races = summarize_races(rows)
+        self.assertEqual(len(races), 2)
+        race = next(item for item in races if item["race_number"] == 1)
+        self.assertEqual(race["starters"], 4)
+        self.assertEqual(race["placed_starters"], 3)
+        self.assertEqual(race["unplaced_starters"], 1)
+        self.assertEqual(race["winner_names"], ["勝ち馬"])
+        self.assertEqual(race["winning_time_seconds"], 92.4)
+        self.assertEqual([item["horse_name"] for item in race["top_three"]], ["勝ち馬", "2着馬", "3着馬"])
+        self.assertEqual(race["race_last3f"], 34.1)
+
+    def test_race_summary_does_not_invent_winner_when_ambiguous(self):
+        rows = [
+            {"race_number": 1, "horse_name": "A", "finish": 1, "finish_time_seconds": 90},
+            {"race_number": 1, "horse_name": "B", "finish": 1, "finish_time_seconds": 91},
+        ]
+        race = summarize_races(rows)[0]
+        self.assertEqual(race["winner_count"], 2)
+        self.assertIsNone(race["winning_time_seconds"])
+
 
 
 if __name__ == "__main__":
