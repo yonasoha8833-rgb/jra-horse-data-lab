@@ -1,6 +1,6 @@
 import unittest
 
-from race_analysis import filter_records, performance_score, summarize_conditions, summarize_horses
+from race_analysis import filter_records, performance_score, recent_form_summary, summarize_conditions, summarize_horses
 
 
 class RaceAnalysisTests(unittest.TestCase):
@@ -112,6 +112,32 @@ class RaceAnalysisTests(unittest.TestCase):
     def test_condition_summary_rejects_zero_minimum(self):
         with self.assertRaises(ValueError):
             summarize_conditions([], "going", min_starts=0)
+
+
+
+    def test_recent_form_compares_latest_three_with_previous_three(self):
+        rows = [
+            {"date": "2026-11-06", "finish": 1},
+            {"date": "2026-11-05", "finish": 2},
+            {"date": "2026-11-04", "finish": 3},
+            {"date": "2026-11-03", "finish": 8},
+            {"date": "2026-11-02", "finish": 7},
+            {"date": "2026-11-01", "finish": 6},
+        ]
+        result = recent_form_summary(rows)
+        self.assertEqual(result["latest_three_average_finish"], 2.0)
+        self.assertEqual(result["previous_three_average_finish"], 7.0)
+        self.assertEqual(result["trend"], "improving")
+        self.assertEqual(len(result["recent_results"]), 5)
+
+    def test_recent_form_does_not_guess_trend_without_six_results(self):
+        result = recent_form_summary([
+            {"date": "2026-11-06", "finish": 1},
+            {"date": "2026-11-05", "finish": 2},
+            {"date": "2026-11-04", "finish": 3},
+        ])
+        self.assertIsNone(result["trend"])
+        self.assertIsNone(result["previous_three_average_finish"])
 
 
     def test_filters(self):
