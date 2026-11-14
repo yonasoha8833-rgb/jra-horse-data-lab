@@ -126,8 +126,7 @@ def main() -> None:
             "race_last3f is the race-level closing 3F, not an individual horse figure",
             "individual_last3f is intentionally null unless a source provides it"
         ]
-    }, ensure_ascii=False, indent=2) + "
-", encoding="utf-8")
+    }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
