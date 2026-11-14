@@ -50,12 +50,14 @@ jobs:
           FIRST_PAGE: ${{ inputs.first_page }}
           LAST_PAGE: ${{ inputs.last_page }}
         run: |
-          python ocr_jra_registry.py --first-page "$FIRST_PAGE" --last-page "$LAST_PAGE" --output registry_ocr_sample.txt
-      - name: Upload OCR text for manual review
+          python ocr_jra_registry.py --first-page "$FIRST_PAGE" --last-page "$LAST_PAGE" --output registry_ocr_sample.txt --text-output registry_text_sample.txt
+      - name: Upload PDF text and OCR for manual comparison
         uses: actions/upload-artifact@v4
         with:
-          name: jra-registry-ocr-sample
-          path: registry_ocr_sample.txt
+          name: jra-registry-extraction-comparison
+          path: |
+            registry_ocr_sample.txt
+            registry_text_sample.txt
           if-no-files-found: error
           retention-days: 3
 
