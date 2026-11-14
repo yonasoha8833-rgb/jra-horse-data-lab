@@ -38,6 +38,20 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(front["win_rate"], 0.3333)
         self.assertEqual(front["top3_rate"], 1.0)
 
+    def test_style_pace_performance_uses_source_pdf_when_race_number_missing(self):
+        rows = []
+        for horse_number, finish in enumerate([1, 2, 3], 1):
+            rows.append({
+                "source_url": "https://jra.example/race.pdf",
+                "date": "2026-11-01", "track": "東京",
+                "horse_number": horse_number, "horse_name": f"馬{horse_number}",
+                "finish": finish, "field_size": 16,
+                "corner_positions": [1, 1, 1] if horse_number == 1 else [5, 5, 5],
+                "distance": 1600, "race_lap_times": [12.5] * 4 + [11.5] * 4,
+            })
+        result = summarize_running_style_pace_performance(rows, min_starts=1)
+        self.assertEqual(sum(item["starts"] for item in result), 3)
+
     def test_style_pace_performance_excludes_missing_laps_and_small_samples(self):
         rows = [
             {"race_number": 1, "horse_name": "不明", "finish": 1,
