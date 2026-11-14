@@ -35,6 +35,24 @@
       "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo6.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-14T09:41:04.065906+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo7.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-14T09:42:00.071532+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo8.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-14T09:42:59.279774+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3fukushima1.pdf",
       "attempts": 1,
       "last_attempt_utc": "2026-11-14T08:13:41.322288+00:00",
