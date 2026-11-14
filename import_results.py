@@ -112,19 +112,22 @@ def main() -> None:
         unique[key] = row
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    quality_report = build_quality_report(list(unique.values()))\n    OUTPUT.write_text(json.dumps({
+    quality_report = build_quality_report(list(unique.values()))
+    OUTPUT.write_text(json.dumps({
         "source": "JRA official result PDFs listed in data/catalog.json",
         "processed_sources": sorted(processed),
         "import_failures": sorted(failures_by_url.values(), key=lambda item: item["url"]),
         "last_import_attempted": attempted,
-        "record_count": len(unique),\n        "quality_report": quality_report,
+        "record_count": len(unique),
+        "quality_report": quality_report,
         "records": list(unique.values()),
         "notes": [
             "finish is based on the order of recognized official result rows",
             "race_last3f is the race-level closing 3F, not an individual horse figure",
             "individual_last3f is intentionally null unless a source provides it"
         ]
-    }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    }, ensure_ascii=False, indent=2) + "
+", encoding="utf-8")
 
 
 if __name__ == "__main__":
