@@ -21,6 +21,7 @@ RUNNER_RE = re.compile(
 )
 RACE_RE = re.compile(r"第\s*(\d+)\s*競走")
 DATE_RE = re.compile(r"(\d{1,2})月\s*(\d{1,2})日")
+FIELD_SIZE_RE = re.compile(r"[（(]\s*([0-9０-９]{1,2})\s*頭\s*[）)]")
 DISTANCE_RE = re.compile(r"([0-9０-９]{1,2}[,，][0-9０-９]{3}|[0-9０-９]{3,4})\s*(?:ｍ|m|メートル)")
 RESULT_STATUS_RE = re.compile(r"(競走中止|失格|中止|取消|除外)")
 LAST3F_RE = re.compile(r"上り\s*4F\s*([0-9.．]+)\s*[―ー-]\s*3F\s*([0-9.．]+)")
@@ -160,6 +161,24 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
         if not runners:
             continue
 
+        # Keep extracted rows, but attach warnings when race-level consistency
+        # checks fail so questionable data can be reviewed rather than hidden.
+        validation_warnings: list[str] = []
+        horse_numbers = [runner["horse_number"] for runner in runners]
+        duplicates = sorted({number for number in horse_numbers if horse_numbers.count(number) > 1})
+        if duplicates:
+            validation_warnings.append(
+                "duplicate_horse_number:" + ",".join(str(number) for number in duplicates)
+            )
+        declared_match = FIELD_SIZE_RE.search("\\n".join(block))
+        declared_field_size = (
+            int(_ascii_digits(declared_match.group(1))) if declared_match else None
+        )
+        if declared_field_size is not None and declared_field_size != len(runners):
+            validation_warnings.append(
+                f"declared_field_size_mismatch:declared={declared_field_size},parsed={len(runners)}"
+            )
+
         last3f = None
         last4f = None
         laps = None
@@ -192,6 +211,8 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
                 "distance": distance,
                 "finish": finish_position if is_placed else None,
                 "field_size": len(runners),
+                "declared_field_size": declared_field_size,
+                "race_validation_warnings": validation_warnings,
                 "race_last3f": last3f,
                 "race_last4f": last4f,
                 "race_lap_times": laps,
