@@ -1,3 +1,4 @@
+
 name: Update JRA catalog
 on:
   workflow_dispatch:
@@ -20,4 +21,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/catalog.json
           git diff --cached --quiet || git commit -m "Update JRA catalog"
+          git pull --rebase origin main
           git push
