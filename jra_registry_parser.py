@@ -26,7 +26,7 @@ NAME_ANNOTATIONS = (
 
 
 def _clean_name(value: str) -> str:
-    name = re.sub(r"\\s+", "", value)
+    name = "".join(value.split())
     changed = True
     while changed:
         changed = False
@@ -45,12 +45,12 @@ def parse_registry_text(text: str) -> list[dict[str, Any]]:
     """Extract unambiguous name/registration pairs from OCR text lines."""
     candidates: list[dict[str, str]] = []
     for raw_line in text.splitlines():
-        line = re.sub(r"\\s+", " ", raw_line).strip()
+        line = " ".join(raw_line.split())
         matches = list(REGISTRATION_RE.finditer(line))
         if len(matches) != 1:
             continue
         match = matches[0]
-        before = line[:match.start()].strip(" \\t・,，:：()（）")
+        before = line[:match.start()].strip(" ・,，:：()（）")
         after = line[match.end():].strip(" \\t・,，:：()（）")
         if after:
             continue
