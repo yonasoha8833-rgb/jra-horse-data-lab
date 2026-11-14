@@ -53,8 +53,10 @@ def _metadata(text: str, supplied: dict[str, Any] | None) -> dict[str, Any]:
         match = DISTANCE_RE.search(text)
         if match:
             surface, distance = match.groups()
-            result.setdefault("surface", {"ダ": "ダート", "障": "障害"}.get(surface, surface))
-            result.setdefault("distance", _number(distance))
+            if not result.get("surface"):
+                result["surface"] = {"ダ": "ダート", "障": "障害"}.get(surface, surface)
+            if not result.get("distance"):
+                result["distance"] = _number(distance)
     if not result.get("going"):
         match = GOING_RE.search(text)
         if match:
