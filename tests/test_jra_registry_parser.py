@@ -1,6 +1,10 @@
 import unittest
 
-from jra_registry_parser import build_unique_name_index, parse_registry_text
+from jra_registry_parser import (
+    build_unique_name_index,
+    find_ambiguous_registration_lines,
+    parse_registry_text,
+)
 
 
 class JraRegistryParserTests(unittest.TestCase):
@@ -40,6 +44,19 @@ class JraRegistryParserTests(unittest.TestCase):
     def test_duplicate_registration_number_is_rejected_for_all_names(self):
         rows = parse_registry_text("馬A 2023-01631\n馬B 2023-01631")
         self.assertEqual(rows, [])
+
+    def test_normalizes_fullwidth_digits_and_hyphen(self):
+        rows = parse_registry_text("テストホース ２０２３－０１６３１")
+        self.assertEqual(rows[0]["horse_registration_number"], "2023-01631")
+
+    def test_flags_ocr_digit_letter_confusion_without_correcting(self):
+        findings = find_ambiguous_registration_lines("馬名 2O23-0I631")
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0]["line_number"], 1)
+        self.assertIn("O/I/l", findings[0]["review_reason"])
+
+    def test_does_not_flag_valid_registration_number(self):
+        self.assertEqual(find_ambiguous_registration_lines("馬名 2023-01631"), [])
 
     def test_unique_name_index_excludes_same_name_conflicts(self):
         rows = [
