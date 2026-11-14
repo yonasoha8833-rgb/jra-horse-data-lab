@@ -94,13 +94,17 @@ def main() -> int:
     parser.add_argument("--first-page", type=int, default=1)
     parser.add_argument("--last-page", type=int, default=1)
     parser.add_argument("--output", default="registry_ocr_sample.txt")
+    parser.add_argument("--text-output", default="registry_text_sample.txt")
     args = parser.parse_args()
     output_path = Path(args.output)
     with tempfile.TemporaryDirectory(prefix="jra-registry-pdf-") as temp:
         pdf_path = Path(temp) / "registry.pdf"
         download_pdf(args.url, pdf_path)
+        extracted_text = extract_pdf_text(pdf_path, args.first_page, args.last_page)
         text = ocr_pdf_pages(pdf_path, args.first_page, args.last_page)
+    Path(args.text_output).write_text(extracted_text, encoding="utf-8")
     output_path.write_text(text, encoding="utf-8")
+    print(f"PDF text written to {args.text_output}")
     print(f"OCR text written to {output_path}")
     print("Review the OCR output manually; it is not imported into race data.")
     return 0
