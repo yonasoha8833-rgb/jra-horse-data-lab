@@ -358,11 +358,24 @@ def summarize_horse_condition_profiles(
     if min_starts < 1:
         raise ValueError("min_starts must be at least 1")
     grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    seen_runners: set[tuple[str, str, str, str, str]] = set()
     for row in records:
+        # Match summarize_horses: suppress duplicate imports only when the
+        # complete source/race/runner identity is available.
+        source = str(row.get("source_url") or "").strip()
+        race_number = str(row.get("race_number") or "").strip()
+        horse_number = str(row.get("horse_number") or "").strip()
+        race_date = str(row.get("date") or "").strip()
+        track = str(row.get("track") or "").strip()
+        if all((source, race_number, horse_number, race_date, track)):
+            runner_key = (source, race_date, track, race_number, horse_number)
+            if runner_key in seen_runners:
+                continue
+            seen_runners.add(runner_key)
         name = str(row.get("horse_name") or "").strip()
         if not name:
             continue
-        registration = str(row.get("horse_registration_number") or "").strip()
+        registration = _registration_number(row.get("horse_registration_number"))
         identity = ("registration", registration) if registration else ("name", name)
         grouped[identity].append(row)
 
