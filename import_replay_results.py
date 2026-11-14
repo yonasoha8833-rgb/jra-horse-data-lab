@@ -94,12 +94,23 @@ def deduplicate_records(rows: list[dict]) -> list[dict]:
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
             raise ValueError(f"Stored replay record {index + 1} is not an object")
-        source = row.get("source_url")
+        source = str(row.get("source_url") or "").strip()
         number = row.get("horse_number")
-        if not source or number is None:
+        if not source or number is None or isinstance(number, bool):
             unkeyed.append(row)
             continue
-        key = (source, number)
+        try:
+            numeric_number = float(number)
+        except (TypeError, ValueError):
+            numeric_number = None
+        if numeric_number is not None and math.isfinite(numeric_number) and numeric_number.is_integer():
+            normalized_number = int(numeric_number)
+        else:
+            normalized_number = str(number).strip()
+            if not normalized_number:
+                unkeyed.append(row)
+                continue
+        key = (source, normalized_number)
         current = unique.get(key)
         score = sum(value is not None and value != "" for value in row.values())
         current_score = (sum(value is not None and value != "" for value in current.values())
