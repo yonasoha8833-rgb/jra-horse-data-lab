@@ -357,5 +357,27 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(_complete_ocr_records(rows), [])
 
 
+
+    def test_accepts_ocr_brace_separator_between_frame_and_horse_number(self):
+        rows = parse_race_text(
+            SAMPLE.replace("2 2 サノノファイター", "2 {2 サノノファイター")
+        )
+        self.assertEqual(rows[0]["frame"], 2)
+        self.assertEqual(rows[0]["horse_number"], 2)
+
+    def test_joins_ocr_split_two_digit_horse_number(self):
+        rows = parse_race_text(
+            SAMPLE.replace("2 2 サノノファイター", "2 1 2 サノノファイター")
+        )
+        self.assertEqual(rows[0]["frame"], 2)
+        self.assertEqual(rows[0]["horse_number"], 12)
+
+    def test_synthetic_race_header_restores_number_when_ocr_header_is_missing(self):
+        text = "第3競走\\n" + SAMPLE.replace("第1競走", "")
+        rows = parse_race_text(text)
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(all(row["race_number"] == 3 for row in rows))
+
+
 if __name__ == "__main__":
     unittest.main()
