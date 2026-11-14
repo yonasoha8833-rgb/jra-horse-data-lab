@@ -101,6 +101,7 @@ const horseResults=document.getElementById('horseResults');
 const horseCompare=document.getElementById('horseCompare');
 let horseRecords=[];
 const selectedHorses=new Map();
+let comparisonCondition='all';
 function appendRecentForm(card,rows){
  const recent=rows.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,5);
  if(!recent.length)return;
@@ -137,12 +138,19 @@ function updateHorseComparison(){
  horseCompare.replaceChildren();
  if(!selectedHorses.size)return;
  const heading=document.createElement('p');heading.className='count';heading.textContent='馬の比較（最大3頭） '+selectedHorses.size+'/3頭';horseCompare.append(heading);
+ const filter=document.createElement('label');filter.className='small';filter.textContent='比較する条件 ';
+ const select=document.createElement('select');select.style.margin='6px 0 10px';
+ const options=[['all','全成績'],['短距離','短距離（1000〜1400m）'],['マイル','マイル（1401〜1800m）'],['中距離','中距離（1801〜2200m）'],['長距離','長距離（2201〜5000m）'],['surface:芝','芝'],['surface:ダート','ダート'],['going:良','良'],['going:稍重','稍重'],['going:重','重'],['going:不良','不良'],['芝・良','芝・良'],['芝・稍重','芝・稍重'],['芝・重','芝・重'],['芝・不良','芝・不良'],['ダート・良','ダート・良'],['ダート・稍重','ダート・稍重'],['ダート・重','ダート・重'],['ダート・不良','ダート・不良']];
+ options.forEach(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;select.append(option);});
+ select.value=comparisonCondition;select.addEventListener('change',()=>{comparisonCondition=select.value;updateHorseComparison();});filter.append(select);horseCompare.append(filter);
+ const distanceGroup=d=>{const n=Number(d);if(!Number.isFinite(n)||n<1000||n>5000)return '';return n<=1400?'短距離':n<=1800?'マイル':n<=2200?'中距離':'長距離';};
+ const filterRows=rows=>rows.filter(r=>{const condition=comparisonCondition;if(condition==='all')return true;if(['短距離','マイル','中距離','長距離'].includes(condition))return distanceGroup(r.distance)===condition;if(condition.startsWith('surface:'))return r.surface===condition.slice(8);if(condition.startsWith('going:'))return r.going===condition.slice(6);const parts=condition.split('・');return r.surface===parts[0]&&r.going===parts[1];});
  const table=document.createElement('table');table.style.width='100%';table.style.borderCollapse='collapse';
  const head=document.createElement('tr');
  ['馬名','出走','勝利','勝率','複勝率','参考指数'].forEach(label=>{const th=document.createElement('th');th.textContent=label;th.style.textAlign='left';th.style.padding='6px';head.append(th);});table.append(head);
- selectedHorses.forEach(item=>{const rows=item.rows;const wins=rows.filter(r=>Number(r.finish)===1).length;const top3=rows.filter(r=>[1,2,3].includes(Number(r.finish))).length;const tr=document.createElement('tr');const values=[item.name,rows.length+'戦',wins+'勝',(wins/rows.length*100).toFixed(1)+'%',(top3/rows.length*100).toFixed(1)+'%',horseScore(rows)===null?'—':horseScore(rows).toFixed(1)];values.forEach(value=>{const td=document.createElement('td');td.textContent=value;td.style.padding='6px';td.style.borderTop='1px solid #40516a';tr.append(td);});table.append(tr);});
- horseCompare.append(table);
- const clear=document.createElement('button');clear.type='button';clear.textContent='比較を解除';clear.addEventListener('click',()=>{selectedHorses.clear();updateHorseComparison();renderHorses();});horseCompare.append(clear);
+ selectedHorses.forEach(item=>{const rows=filterRows(item.rows);const wins=rows.filter(r=>Number(r.finish)===1).length;const top3=rows.filter(r=>[1,2,3].includes(Number(r.finish))).length;const score=horseScore(rows);const tr=document.createElement('tr');const values=[item.name,rows.length?rows.length+'戦':'—',rows.length?wins+'勝':'—',rows.length?(wins/rows.length*100).toFixed(1)+'%':'—',rows.length?(top3/rows.length*100).toFixed(1)+'%':'—',score===null?'—':score.toFixed(1)];values.forEach(value=>{const td=document.createElement('td');td.textContent=value;td.style.padding='6px';td.style.borderTop='1px solid #40516a';tr.append(td);});table.append(tr);});horseCompare.append(table);
+ const note=document.createElement('p');note.className='muted small';note.textContent='条件に合う記録だけで集計します。該当記録がない馬は「—」表示です。参考指数は条件内の有効な着順データから計算します。';horseCompare.append(note);
+ const clear=document.createElement('button');clear.type='button';clear.textContent='比較を解除';clear.addEventListener('click',()=>{selectedHorses.clear();comparisonCondition='all';updateHorseComparison();renderHorses();});horseCompare.append(clear);
 }
 function horseScore(rows){const valid=rows.filter(r=>Number.isFinite(Number(r.finish))&&Number.isFinite(Number(r.field_size))&&Number(r.field_size)>1&&Number(r.finish)>=1&&Number(r.finish)<=Number(r.field_size)).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,5);if(!valid.length)return null;const weighted=valid.reduce((sum,r,i)=>sum+(100*(Number(r.field_size)-Number(r.finish))/(Number(r.field_size)-1))*(valid.length-i),0);return weighted/(valid.length*(valid.length+1)/2);}
 function renderHorses(){
