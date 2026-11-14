@@ -6,9 +6,11 @@ OCR line. Multi-line or ambiguous associations are deliberately not guessed.
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Any
 
 REGISTRATION_RE = re.compile(r"(?<![0-9])([0-9]{4}-[0-9]{5})(?![0-9])")
+AMBIGUOUS_REGISTRATION_RE = re.compile(r"(?<![A-Za-z0-9])[0-9OIl|]{4}[-－ー][0-9OIl|]{5}(?![A-Za-z0-9])")
 PREFIX_ANNOTATIONS = (
     "市場取引馬",
     "外",
@@ -45,7 +47,7 @@ def parse_registry_text(text: str) -> list[dict[str, Any]]:
     """Extract unambiguous name/registration pairs from OCR text lines."""
     candidates: list[dict[str, str]] = []
     for raw_line in text.splitlines():
-        line = " ".join(raw_line.split())
+        line = " ".join(unicodedata.normalize("NFKC", raw_line).split())
         matches = list(REGISTRATION_RE.finditer(line))
         if len(matches) != 1:
             continue
@@ -63,6 +65,24 @@ def parse_registry_text(text: str) -> list[dict[str, Any]]:
         number = row["horse_registration_number"]
         number_counts[number] = number_counts.get(number, 0) + 1
     return [row for row in candidates if number_counts[row["horse_registration_number"]] == 1]
+
+
+
+def find_ambiguous_registration_lines(text: str) -> list[dict[str, Any]]:
+    """Return OCR lines with likely digit/letter confusions for manual review.
+
+    This function never corrects OCR characters or emits registration IDs.
+    """
+    findings = []
+    for line_number, raw_line in enumerate(text.splitlines(), start=1):
+        normalized = unicodedata.normalize("NFKC", raw_line)
+        if AMBIGUOUS_REGISTRATION_RE.search(normalized):
+            findings.append({
+                "line_number": line_number,
+                "raw_text": raw_line.strip(),
+                "review_reason": "registration number may contain O/I/l/| OCR confusion",
+            })
+    return findings
 
 
 def build_unique_name_index(rows: list[dict[str, Any]]) -> dict[str, str]:
