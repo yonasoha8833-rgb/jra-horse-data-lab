@@ -375,23 +375,17 @@ def _ocr_identifier_pairs(text: str) -> list[tuple[int, int] | None]:
     """Read frame/horse identifiers from the narrow, high-contrast number columns."""
     pairs: list[tuple[int, int] | None] = []
     for line in text.splitlines():
-        digits = re.findall(r"[1-8]", line)
-        # Keep compact three-digit forms such as 711 (frame 7, horse 11).
+        # Keep compact forms such as 22 and 711, but never salvage digits
+        # from a malformed separated line (e.g. 4|19 -> 4|1).
         compact = re.fullmatch(r"\s*([1-8])\s*([1-9]|1[0-8])\s*", line)
         if compact:
             frame, number = map(int, compact.groups())
         else:
             separated = re.search(r"(?<!\d)([1-8])\s*[|/\\\\{}()\[\].,:;<>_ -]+\s*(1[0-8]|[1-9])(?!\d)", line)
             if not separated:
-                # OCR may omit a separator but preserve a two- or three-digit pair.
-                compact_digits = "".join(digits)
-                if len(compact_digits) in (2, 3):
-                    frame, number = int(compact_digits[0]), int(compact_digits[1:])
-                else:
-                    pairs.append(None)
-                    continue
-            else:
-                frame, number = map(int, separated.groups())
+                pairs.append(None)
+                continue
+            frame, number = map(int, separated.groups())
         if 1 <= frame <= 8 and 1 <= number <= 18:
             pairs.append((frame, number))
         else:
