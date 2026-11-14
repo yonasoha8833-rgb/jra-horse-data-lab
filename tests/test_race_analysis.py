@@ -26,7 +26,7 @@ class RaceAnalysisTests(unittest.TestCase):
                     "source_url": "pace.pdf", "date": "2026-11-01", "track": "東京",
                     "race_number": race_number, "horse_number": horse_number,
                     "horse_name": f"馬{horse_number}", "finish": finish,
-                    "field_size": 3, "corner_positions": [1, 1, 1] if horse_number == 1 else [2, 2, 2],
+                    "field_size": 16, "corner_positions": [1, 1, 1] if horse_number == 1 else [5, 5, 5],
                     "distance": 1600, "race_lap_times": [12.5] * 4 + [11.5] * 4,
                 })
         result = summarize_running_style_pace_performance(rows, min_starts=3)
