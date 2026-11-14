@@ -1,0 +1,31 @@
+name: Import JRA race results
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Number of official PDFs to import in this run"
+        required: true
+        default: "1"
+        type: string
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install PDF text extractor
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - name: Import official results
+        run: python import_results.py --limit "${{ inputs.limit }}"
+      - name: Commit imported records
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/race_results.json
+          git diff --cached --quiet || git commit -m "Import JRA race results"
+          git pull --rebase origin main
+          git push
