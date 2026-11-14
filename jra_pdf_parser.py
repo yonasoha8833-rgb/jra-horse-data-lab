@@ -7,6 +7,7 @@ individual horse's last-3F value from the race-level figure.
 from __future__ import annotations
 
 import re
+from datetime import date
 import subprocess
 import tempfile
 from pathlib import Path
@@ -45,9 +46,12 @@ def _distance(value: str | None) -> int | None:
         return None
     digits = _ascii_digits(value).replace(",", "").replace("，", "")
     try:
-        return int(digits)
+        distance = int(digits)
     except ValueError:
         return None
+    # JRA race distances fall within this broad physical range; reject
+    # malformed extraction values rather than storing implausible distances.
+    return distance if 1000 <= distance <= 5000 else None
 
 
 def _track(text: str) -> str | None:
@@ -114,7 +118,12 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
             month, day = map(int, date_match.groups())
             year_match = re.search(r"(20\d{2})年", header)
             if year_match:
-                race_date = f"{year_match.group(1)}-{month:02d}-{day:02d}"
+                year = int(year_match.group(1))
+                try:
+                    race_date = date(year, month, day).isoformat()
+                except ValueError:
+                    # Invalid calendar dates are left missing, never normalized.
+                    race_date = None
 
         distance_match = DISTANCE_RE.search(header)
         distance = _distance(distance_match.group(1)) if distance_match else None
