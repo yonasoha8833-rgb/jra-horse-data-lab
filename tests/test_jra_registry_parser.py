@@ -15,6 +15,18 @@ class JraRegistryParserTests(unittest.TestCase):
         rows = parse_registry_text("2023-01631 アイファーバトル")
         self.assertEqual(rows[0]["horse_name"], "アイファーバトル")
 
+    def test_strips_market_trade_annotation(self):
+        rows = parse_registry_text("市場取引馬 ピースヒロフェイス 2023-01060")
+        self.assertEqual(rows[0]["horse_name"], "ピースヒロフェイス")
+
+    def test_strips_foreign_and_first_jra_start_annotations(self):
+        rows = parse_registry_text("外 フォルトレス 2024-00001")
+        self.assertEqual(rows[0]["horse_name"], "フォルトレス")
+        rows = parse_registry_text("（地）フェナティオサ （初出走 JRA） 2024-00002")
+        self.assertEqual(rows[0]["horse_name"], "フェナティオサ")
+
+    def test_still_rejects_text_after_registration_number(self):
+        self.assertEqual(parse_registry_text("馬名 2023-01631 父名"), [])
     def test_rejects_lines_with_multiple_numbers(self):
         self.assertEqual(parse_registry_text("馬名 2023-01631 2024-00001"), [])
 
