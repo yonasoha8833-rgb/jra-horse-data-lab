@@ -63,7 +63,7 @@ def _runner(line: str) -> dict[str, Any] | None:
         # JRA PDF text extraction sometimes joins a one-digit frame number
         # and a two-digit horse number (for example, "811" = frame 8, horse 11).
         compact = re.match(
-            r"^\\s*(\\d)(\\d{1,2})\\s+(.+?)\\s+(牡|牝|セ)\\s*([0-9０-９]+)",
+            r"^\s*(\d)(\d{1,2})\s+(.+?)\s+(牡|牝|セ)\s*([0-9０-９]+)",
             line,
         )
         if not compact:
