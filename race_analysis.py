@@ -96,6 +96,41 @@ def filter_records(
 
 
 
+
+def summarize_conditions(
+    records: Iterable[dict[str, Any]],
+    field: str,
+    *,
+    min_starts: int = 3,
+) -> list[dict[str, Any]]:
+    """Summarize results by a condition field, excluding unknown values.
+
+    Groups below min_starts are omitted to avoid presenting tiny samples as
+    meaningful performance evidence. Rates are descriptive, not predictive.
+    """
+    if min_starts < 1:
+        raise ValueError("min_starts must be at least 1")
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in records:
+        value = str(row.get(field) or "").strip()
+        if value:
+            grouped[value].append(row)
+    summaries = []
+    for condition, rows in grouped.items():
+        if len(rows) < min_starts:
+            continue
+        wins = sum(1 for row in rows if _number(row.get("finish")) == 1)
+        top3 = sum(1 for row in rows if _number(row.get("finish")) in (1, 2, 3))
+        summaries.append({
+            "condition": condition,
+            "starts": len(rows),
+            "wins": wins,
+            "top3": top3,
+            "win_rate": round(wins / len(rows), 4),
+            "top3_rate": round(top3 / len(rows), 4),
+        })
+    return sorted(summaries, key=lambda item: (-item["starts"], item["condition"]))
+
 def performance_score(records: Iterable[dict[str, Any]]) -> float | None:
     """Return a transparent 0-100 average placing score.
 
