@@ -500,6 +500,12 @@ def summarize_running_style_pace_performance(
         top3 = sum(1 for _, finish, _ in outcomes if finish <= 3)
         normalized = [100.0 * (field_size - finish) / (field_size - 1)
                       for _, finish, field_size in outcomes]
+        individual_last3fs = [
+            value
+            for row, _, _ in outcomes
+            if (value := _number(row.get("individual_last3f", row.get("last3f")))) is not None
+            and value > 0
+        ]
         results.append({
             "running_style": style,
             "pace_shape": pace_shape,
@@ -509,27 +515,8 @@ def summarize_running_style_pace_performance(
             "win_rate": round(wins / starts, 4),
             "top3_rate": round(top3 / starts, 4),
             "average_field_normalized_finish_score": round(mean(normalized), 1),
-            "individual_last3f_sample_count": sum(
-                1 for row, _, _ in outcomes
-                if (lambda value: value is not None and value > 0)(
-                    _number(row.get("individual_last3f", row.get("last3f")))
-                )
-            ),
-            "average_individual_last3f": (
-                round(mean([
-                    value
-                    for row, _, _ in outcomes
-                    if (value := _number(row.get("individual_last3f", row.get("last3f"))) ) is not None
-                    and value > 0
-                ]), 2)
-                if any(
-                    (lambda value: value is not None and value > 0)(
-                        _number(row.get("individual_last3f", row.get("last3f")))
-                    )
-                    for row, _, _ in outcomes
-                )
-                else None
-            ),
+            "individual_last3f_sample_count": len(individual_last3fs),
+            "average_individual_last3f": round(mean(individual_last3fs), 2) if individual_last3fs else None,
             "sample_sufficient": starts >= max(min_starts, 10),
             "interpretation": "過去レースの記述統計です。少数標本や条件差があるため、将来の勝率を示すものではありません。",
         })
