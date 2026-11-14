@@ -465,6 +465,9 @@ class RaceAnalysisTests(unittest.TestCase):
             {"date": "2026-11-01", "finish": 1, "field_size": 10, "surface": "芝", "distance": 1600},
             {"date": "2026-10-01", "finish": 10, "field_size": 10, "surface": "芝", "distance": 1600},
             {"date": "2026-09-01", "finish": 10, "field_size": 10, "surface": "ダート", "distance": 1200},
+            {"date": "2026-11-04", "finish": 10, "field_size": 10, "surface": "ダート", "distance": 1200},
+            {"date": "2026-11-03", "finish": 10, "field_size": 10, "surface": "ダート", "distance": 1200},
+            {"date": "2026-11-02", "finish": 10, "field_size": 10, "surface": "ダート", "distance": 1200},
         ]
         result = condition_adjusted_performance_score(
             rows, {"surface": "芝", "distance": 1600}, min_condition_starts=2, prior_strength=5
