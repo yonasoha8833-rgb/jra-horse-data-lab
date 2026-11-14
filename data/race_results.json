@@ -6,6 +6,24 @@
   ],
   "import_failures": [
     {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1fukushima1.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-14T11:17:05.821867+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1fukushima2.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-14T11:18:49.252967+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1fukushima3.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-14T11:20:26.289903+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate1.pdf",
       "attempts": 1,
       "last_attempt_utc": "2026-11-14T10:03:32.116368+00:00",
