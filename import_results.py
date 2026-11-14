@@ -93,7 +93,7 @@ def main() -> None:
 
     catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
     old = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {"records": []}
-    records = old.get("records", [])
+    records = sanitize_existing_records(old.get("records", []))
     processed = set(old.get("processed_sources", []))
     failures_by_url = {
         item["url"]: item for item in old.get("import_failures", [])
