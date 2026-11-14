@@ -100,6 +100,24 @@ class ImportReplayResultsTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     validate_replay_records([dict(base, corner_positions=value)])
 
+    def test_deduplication_prefers_more_complete_record(self):
+        rows = [
+            {"source_url": "a.pdf", "horse_number": 1, "horse_name": "馬名"},
+            {"source_url": "a.pdf", "horse_number": 1, "horse_name": "馬名",
+             "individual_last3f": 33.2, "corner_positions": "4-3-2-1"},
+        ]
+        result = deduplicate_records(rows)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["individual_last3f"], 33.2)
+
+    def test_deduplication_rejects_non_object_records(self):
+        with self.assertRaisesRegex(ValueError, "not an object"):
+            deduplicate_records([{"source_url": "a.pdf"}, None])
+
+    def test_deduplication_rejects_non_list_input(self):
+        with self.assertRaisesRegex(ValueError, "must be a list"):
+            deduplicate_records({"source_url": "a.pdf"})
+
     def test_deduplicates_by_source_and_horse_but_keeps_unkeyed_rows(self):
         rows = [
             {"source_url": "a.pdf", "horse_number": 1, "horse_name": "旧"},
