@@ -91,6 +91,12 @@ JRAの「レース成績データ」に掲載される重賞レース結果PDF�
 
 `tests/test_ocr_jra_registry.py` に、PDF署名の確認、HTML応答の拒否、Content-Lengthによる過大ファイルの拒否、OCRページ数の上限、ページ範囲の検証を追加しました。登録番号重複テストも、現在の仕様（重複番号に結び付く候補をすべて除外）と一致するよう整理しました。
 
+### GitHub Actionsでの登録名簿OCRサンプル
+
+ローカルにOCR環境を用意しなくても確認できるよう、Actionsに **JRA registry OCR sample** を追加しました。GitHubリポジトリの Actions → JRA registry OCR sample → Run workflow から、PDFの開始ページと終了ページを指定して実行できます。1回につき最大5ページです。実行環境にPopplerとTesseract日本語データを自動インストールし、OCR結果 `registry_ocr_sample.txt` を3日間の成果物として保存します。
+
+成果物は Actions の実行結果にある Artifacts から取得し、必ず公式PDFの同じページと照合してください。このワークフローは確認用テキストを作るだけで、`data/race_results.json` や登録番号対応表は変更しません。まず1〜2ページでOCRの読み取り精度と行の対応関係を確認してください。
+
 ### 公式登録名簿OCRの小規模実行ツール
 
 `ocr_jra_registry.py` を追加しました。JRA公式PDFを最大30MiBまでの範囲で取得し、指定した最大5ページだけを300dpi・日本語TesseractでOCRして、確認用テキストへ出力します。PDF署名とダウンロード容量を検査し、結果は成績データへ自動登録しません。
