@@ -66,7 +66,14 @@ def _runner(line: str) -> dict[str, Any] | None:
     time_match = re.search(r"(?<![0-9])([0-9０-９]{1,2})[：:]([0-9０-９]{2})[.．]([0-9０-９])", tail)
     finish_time = None
     finish_time_seconds = None
-    status_match = RESULT_STATUS_RE.search(tail)
+    if time_match:
+        # A status after the official time belongs to the result field. Do not
+        # scan jockey/owner/trainer text, where the same word could be a name.
+        status_match = RESULT_STATUS_RE.search(tail[time_match.end():])
+    else:
+        # Non-finishers have no time; accept a status only when it is the
+        # terminal token in the runner row, not an incidental name fragment.
+        status_match = re.search(r"(競走中止|失格|中止|取消|除外)\\s*$", tail)
     result_status = status_match.group(1) if status_match else None
     if time_match:
         minutes, seconds, tenth = map(int, (_ascii_digits(v) for v in time_match.groups()))
