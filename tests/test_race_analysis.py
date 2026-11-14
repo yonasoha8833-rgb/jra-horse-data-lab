@@ -19,16 +19,26 @@ class RaceAnalysisTests(unittest.TestCase):
 
     def test_official_registration_number_separates_same_named_horses(self):
         rows = [
-            {"horse_name": "同名馬", "horse_registration_number": "2020100001", "finish": 1},
-            {"horse_name": "同名馬", "horse_registration_number": "2021100002", "finish": 3},
+            {"horse_name": "同名馬", "horse_registration_number": "2020-10001", "finish": 1},
+            {"horse_name": "同名馬", "horse_registration_number": "2021-10002", "finish": 3},
         ]
         result = summarize_horses(rows)
         self.assertEqual(len(result), 2)
         self.assertEqual(
             {horse["horse_registration_number"] for horse in result},
-            {"2020100001", "2021100002"},
+            {"2020-10001", "2021-10002"},
         )
         self.assertTrue(all(horse["identity_verified"] for horse in result))
+
+    def test_malformed_registration_number_does_not_verify_identity(self):
+        horse = summarize_horses([{
+            "horse_name": "形式不正番号の馬",
+            "horse_registration_number": "2020100001",
+            "finish": 1,
+        }])[0]
+        self.assertIsNone(horse["horse_registration_number"])
+        self.assertEqual(horse["identity_basis"], "horse_name_only")
+        self.assertFalse(horse["identity_verified"])
 
     def test_name_only_identity_is_marked_unverified(self):
         horse = summarize_horses([{"horse_name": "登録番号なし馬", "finish": 1}])[0]
