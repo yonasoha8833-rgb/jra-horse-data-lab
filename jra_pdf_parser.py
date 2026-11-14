@@ -505,6 +505,24 @@ def _match_ocr_identifier_rows(
     return matched
 
 
+
+def _build_ocr_runner_lines(
+    identifier_rows: list[tuple[float, tuple[int, int]]],
+    row_texts: list[str],
+) -> list[str]:
+    """Attach trusted identifiers to row-local OCR text, preserving row order."""
+    if not identifier_rows or len(identifier_rows) != len(row_texts):
+        return []
+    lines = []
+    for (_, (frame, horse)), text in zip(identifier_rows, row_texts):
+        text = re.sub(r"^\\s*[1-8]\\s*[|/\\\\{}()\\[\\].,:;<>_-]*\\s*\\d{1,2}\\s*", "", text)
+        if not text.strip():
+            return []
+        lines.append(f"{frame}|{horse} {text.strip()}")
+    return lines
+
+
+
 def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str | None:
     """OCR JRA panels, using a separate high-resolution pass for frame/horse columns."""
     if not shutil.which("pdftoppm") or not shutil.which("tesseract"):
@@ -594,13 +612,6 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     check=True, timeout=30, capture_output=True, text=True,
                 ).stdout
                 number_tsv = "FRAME COLUMN\n" + frame_tsv + "\nHORSE COLUMN\n" + horse_tsv
-                panel_lines = _ocr_tsv_lines(panel_tsv, scale=5 / 3)
-                runner_indexes = [
-                    i for i, line in enumerate(clean_lines) if _runner(line.strip())
-                ]
-                runner_centers = [
-                    y for y, line in panel_lines if _runner(line.strip())
-                ]
                 frame_rows = _ocr_identifier_column(
                     frame_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"[1-8]"
                 )
@@ -608,18 +619,35 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     horse_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"(?:[1-9]|1[0-8])"
                 )
                 identifier_rows = _pair_identifier_columns(frame_rows, horse_rows)
-                matched = _match_ocr_identifier_rows(runner_centers, identifier_rows)
-                if len(runner_indexes) == len(runner_centers) and matched is not None:
-                    for line_index, (frame, number) in zip(runner_indexes, matched):
-                        line = clean_lines[line_index]
-                        prefix_match = re.match(
-                            r"^\s*[1-8]\s*[|/\\{}()\[\].,:;<>_-]*\s*\d{1,2}",
-                            line,
-                        )
-                        if prefix_match:
-                            clean_lines[line_index] = (
-                                f"{frame}|{number} " + line[prefix_match.end():].lstrip()
-                            )
+                # OCR each runner row independently to avoid cross-column merging.
+                if len(identifier_rows) >= 2:
+                    centers = [row[0] for row in identifier_rows]
+                    gaps = [b - a for a, b in zip(centers, centers[1:]) if b > a]
+                    if len(gaps) == len(centers) - 1:
+                        typical_gap = sorted(gaps)[len(gaps) // 2]
+                        panel_image = Image.open(crop_path)
+                        try:
+                            scale = 5 / 3
+                            x_left = int(panel_width * 0.115 * scale)
+                            x_right = int(panel_width * 0.82 * scale)
+                            row_texts = []
+                            for row_index, center in enumerate(centers):
+                                previous = centers[row_index - 1] if row_index else center - typical_gap
+                                following = centers[row_index + 1] if row_index + 1 < len(centers) else center + typical_gap
+                                y_top = max(0, int(((previous + center) / 2) * scale))
+                                y_bottom = min(panel_image.height, int(((center + following) / 2) * scale))
+                                row_path = temp_dir / f"{page.stem}-{side}-row-{row_index}.png"
+                                panel_image.crop((x_left, y_top, x_right, y_bottom)).save(row_path)
+                                row_result = subprocess.run(
+                                    ["tesseract", str(row_path), "stdout", "-l", "jpn+eng", "--psm", "7"],
+                                    check=True, timeout=20, capture_output=True, text=True,
+                                ).stdout.strip()
+                                row_texts.append(row_result)
+                            row_lines = _build_ocr_runner_lines(identifier_rows, row_texts)
+                            if row_lines:
+                                clean_lines = row_lines
+                        finally:
+                            panel_image.close()
 
                 debug_dir = os.environ.get("JRA_OCR_DEBUG_DIR")
                 if debug_dir and page == pages[0]:
