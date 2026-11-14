@@ -118,6 +118,17 @@ class ImportReplayResultsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "must be a list"):
             deduplicate_records({"source_url": "a.pdf"})
 
+    def test_deduplicates_numeric_string_and_integer_horse_numbers(self):
+        rows = [
+            {"source_url": "a.pdf", "horse_number": "01", "horse_name": "旧"},
+            {"source_url": " a.pdf ", "horse_number": 1, "horse_name": "新",
+             "individual_last3f": 33.1},
+            {"source_url": "a.pdf", "horse_number": 1.0, "horse_name": "別"},
+        ]
+        result = deduplicate_records(rows)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["horse_name"], "新")
+
     def test_deduplicates_by_source_and_horse_but_keeps_unkeyed_rows(self):
         rows = [
             {"source_url": "a.pdf", "horse_number": 1, "horse_name": "旧"},
