@@ -1,11 +1,13 @@
 name: Import JRA race results
 on:
+  schedule:
+    - cron: "30 7 * * *"
   workflow_dispatch:
     inputs:
       limit:
         description: "Number of official PDFs to import in this run"
         required: true
-        default: "1"
+        default: "3"
         type: string
 permissions:
   contents: write
@@ -22,7 +24,7 @@ jobs:
       - name: Install PDF text extractor
         run: sudo apt-get update && sudo apt-get install -y poppler-utils
       - name: Import official results
-        run: python import_results.py --limit "${{ inputs.limit }}"
+        run: python import_results.py --limit "${{ inputs.limit || '3' }}"
       - name: Commit imported records
         run: |
           git config user.name "github-actions[bot]"
