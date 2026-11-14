@@ -18,13 +18,15 @@ MAX_PDF_BYTES = 20 * 1024 * 1024
 def read_limited_response(response, max_bytes: int = MAX_PDF_BYTES) -> bytes:
     """Read a response with a hard cap, including streams without Content-Length."""
     length = response.headers.get("Content-Length")
-    if length:
+    if length is not None:
         try:
-            if int(length) > max_bytes:
-                raise ValueError(f"PDF exceeds size limit ({max_bytes} bytes)")
-        except ValueError as exc:
-            if "exceeds size limit" in str(exc):
-                raise
+            declared_length = int(length)
+        except (TypeError, ValueError):
+            raise ValueError("Invalid Content-Length header")
+        if declared_length < 0:
+            raise ValueError("Invalid negative Content-Length header")
+        if declared_length > max_bytes:
+            raise ValueError(f"PDF exceeds size limit ({max_bytes} bytes)")
     data = response.read(max_bytes + 1)
     if len(data) > max_bytes:
         raise ValueError(f"PDF exceeds size limit ({max_bytes} bytes)")
