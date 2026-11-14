@@ -15,7 +15,7 @@ TRACKS = ("札幌", "函館", "福島", "新潟", "東京", "中山", "中京", 
 CIRCLED_NUMBERS = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳"
 ROW_START_RE = re.compile(rf"^\s*(\d{{1,2}})\s*([{CIRCLED_NUMBERS}])(?:\s+|$)")
 RUNNER_HEADER_RE = re.compile(
-    rf"^\s*(\d{{1,2}})\s*([{CIRCLED_NUMBERS}])\s+(.+?)\s+(牡|牝|セ)\s*([0-9０-９]+)",
+    rf"^\s*(\d{{1,2}})\s*([{CIRCLED_NUMBERS}])\s+(.+?)\s+(牡|牝|セ|せん)\s*([0-9０-９]+)",
     re.S,
 )
 INDIVIDUAL_LAST3F_RE = re.compile(r"(?<![0-9.])([0-9０-９]{2,3}[.．][0-9０-９])\s+[0-9０-９]{3}\s*[（(]")
