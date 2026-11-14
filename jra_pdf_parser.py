@@ -304,8 +304,21 @@ def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]
             inferred = _inferred_complete_field_size(rows)
             complete = inferred is not None and len(rows) == inferred
             if complete:
+                declared = inferred
                 for row in rows:
                     row["declared_field_size"] = inferred
+
+        # A matching row count alone is not enough: OCR may duplicate one
+        # horse number while omitting another. Require the exact official
+        # 1..N numbering and matching frame assignments before accepting.
+        if complete and declared is not None:
+            numbers = [row.get("horse_number") for row in rows]
+            complete = sorted(numbers) == list(range(1, declared + 1))
+            if complete:
+                complete = all(
+                    row.get("frame") == _expected_frame(declared, row["horse_number"])
+                    for row in rows
+                )
         if complete:
             for row in rows:
                 row["extraction_status"] = "ocr_fallback_basic_fields"
