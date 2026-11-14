@@ -319,10 +319,14 @@ fetch('./data/race_results.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new
   ['距離が未取得の記録',quality.records_missing_distance,'件'],
   ['馬場状態が未取得の記録',quality.records_missing_going,'件'],
   ['走破タイムが未取得の記録',quality.records_missing_finish_time,'件'],
-  ['不正な走破タイム',quality.records_with_invalid_finish_time,'件']
+  ['不正な走破タイム',quality.records_with_invalid_finish_time,'件'],
+  ['個別上がり3Fを取得できた記録',quality.records_with_individual_last3f,'件'],
+  ['個別上がり3Fが未取得の記録',quality.records_missing_individual_last3f,'件'],
+  ['競走馬登録番号を取得できた記録',quality.records_with_horse_registration_number,'件'],
+  ['競走馬登録番号が未取得の記録',quality.records_missing_horse_registration_number,'件']
  ];
  qualityRows.forEach(([label,value,unit])=>{const p=document.createElement('p');p.textContent=label+'：'+(Number.isFinite(Number(value))?Number(value):0)+unit;qualityDetails.append(p);});
- const note=document.createElement('p');note.className='muted';note.textContent='品質件数は取り込み済みデータを対象にした集計です。未取得や要確認の記録は、元PDFの表記や解析状況によって発生します。';qualityDetails.append(note);
+ const note=document.createElement('p');note.className='muted';note.textContent='品質件数は取り込み済みデータを対象にした集計です。年度別全成績PDFには個別馬の上がり3Fや競走馬登録番号が含まれないため、別の公式データ源を追加するまでは未取得として表示されます。';qualityDetails.append(note);
  importMeta.after(qualityDetails);
  renderHorses();
 }).catch(()=>{horseRecords=[];horseStatus.textContent='馬別データはまだありません。PDF取り込み後にここへ表示されます。';});
