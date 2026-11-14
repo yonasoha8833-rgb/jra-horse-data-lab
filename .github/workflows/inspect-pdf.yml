@@ -18,9 +18,13 @@ jobs:
           python pdf_probe.py \
             --url "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-5tokyo2.pdf" \
             --output data/pdf_layout.json
-      - name: Upload layout diagnostic
+      - name: Extract first-pass race results
+        run: python race_parser.py --input data/pdf_layout.json --output data/race_results.json
+      - name: Upload layout and extraction diagnostics
         uses: actions/upload-artifact@v4
         with:
-          name: jra-pdf-layout
-          path: data/pdf_layout.json
+          name: jra-pdf-extraction
+          path: |
+            data/pdf_layout.json
+            data/race_results.json
           if-no-files-found: error
