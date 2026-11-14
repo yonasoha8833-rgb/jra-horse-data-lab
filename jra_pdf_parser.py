@@ -421,7 +421,7 @@ def _match_ocr_identifier_rows(
     identifier_rows: list[tuple[float, tuple[int, int] | None]],
 ) -> list[tuple[int, int]] | None:
     """Match independent OCR rows by vertical position; reject ambiguity."""
-    if not runner_centers or len(runner_centers) != len(identifier_rows):
+    if not runner_centers or not identifier_rows:
         return None
     centers = sorted(runner_centers)
     rows = sorted(identifier_rows, key=lambda item: item[0])
@@ -431,11 +431,38 @@ def _match_ocr_identifier_rows(
         return None
     typical_gap = sorted(gaps)[len(gaps) // 2] if gaps else 0
     tolerance = typical_gap * 0.40
-    if not tolerance or any(abs(y - row[0]) > tolerance for y, row in zip(centers, rows)):
+    if not tolerance:
         return None
-    if any(row[1] is None for row in rows):
+
+    # Extra OCR rows can come from headers, borders or cancellation/payout
+    # areas. Ignore only rows that cannot match any runner. Every runner must
+    # still have exactly one nearby identifier, and matches must be one-to-one.
+    matched = []
+    used_rows = set()
+    for center in centers:
+        candidates = [
+            index for index, (row_y, pair) in enumerate(rows)
+            if pair is not None and abs(center - row_y) <= tolerance
+        ]
+        if len(candidates) != 1:
+            return None
+        index = candidates[0]
+        if index in used_rows:
+            return None
+        used_rows.add(index)
+        matched.append(rows[index][1])
+
+    # Preserve the table's vertical order; crossing assignments are unsafe.
+    selected_indexes = []
+    for center in centers:
+        selected_indexes.append(next(
+            index for index, (row_y, pair) in enumerate(rows)
+            if index not in selected_indexes and pair is not None
+            and abs(center - row_y) <= tolerance
+        ))
+    if selected_indexes != sorted(selected_indexes):
         return None
-    return [row[1] for row in rows]
+    return matched
 
 
 def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str | None:
