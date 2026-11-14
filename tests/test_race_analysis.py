@@ -1,6 +1,6 @@
 import unittest
 
-from race_analysis import classify_running_style, parse_corner_positions, distance_band, filter_records, parse_lap_times, performance_score, recent_form_summary, summarize_race_pace, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles
+from race_analysis import analyze_race_scenario, classify_running_style, parse_corner_positions, distance_band, filter_records, parse_lap_times, performance_score, recent_form_summary, summarize_race_pace, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles
 
 
 class RaceAnalysisTests(unittest.TestCase):
@@ -16,6 +16,33 @@ class RaceAnalysisTests(unittest.TestCase):
              "time_seconds": None, "last3f": None},
         ]
 
+
+    def test_race_scenario_uses_front_runner_pressure_and_scores(self):
+        result = analyze_race_scenario([
+            {"horse_name": "逃げA", "running_style": "逃げ"},
+            {"horse_name": "逃げB", "running_style": "逃げ"},
+            {"horse_name": "先行A", "running_style": "先行"},
+            {"horse_name": "差しA", "running_style": "差し"},
+            {"horse_name": "追込A", "running_style": "追込"},
+        ])
+        self.assertEqual(result["scenario"], "ハイペース寄り")
+        self.assertEqual(result["estimated_pace_shape"], "前半速い")
+        self.assertEqual(result["leader_count"], 2)
+        self.assertEqual(result["horse_scores"][3]["scenario_fit_score"], 75)
+
+    def test_race_scenario_keeps_missing_style_unknown(self):
+        result = analyze_race_scenario([
+            {"horse_name": "脚質不明馬"},
+            {"horse_name": "前走先頭馬", "corner_positions": [1, 1, 2], "field_size": 16},
+        ])
+        self.assertEqual(result["known_style_count"], 1)
+        self.assertEqual(result["style_coverage"], 0.5)
+        self.assertIsNone(result["horse_scores"][0]["scenario_fit_score"])
+
+    def test_race_scenario_without_styles_does_not_guess(self):
+        result = analyze_race_scenario([{"horse_name": "不明馬"}])
+        self.assertIsNone(result["estimated_pace_shape"])
+        self.assertEqual(result["scenario"], "判定材料不足")
 
     def test_running_style_parser_and_classification(self):
         self.assertEqual(parse_corner_positions("1-1-2-2"), [1, 1, 2, 2])
