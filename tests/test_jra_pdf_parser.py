@@ -31,6 +31,27 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["runner_validation_warnings"], ["invalid_finish_time_seconds"])
         self.assertEqual(rows[1]["finish"], 1)
 
+    def test_accepts_ocr_pipe_separator_between_frame_and_horse_number(self):
+        rows = parse_race_text(
+            SAMPLE.replace("2 2 サノノファイター", "2|2 サノノファイター")
+        )
+        self.assertEqual(rows[0]["frame"], 2)
+        self.assertEqual(rows[0]["horse_number"], 2)
+
+    def test_accepts_ocr_backslash_separator_between_frame_and_horse_number(self):
+        rows = parse_race_text(
+            SAMPLE.replace("2 2 サノノファイター", "8\\\\12 サノノファイター")
+        )
+        self.assertEqual(rows[0]["frame"], 8)
+        self.assertEqual(rows[0]["horse_number"], 12)
+
+    def test_accepts_ocr_slash_separator_between_frame_and_horse_number(self):
+        rows = parse_race_text(
+            SAMPLE.replace("2 2 サノノファイター", "6/8 サノノファイター")
+        )
+        self.assertEqual(rows[0]["frame"], 6)
+        self.assertEqual(rows[0]["horse_number"], 8)
+
     def test_accepts_compact_frame_and_horse_number(self):
         compact_sample = SAMPLE.replace("2 2 サノノファイター", "22 サノノファイター")
         rows = parse_race_text(compact_sample)
