@@ -24,17 +24,20 @@ def main() -> None:
     records = old.get("records", [])
     processed = set(old.get("processed_sources", []))
     new_sources = []
+    attempted = 0
 
     for item in catalog.get("items", []):
         url = item.get("url")
         if not url or url in processed:
             continue
+        if attempted >= args.limit:
+            break
+        attempted += 1
         try:
             extracted = download_and_extract(url)
             if not extracted:
                 print(f"WARNING: no runner rows recognized: {url}")
-                processed.add(url)
-                new_sources.append(url)
+                # Keep empty extractions eligible for retry after parser improvements.
                 continue
             records.extend(extracted)
             processed.add(url)
@@ -42,8 +45,6 @@ def main() -> None:
             print(f"Imported {len(extracted)} runner rows from {url}")
         except Exception as exc:
             print(f"ERROR: {url}: {exc}")
-        if len(new_sources) >= args.limit:
-            break
 
     # Stable deduplication protects against repeated imports.
     unique = {}
