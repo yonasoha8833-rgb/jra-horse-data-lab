@@ -505,12 +505,6 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 )
                 number_path = temp_dir / f"{page.stem}-{side}-numbers.png"
                 number_crop.save(number_path)
-                number_result = subprocess.run(
-                    ["tesseract", str(number_path), "stdout", "-l", "eng", "--psm", "6"],
-                    check=True, timeout=30, capture_output=True, text=True,
-                )
-                identifiers = _ocr_identifier_pairs(number_result.stdout)
-
                 # Equal row counts are unsafe: independently OCR both columns
                 # with TSV boxes and require close vertical alignment.
                 panel_tsv = subprocess.run(
@@ -531,10 +525,13 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 runner_centers = [
                     y for y, line in panel_lines if _runner(line.strip())
                 ]
-                identifier_rows = (
-                    [(y, pair) for (y, _), pair in zip(number_lines, identifiers)]
-                    if len(number_lines) == len(identifiers) else []
-                )
+                # Parse each TSV line's own text so OCR text and bounding-box
+                # rows can never drift apart through a positional zip.
+                identifier_rows = []
+                for y, line_text in number_lines:
+                    pairs = _ocr_identifier_pairs(line_text)
+                    pair = pairs[0] if len(pairs) == 1 else None
+                    identifier_rows.append((y, pair))
                 matched = _match_ocr_identifier_rows(runner_centers, identifier_rows)
                 if len(runner_indexes) == len(runner_centers) and matched is not None:
                     for line_index, (frame, number) in zip(runner_indexes, matched):
