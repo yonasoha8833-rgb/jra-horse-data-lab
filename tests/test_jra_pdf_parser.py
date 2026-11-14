@@ -40,5 +40,17 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["race_lap_times"], [12.4, 10.8, 11.5, 12.3])
 
 
+    def test_accepts_distance_without_thousands_separator(self):
+        text = SAMPLE.replace("1，600ｍ", "1600ｍ")
+        rows = parse_race_text(text)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["distance"], 1600)
+
+    def test_ignores_non_runner_lines(self):
+        text = SAMPLE.replace("（2頭）", "（2頭）\\n発走 9時55分")
+        rows = parse_race_text(text)
+        self.assertEqual(len(rows), 2)
+
+
 if __name__ == "__main__":
     unittest.main()
