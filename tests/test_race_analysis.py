@@ -28,7 +28,11 @@ class RaceAnalysisTests(unittest.TestCase):
                     "horse_name": f"馬{horse_number}", "finish": finish,
                     "field_size": 16, "corner_positions": [1, 1, 1] if horse_number == 1 else [5, 5, 5],
                     "distance": 1600, "race_lap_times": [12.5] * 4 + [11.5] * 4,
+                    "individual_last3f": 34.0 + horse_number / 10,
                 })
+        # A missing field size on the first runner must not override a valid
+        # field size supplied by another runner in the same race.
+        rows[0].pop("field_size")
         result = summarize_running_style_pace_performance(rows, min_starts=3)
         front = next(item for item in result if item["running_style"] == "逃げ")
         self.assertEqual(front["pace_shape"], "後半速い")
@@ -37,6 +41,8 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(front["top3"], 3)
         self.assertEqual(front["win_rate"], 0.3333)
         self.assertEqual(front["top3_rate"], 1.0)
+        self.assertEqual(front["individual_last3f_sample_count"], 3)
+        self.assertEqual(front["average_individual_last3f"], 34.1)
 
     def test_style_pace_performance_uses_source_pdf_when_race_number_missing(self):
         rows = []
