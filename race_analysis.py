@@ -368,7 +368,7 @@ def performance_score(records: Iterable[dict[str, Any]]) -> float | None:
 def parse_lap_times(value: Any) -> list[float] | None:
     """Parse 200m split times without correcting or guessing OCR values."""
     if isinstance(value, str):
-        tokens = re.split(r"[\\s,、/|‐‑‒–—-]+", value.strip())
+        tokens = re.split(r"[\s,、/|‐‑‒–—-]+", value.strip())
         if not tokens or any(not token for token in tokens):
             return None
     elif isinstance(value, (list, tuple)):
