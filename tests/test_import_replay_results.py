@@ -48,6 +48,24 @@ class ImportReplayResultsTests(unittest.TestCase):
                 "horse_number": 1, "finish": 1, "horse_name": " "
             }])
 
+    def test_rejects_duplicate_horse_numbers_in_one_pdf(self):
+        rows = [
+            {"horse_number": 4, "finish": 1, "horse_name": "先頭馬"},
+            {"horse_number": 4, "finish": 2, "horse_name": "重複馬"},
+        ]
+        with self.assertRaisesRegex(ValueError, "Duplicate horse number"):
+            validate_replay_records(rows)
+
+    def test_rejects_fractional_horse_number_or_placing(self):
+        with self.assertRaisesRegex(ValueError, "non-integer"):
+            validate_replay_records([{
+                "horse_number": 1.5, "finish": 1, "horse_name": "テスト"
+            }])
+        with self.assertRaisesRegex(ValueError, "non-integer"):
+            validate_replay_records([{
+                "horse_number": 1, "finish": 2.5, "horse_name": "テスト"
+            }])
+
     def test_rejects_non_finite_individual_last3f(self):
         with self.assertRaisesRegex(ValueError, "non-finite"):
             validate_replay_records([{
