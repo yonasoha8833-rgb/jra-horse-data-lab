@@ -10,7 +10,7 @@ import unicodedata
 from typing import Any
 
 REGISTRATION_RE = re.compile(r"(?<![0-9])([0-9]{4}-[0-9]{5})(?![0-9])")
-AMBIGUOUS_REGISTRATION_RE = re.compile(r"(?<![A-Za-z0-9])[0-9OIl|]{4}[-－ー][0-9OIl|]{5}(?![A-Za-z0-9])")
+AMBIGUOUS_REGISTRATION_RE = re.compile(r"(?<![A-Za-z0-9])[0-9OIl|]{4}[-－ー][0-9OIl|]{5}(?![A-Za-z0-9])")\nAMBIGUOUS_OCR_CHAR_RE = re.compile(r"[OIl|]")
 PREFIX_ANNOTATIONS = (
     "市場取引馬",
     "外",
@@ -52,8 +52,8 @@ def parse_registry_text(text: str) -> list[dict[str, Any]]:
         if len(matches) != 1:
             continue
         match = matches[0]
-        before = line[:match.start()].strip(" ・,，:：()（）")
-        after = line[match.end():].strip(" ・,，:：()（）")
+        before = line[:match.start()].strip(" ・,，:：")
+        after = line[match.end():].strip(" ・,，:：")
         if bool(before) == bool(after):
             continue
         name = _clean_name(before if before else after)
@@ -76,7 +76,7 @@ def find_ambiguous_registration_lines(text: str) -> list[dict[str, Any]]:
     findings = []
     for line_number, raw_line in enumerate(text.splitlines(), start=1):
         normalized = unicodedata.normalize("NFKC", raw_line)
-        if AMBIGUOUS_REGISTRATION_RE.search(normalized):
+        match = AMBIGUOUS_REGISTRATION_RE.search(normalized)\n        if match and AMBIGUOUS_OCR_CHAR_RE.search(match.group(0)):
             findings.append({
                 "line_number": line_number,
                 "raw_text": raw_line.strip(),
