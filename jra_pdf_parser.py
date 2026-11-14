@@ -298,6 +298,40 @@ def _inferred_complete_field_size(rows: list[dict[str, Any]]) -> int | None:
     return candidates[0] if len(candidates) == 1 else None
 
 
+def _repair_ocr_horse_numbers(rows: list[dict[str, Any]]) -> bool:
+    """Repair a spurious leading '1' only when a complete JRA field proves it."""
+    field_size = len(rows)
+    if not 2 <= field_size <= 18:
+        return False
+
+    repaired_numbers = []
+    for row in rows:
+        number = row.get("horse_number")
+        frame = row.get("frame")
+        candidates = [number]
+        # OCR often turns a single-digit number into 11..18. The official
+        # frame assignment can disambiguate it, but only in a full field.
+        if isinstance(number, int) and 11 <= number <= 18:
+            candidates.append(number - 10)
+        valid = [
+            candidate for candidate in candidates
+            if isinstance(candidate, int)
+            and 1 <= candidate <= field_size
+            and frame == _expected_frame(field_size, candidate)
+        ]
+        if len(valid) != 1:
+            return False
+        repaired_numbers.append(valid[0])
+
+    if sorted(repaired_numbers) != list(range(1, field_size + 1)):
+        return False
+
+    for row, number in zip(rows, repaired_numbers):
+        row["horse_number"] = number
+        row["declared_field_size"] = field_size
+    return True
+
+
 def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Keep only OCR races with a verified declared or uniquely inferred full field."""
     races: dict[tuple, list[dict[str, Any]]] = {}
@@ -311,6 +345,8 @@ def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]
             complete = len(rows) == declared
         else:
             inferred = _inferred_complete_field_size(rows)
+            if inferred is None and _repair_ocr_horse_numbers(rows):
+                inferred = len(rows)
             complete = inferred is not None and len(rows) == inferred
             if complete:
                 declared = inferred
