@@ -645,7 +645,12 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 row_texts.append(row_result)
                             row_lines = _build_ocr_runner_lines(identifier_rows, row_texts)
                             if row_lines:
-                                clean_lines = row_lines
+                                # Keep race/date/track metadata from the panel OCR.
+                                # Replace only runner-like lines with the row-local OCR.
+                                non_runner_lines = [
+                                    line for line in clean_lines if not _runner(line.strip())
+                                ]
+                                clean_lines = non_runner_lines + row_lines
                         finally:
                             panel_image.close()
 
