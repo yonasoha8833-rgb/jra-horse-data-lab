@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 
@@ -23,7 +24,10 @@ def main() -> None:
     old = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {"records": []}
     records = old.get("records", [])
     processed = set(old.get("processed_sources", []))
-    new_sources = []
+    failures_by_url = {
+        item["url"]: item for item in old.get("import_failures", [])
+        if isinstance(item, dict) and item.get("url")
+    }
     attempted = 0
 
     for item in catalog.get("items", []):
@@ -36,14 +40,28 @@ def main() -> None:
         try:
             extracted = download_and_extract(url)
             if not extracted:
-                print(f"WARNING: no runner rows recognized: {url}")
-                # Keep empty extractions eligible for retry after parser improvements.
+                message = "No runner rows recognized; source remains eligible for retry"
+                previous = failures_by_url.get(url, {})
+                failures_by_url[url] = {
+                    "url": url,
+                    "attempts": previous.get("attempts", 0) + 1,
+                    "last_attempt_utc": datetime.now(timezone.utc).isoformat(),
+                    "error": message,
+                }
+                print(f"WARNING: {message}: {url}")
                 continue
             records.extend(extracted)
             processed.add(url)
-            new_sources.append(url)
+            failures_by_url.pop(url, None)
             print(f"Imported {len(extracted)} runner rows from {url}")
         except Exception as exc:
+            previous = failures_by_url.get(url, {})
+            failures_by_url[url] = {
+                "url": url,
+                "attempts": previous.get("attempts", 0) + 1,
+                "last_attempt_utc": datetime.now(timezone.utc).isoformat(),
+                "error": f"{type(exc).__name__}: {exc}",
+            }
             print(f"ERROR: {url}: {exc}")
 
     # Stable deduplication protects against repeated imports.
@@ -56,6 +74,8 @@ def main() -> None:
     OUTPUT.write_text(json.dumps({
         "source": "JRA official result PDFs listed in data/catalog.json",
         "processed_sources": sorted(processed),
+        "import_failures": sorted(failures_by_url.values(), key=lambda item: item["url"]),
+        "last_import_attempted": attempted,
         "record_count": len(unique),
         "records": list(unique.values()),
         "notes": [
