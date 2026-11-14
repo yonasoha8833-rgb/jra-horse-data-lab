@@ -120,6 +120,10 @@ def extract_replay_pdf(
     race_metadata: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Convert a JRA replay PDF to layout-preserving text and parse runner rows."""
+    if not isinstance(pdf_bytes, (bytes, bytearray)) or not pdf_bytes.startswith(b"%PDF-"):
+        raise ValueError("Downloaded content is not a PDF (missing %PDF- signature)")
+    if len(pdf_bytes) < 100:
+        raise ValueError("Downloaded PDF is unexpectedly small")
     with tempfile.TemporaryDirectory(prefix="jra-replay-") as temp_dir:
         pdf_path = Path(temp_dir) / "replay.pdf"
         txt_path = Path(temp_dir) / "replay.txt"
