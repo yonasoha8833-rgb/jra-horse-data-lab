@@ -109,7 +109,7 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
                 break
 
         track = _track(header)
-        race_name_match = re.search(r"第\\s*\\d+\\s*競走\\s*(.*?)\\s*[0-9０-９]{1,2}[,，][0-9０-９]{3}", header)
+        race_name_match = re.search(r"第\s*\d+\s*競走\s*(.*?)\s*[0-9０-９]{1,2}[,，][0-9０-９]{3}", header)
         race_name = race_name_match.group(1).strip() if race_name_match else None
 
         runners = []
