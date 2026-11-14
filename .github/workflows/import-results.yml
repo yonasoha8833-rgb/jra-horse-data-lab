@@ -31,8 +31,11 @@ jobs:
           python-version: "3.12"
       - name: Run unit tests before import
         run: python -m unittest discover -s tests -v
-      - name: Install PDF text extractor
-        run: sudo apt-get update && sudo apt-get install -y poppler-utils tesseract-ocr tesseract-ocr-jpn
+      - name: Install PDF and image tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils tesseract-ocr tesseract-ocr-jpn
+          python -m pip install Pillow
       - name: Import official results
         run: python import_results.py --limit "${{ inputs.limit || '3' }}"
       - name: Commit imported records
