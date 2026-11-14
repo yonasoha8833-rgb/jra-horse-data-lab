@@ -93,9 +93,9 @@ JRAの「レース成績データ」に掲載される重賞レース結果PDF�
 
 ### GitHub Actionsでの登録名簿OCRサンプル
 
-ローカルにOCR環境を用意しなくても確認できるよう、Actionsに **JRA registry OCR sample** を追加しました。GitHubリポジトリの Actions → JRA registry OCR sample → Run workflow から、PDFの開始ページと終了ページを指定して実行できます。1回につき最大5ページです。実行環境にPopplerとTesseract日本語データを自動インストールし、OCR結果 `registry_ocr_sample.txt` を3日間の成果物として保存します。
+ローカルにOCR環境を用意しなくても確認できるよう、Actionsに **JRA registry OCR sample** を追加しました。GitHubリポジトリの Actions → JRA registry OCR sample → Run workflow から、PDFの開始ページと終了ページを指定して実行できます。1回につき最大5ページです。実行環境にPopplerとTesseract日本語データを自動インストールし、同じページ範囲について `pdftotext -layout` の抽出結果 `registry_text_sample.txt` と日本語OCR結果 `registry_ocr_sample.txt` を並行して作成します。両方を `jra-registry-extraction-comparison` として3日間保存します。文字抽出が崩れるPDFでもOCR結果と比較でき、逆に文字情報が正しく取れる場合はOCRより安定した候補を見つけられます。
 
-成果物は Actions の実行結果にある Artifacts から取得し、必ず公式PDFの同じページと照合してください。このワークフローは確認用テキストを作るだけで、`data/race_results.json` や登録番号対応表は変更しません。まず1〜2ページでOCRの読み取り精度と行の対応関係を確認してください。
+成果物は Actions の実行結果にある Artifacts から取得し、2つのテキストを公式PDFの同じページと照合してください。PDF文字抽出は `-layout` を指定して配置を保ちますが、列の混在や文字化けがないか確認が必要です。このワークフローは確認用テキストを作るだけで、`data/race_results.json` や登録番号対応表は変更しません。まず1〜2ページでOCRの読み取り精度と行の対応関係を確認してください。
 
 ### 公式登録名簿OCRの小規模実行ツール
 
