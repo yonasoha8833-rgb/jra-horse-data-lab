@@ -11,6 +11,25 @@ from urllib.request import Request, urlopen
 
 BASE = "https://www.jra.go.jp/datafile/seiseki/replay/"
 OUTPUT = Path("data/replay_catalog.json")
+MAX_HTML_BYTES = 5 * 1024 * 1024
+
+
+def read_limited_html(response, max_bytes: int = MAX_HTML_BYTES) -> bytes:
+    """Read listing/result HTML with a hard cap, even without Content-Length."""
+    length = response.headers.get("Content-Length")
+    if length is not None:
+        try:
+            declared_length = int(length)
+        except (TypeError, ValueError):
+            raise ValueError("Invalid Content-Length header")
+        if declared_length < 0:
+            raise ValueError("Invalid negative Content-Length header")
+        if declared_length > max_bytes:
+            raise ValueError(f"HTML exceeds size limit ({max_bytes} bytes)")
+    body = response.read(max_bytes + 1)
+    if len(body) > max_bytes:
+        raise ValueError(f"HTML exceeds size limit ({max_bytes} bytes)")
+    return body
 
 
 class _ListingParser(HTMLParser):
@@ -80,7 +99,7 @@ def fetch_result_pdf_url(result_url: str) -> str | None:
     request = Request(result_url, headers={"User-Agent": "JRA-Horse-Data-Lab/1.0"})
     with urlopen(request, timeout=30) as response:
         content_type = response.headers.get("Content-Type", "").lower()
-        body = response.read()
+        body = read_limited_html(response)
         final_url = response.geturl()
     if "pdf" in content_type or body.startswith(b"%PDF-"):
         return final_url
@@ -143,7 +162,7 @@ def fetch_year(year: int) -> list[dict]:
     listing_url = urljoin(BASE, page)
     request = Request(listing_url, headers={"User-Agent": "JRA-Horse-Data-Lab/1.0"})
     with urlopen(request, timeout=30) as response:
-        html = response.read().decode("utf-8", errors="replace")
+        html = read_limited_html(response).decode("utf-8", errors="replace")
     items = parse_listing_html(html, year=year, listing_url=listing_url)
     resolved = []
     for item in items:
