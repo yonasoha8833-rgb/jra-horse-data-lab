@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from datetime import date
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -253,11 +254,55 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
     return records
 
 
+def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Keep only OCR races whose parsed runner count matches the printed field size."""
+    races: dict[tuple, list[dict[str, Any]]] = {}
+    for row in records:
+        key = (row.get("source_url"), row.get("date"), row.get("race_number"))
+        races.setdefault(key, []).append(row)
+    accepted = []
+    for rows in races.values():
+        declared = rows[0].get("declared_field_size")
+        if declared is not None and len(rows) == declared:
+            for row in rows:
+                row["extraction_status"] = "ocr_fallback_basic_fields"
+                accepted.append(row)
+    return accepted
+
+
+def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str | None:
+    """OCR a bounded number of pages when the PDF text layer yields no runner rows."""
+    if not shutil.which("pdftoppm") or not shutil.which("tesseract"):
+        return None
+    prefix = temp_dir / "ocr-page"
+    subprocess.run(
+        ["pdftoppm", "-f", "1", "-l", str(max_pages), "-r", "250", "-png",
+         str(pdf_path), str(prefix)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    pages = sorted(temp_dir.glob("ocr-page-*.png"))
+    if not pages:
+        return None
+    chunks = []
+    for page in pages:
+        result = subprocess.run(
+            ["tesseract", str(page), "stdout", "-l", "jpn+eng", "--psm", "6"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        chunks.append(result.stdout)
+    return "\\n".join(chunks)
+
+
 def extract_pdf(pdf_bytes: bytes, *, source_url: str = "") -> list[dict[str, Any]]:
-    """Convert PDF bytes to layout-preserving text with pdftotext, then parse."""
-    with tempfile.TemporaryDirectory(prefix="jra-pdf-") as temp_dir:
-        pdf_path = Path(temp_dir) / "source.pdf"
-        txt_path = Path(temp_dir) / "source.txt"
+    """Parse PDF text first, then use bounded Japanese OCR if its text layer is unusable."""
+    with tempfile.TemporaryDirectory(prefix="jra-pdf-") as temp_dir_name:
+        temp_dir = Path(temp_dir_name)
+        pdf_path = temp_dir / "source.pdf"
+        txt_path = temp_dir / "source.txt"
         pdf_path.write_bytes(pdf_bytes)
         subprocess.run(
             ["pdftotext", "-layout", str(pdf_path), str(txt_path)],
@@ -265,8 +310,15 @@ def extract_pdf(pdf_bytes: bytes, *, source_url: str = "") -> list[dict[str, Any
             capture_output=True,
             text=True,
         )
-        return parse_race_text(txt_path.read_text(encoding="utf-8", errors="replace"),
-                               source_url=source_url)
+        text = txt_path.read_text(encoding="utf-8", errors="replace")
+        records = parse_race_text(text, source_url=source_url)
+        if records:
+            return records
+
+        ocr_text = _ocr_pdf_text(pdf_path, temp_dir)
+        if not ocr_text:
+            return []
+        return _complete_ocr_records(parse_race_text(ocr_text, source_url=source_url))
 
 
 def download_and_extract(url: str, *, timeout: int = 45) -> list[dict[str, Any]]:
