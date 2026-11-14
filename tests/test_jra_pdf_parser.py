@@ -159,7 +159,7 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(len(rows), 3)
         self.assertEqual(rows[0]["finish"], 1)
         self.assertIsNone(rows[1]["finish"])
-        self.assertEqual(rows[2]["finish"], 3)
+        self.assertEqual(rows[2]["finish"], 2)
         self.assertIsNone(rows[1]["finish_time_seconds"])
 
 
@@ -231,7 +231,7 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["finish"], 1)
         self.assertEqual(rows[1]["finish"], 1)
         self.assertEqual(rows[1]["finish_time_seconds"], rows[0]["finish_time_seconds"])
-        self.assertEqual(rows[2]["finish"], 2)
+        self.assertEqual(rows[2]["finish"], 3)
 
 
 if __name__ == "__main__":
