@@ -57,9 +57,18 @@ def _track(text: str) -> str | None:
 
 def _runner(line: str) -> dict[str, Any] | None:
     match = RUNNER_RE.match(line)
-    if not match:
-        return None
-    frame, number, name, sex, age = match.groups()
+    if match:
+        frame, number, name, sex, age = match.groups()
+    else:
+        # JRA PDF text extraction sometimes joins a one-digit frame number
+        # and a two-digit horse number (for example, "811" = frame 8, horse 11).
+        compact = re.match(
+            r"^\\s*(\\d)(\\d{2})\\s+(.+?)\\s+(牡|牝|セ)\\s*([0-9０-９]+)",
+            line,
+        )
+        if not compact:
+            return None
+        frame, number, name, sex, age = compact.groups()
     tail = line[match.end():]
     time_match = re.search(r"(?<![0-9])([0-9０-９]{1,2})[：:]([0-9０-９]{2})[.．]([0-9０-９])", tail)
     finish_time = None
