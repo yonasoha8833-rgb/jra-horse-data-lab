@@ -218,7 +218,7 @@ function renderRaceConditionSummaries(records){
   const winners=placed.filter(r=>Number(r.finish)===1);
   groups.get(value).push({
    starters:rows.length,
-   winningTime:winners.length===1&&Number.isFinite(Number(winners[0].finish_time_seconds))?Number(winners[0].finish_time_seconds):null,
+   winningTime:winners.length===1&&winners[0].finish_time_seconds!==null&&winners[0].finish_time_seconds!==undefined&&Number.isFinite(Number(winners[0].finish_time_seconds))?Number(winners[0].finish_time_seconds):null,
    last3f:Number.isFinite(Number(first.race_last3f))&&first.race_last3f!==null?Number(first.race_last3f):null,
    warning:rows.some(r=>Array.isArray(r.race_validation_warnings)&&r.race_validation_warnings.length)
   });
