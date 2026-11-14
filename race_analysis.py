@@ -44,6 +44,12 @@ def summarize_horses(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
         summaries.append({
             "horse_name": name,
             "starts": len(rows),
+            "placed_starts": sum(1 for r in rows if _number(r.get("finish")) is not None and _number(r.get("finish")) > 0),
+            "unplaced_starts": sum(1 for r in rows if _number(r.get("finish")) is None or _number(r.get("finish")) <= 0),
+            "result_status_counts": {
+                status: sum(1 for r in rows if r.get("result_status") == status)
+                for status in sorted({str(r.get("result_status")) for r in rows if r.get("result_status")})
+            },
             "wins": sum(1 for r in rows if _number(r.get("finish")) == 1),
             "top3": sum(1 for r in rows if (_number(r.get("finish")) or 0) in (1, 2, 3)),
             "win_rate": round(sum(1 for r in rows if _number(r.get("finish")) == 1) / len(rows), 4),
