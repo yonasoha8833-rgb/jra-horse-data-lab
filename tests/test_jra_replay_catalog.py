@@ -58,6 +58,32 @@ class JraReplayCatalogTests(unittest.TestCase):
         )
         self.assertNotIn("url", rows[0])
 
+
+    def test_detects_pdf_urls_with_query_or_fragment(self):
+        from jra_replay_catalog import find_pdf_link
+
+        self.assertEqual(
+            find_pdf_link(
+                '<iframe src="/files/result.PDF?download=1"></iframe>',
+                "https://www.jra.go.jp/results/page.html",
+            ),
+            "https://www.jra.go.jp/files/result.PDF?download=1",
+        )
+
+    def test_listing_recognizes_direct_pdf_url(self):
+        html = """
+        <table><tr><td>10月5日</td><td>GⅡ毎日王冠</td><td>東京</td>
+        <td>3歳以上</td><td>芝1,800メートル</td><td></td><td></td>
+        <td><a href="/datafile/result.PDF?file=090">レース結果</a></td></tr></table>
+        """
+        rows = parse_listing_html(
+            html, year=2025,
+            listing_url="https://www.jra.go.jp/datafile/seiseki/replay/2025/jyusyo.html",
+        )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["url"],
+                         "https://www.jra.go.jp/datafile/result.PDF?file=090")
+
     def test_ignores_rows_without_result_pdf_and_invalid_dates(self):
         html = """
         <table>
