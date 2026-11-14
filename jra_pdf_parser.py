@@ -329,16 +329,36 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
     pages = sorted(temp_dir.glob("ocr-page-*.png"))
     if not pages:
         return None
+    # JRA result PDFs place multiple race tables side by side. OCRing the
+    # whole page merges the two columns and corrupts horse numbers, so split
+    # each rendered page into independently recognized left/right regions.
+    try:
+        from PIL import Image
+    except ImportError:
+        print("Pillow unavailable; cannot safely split JRA result columns")
+        return None
+
     chunks = []
     for page in pages:
-        result = subprocess.run(
-            ["tesseract", str(page), "stdout", "-l", "jpn+eng", "--psm", "4"],
-            check=True,
-            timeout=30,
-            capture_output=True,
-            text=True,
-        )
-        chunks.append(result.stdout)
+        with Image.open(page) as image:
+            width, height = image.size
+            midpoint = width // 2
+            overlap = max(2, width // 100)
+            regions = (
+                ("left", (0, 0, min(width, midpoint + overlap), height)),
+                ("right", (max(0, midpoint - overlap), 0, width, height)),
+            )
+            for side, bounds in regions:
+                crop_path = temp_dir / f"{page.stem}-{side}.png"
+                image.crop(bounds).save(crop_path)
+                result = subprocess.run(
+                    ["tesseract", str(crop_path), "stdout", "-l", "jpn+eng", "--psm", "6"],
+                    check=True,
+                    timeout=30,
+                    capture_output=True,
+                    text=True,
+                )
+                chunks.append(result.stdout)
     return "\n".join(chunks)
 
 
