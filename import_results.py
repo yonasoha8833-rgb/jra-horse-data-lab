@@ -26,7 +26,12 @@ def build_quality_report(records: list[dict]) -> dict:
         warnings = {
             warning
             for row in rows
-            for warning in row.get("race_validation_warnings", [])
+            for warning in (
+                row.get("race_validation_warnings")
+                if isinstance(row.get("race_validation_warnings"), list)
+                else []
+            )
+            if isinstance(warning, str)
         }
         if warnings:
             warning_races += 1
@@ -44,7 +49,11 @@ def build_quality_report(records: list[dict]) -> dict:
         "records_missing_track": sum(1 for row in records if not row.get("track")),
         "records_missing_distance": sum(1 for row in records if row.get("distance") is None),
         "records_missing_finish_time": sum(1 for row in records if row.get("finish_time_seconds") is None),
-        "records_with_invalid_finish_time": sum(1 for row in records if "invalid_finish_time_seconds" in row.get("runner_validation_warnings", [])),
+        "records_with_invalid_finish_time": sum(
+            1 for row in records
+            if isinstance(row.get("runner_validation_warnings"), list)
+            and "invalid_finish_time_seconds" in row["runner_validation_warnings"]
+        ),
     }
 
 
