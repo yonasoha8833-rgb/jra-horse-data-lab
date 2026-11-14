@@ -148,7 +148,12 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
 
         # Finish order follows the official result table's runner row order.
         # Ties are not guessed from margins; downstream validation can refine it.
-        for position, runner in enumerate(runners, start=1):
+        finish_position = 0
+        for runner in runners:
+            # A runner without a recorded finish time may be a non-finisher,
+            # so never assign it a placing or shift later finishers upward.
+            if runner["finish_time_seconds"] is not None:
+                finish_position += 1
             records.append({
                 **runner,
                 "date": race_date,
@@ -157,7 +162,7 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
                 "race_name": race_name,
                 "surface": surface,
                 "distance": distance,
-                "finish": position,
+                "finish": finish_position if runner["finish_time_seconds"] is not None else None,
                 "field_size": len(runners),
                 "race_last3f": last3f,
                 "race_last4f": last4f,
