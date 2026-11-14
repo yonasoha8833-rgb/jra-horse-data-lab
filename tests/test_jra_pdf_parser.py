@@ -431,10 +431,10 @@ class JraPdfParserTests(unittest.TestCase):
 
     def test_identifier_column_reader_keeps_only_valid_single_column_values(self):
         tsv = (
-            "level\\tpage_num\\tblock_num\\tpar_num\\tline_num\\tword_num\\tleft\\ttop\\twidth\\theight\\tconf\\ttext\\n"
-            "5\\t1\\t1\\t1\\t1\\t1\\t0\\t20\\t10\\t10\\t90\\t5\\n"
-            "5\\t1\\t1\\t1\\t2\\t1\\t0\\t60\\t10\\t10\\t90\\t9\\n"
-            "5\\t1\\t1\\t1\\t3\\t1\\t0\\t100\\t10\\t10\\t90\\tO\\n"
+            "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+            "5\t1\t1\t1\t1\t1\t0\t20\t10\t10\t90\t5\n"
+            "5\t1\t1\t1\t2\t1\t0\t60\t10\t10\t90\t9\n"
+            "5\t1\t1\t1\t3\t1\t0\t100\t10\t10\t90\tO\n"
         )
         self.assertEqual(
             _ocr_identifier_column(tsv, scale=5, y_offset=30, allowed=r"[1-8]"),
