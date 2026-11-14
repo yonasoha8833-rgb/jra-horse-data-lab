@@ -530,14 +530,18 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 identifier_rows = []
                 for y, line_text in number_lines:
                     pairs = _ocr_identifier_pairs(line_text)
-                    pair = pairs[0] if len(pairs) == 1 else None
-                    identifier_rows.append((y, pair))
+                    # The narrow crop also captures table borders, headers and
+                    # payout rows. Keep only actual frame/horse identifier rows;
+                    # including blank OCR rows makes the whole panel fail the
+                    # strict row-count/alignment check.
+                    if len(pairs) == 1 and pairs[0] is not None:
+                        identifier_rows.append((y, pairs[0]))
                 matched = _match_ocr_identifier_rows(runner_centers, identifier_rows)
                 if len(runner_indexes) == len(runner_centers) and matched is not None:
                     for line_index, (frame, number) in zip(runner_indexes, matched):
                         line = clean_lines[line_index]
                         prefix_match = re.match(
-                            r"^\\s*[1-8]\\s*[|/\\\\{}()\\[\\].,:;<>_-]*\\s*\\d{1,2}",
+                            r"^\s*[1-8]\s*[|/\\{}()\[\].,:;<>_-]*\s*\d{1,2}",
                             line,
                         )
                         if prefix_match:
