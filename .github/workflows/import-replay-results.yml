@@ -1,0 +1,45 @@
+name: Import JRA graded-race replay results
+on:
+  workflow_dispatch:
+    inputs:
+      from_year:
+        description: "First year to discover (2002 or later)"
+        required: true
+        default: "2025"
+        type: string
+      to_year:
+        description: "Last year to discover"
+        required: true
+        default: "2026"
+        type: string
+      limit:
+        description: "Maximum PDFs to import in this run"
+        required: true
+        default: "1"
+        type: string
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Install PDF text extractor
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - name: Discover official replay PDFs
+        run: python jra_replay_catalog.py --from-year "${{ inputs.from_year }}" --to-year "${{ inputs.to_year }}"
+      - name: Import replay PDFs
+        run: python import_replay_results.py --limit "${{ inputs.limit }}"
+      - name: Commit replay catalog and results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/replay_catalog.json data/replay_results.json
+          git diff --cached --quiet || git commit -m "Import JRA graded race replay results"
+          git pull --rebase origin main
+          git push
