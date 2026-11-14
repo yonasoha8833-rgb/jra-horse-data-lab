@@ -1,5 +1,8 @@
 name: Import JRA race results
 on:
+  push:
+    paths:
+      - .github/workflows/import-results.yml
   schedule:
     - cron: "30 7 * * *"
   workflow_dispatch:
