@@ -5,6 +5,24 @@
   ],
   "import_failures": [
     {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate1.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-14T10:03:32.116368+00:00",
+      "error": "NameError: name 'number_result' is not defined"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate2.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-14T10:03:48.051035+00:00",
+      "error": "NameError: name 'number_result' is not defined"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate3.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-14T10:04:04.362258+00:00",
+      "error": "NameError: name 'number_result' is not defined"
+    },
+    {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo1.pdf",
       "attempts": 1,
       "last_attempt_utc": "2026-11-14T09:17:19.539976+00:00",
