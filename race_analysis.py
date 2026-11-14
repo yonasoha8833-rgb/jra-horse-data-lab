@@ -375,6 +375,107 @@ def performance_score(records: Iterable[dict[str, Any]]) -> float | None:
     weights = list(range(len(recent), 0, -1))
     return round(sum(score * weight for (_, score), weight in zip(recent, weights)) / sum(weights), 1)
 
+
+def condition_adjusted_performance_score(
+    records: Iterable[dict[str, Any]],
+    target_conditions: dict[str, Any],
+    *,
+    min_condition_starts: int = 3,
+    prior_strength: float = 5.0,
+) -> dict[str, Any]:
+    """Blend overall form with the best-supported matching condition sample.
+
+    Condition scores use field-size-normalized finishing positions. The most
+    specific condition group meeting min_condition_starts is selected, then
+    shrunk toward the horse's overall score using prior_strength pseudo-starts.
+    This is a descriptive index, not a win probability.
+    """
+    if min_condition_starts < 1:
+        raise ValueError("min_condition_starts must be at least 1")
+    if not isinstance(prior_strength, (int, float)) or prior_strength < 0:
+        raise ValueError("prior_strength must be a non-negative number")
+
+    rows = list(records)
+    baseline = performance_score(rows)
+    if baseline is None:
+        return {
+            "score": None,
+            "overall_score": None,
+            "condition_score": None,
+            "condition_sample_count": 0,
+            "matched_condition": None,
+            "confidence": "判定材料不足",
+        }
+
+    target = target_conditions or {}
+    surface = str(target.get("surface") or "").strip()
+    track = str(target.get("track") or "").strip()
+    going = str(target.get("going") or "").strip()
+    distance = _number(target.get("distance"))
+    band = distance_band(distance)
+    exact_distance = int(distance) if distance is not None and distance.is_integer() else None
+
+    candidates: list[tuple[str, Any]] = []
+    if track and surface and exact_distance is not None:
+        candidates.append(("競馬場・芝ダート・距離", lambda r: r.get("track") == track and r.get("surface") == surface and _number(r.get("distance")) == exact_distance))
+    if surface and band:
+        candidates.append(("芝ダート・距離帯", lambda r: r.get("surface") == surface and distance_band(r.get("distance")) == band))
+    if surface and going:
+        candidates.append(("芝ダート・馬場状態", lambda r: r.get("surface") == surface and r.get("going") == going))
+    if track and surface:
+        candidates.append(("競馬場・芝ダート", lambda r: r.get("track") == track and r.get("surface") == surface))
+    if surface:
+        candidates.append(("芝ダート", lambda r: r.get("surface") == surface))
+    if band:
+        candidates.append(("距離帯", lambda r: distance_band(r.get("distance")) == band))
+    if going:
+        candidates.append(("馬場状態", lambda r: r.get("going") == going))
+    if track:
+        candidates.append(("競馬場", lambda r: r.get("track") == track))
+
+    selected = None
+    for label, matches in candidates:
+        matching = []
+        for row in rows:
+            if not matches(row):
+                continue
+            finish = _number(row.get("finish"))
+            field_size = _number(row.get("field_size"))
+            if (finish is None or field_size is None or field_size <= 1
+                    or not finish.is_integer() or not field_size.is_integer()
+                    or finish < 1 or finish > field_size):
+                continue
+            matching.append(100.0 * (field_size - finish) / (field_size - 1))
+        if len(matching) >= min_condition_starts:
+            selected = (label, matching)
+            break
+
+    if selected is None:
+        return {
+            "score": baseline,
+            "overall_score": baseline,
+            "condition_score": None,
+            "condition_sample_count": 0,
+            "matched_condition": None,
+            "confidence": "総合成績のみ",
+        }
+
+    label, scores = selected
+    condition_average = mean(scores)
+    adjusted = (
+        (condition_average * len(scores) + baseline * prior_strength)
+        / (len(scores) + prior_strength)
+    )
+    confidence = "高め" if len(scores) >= 10 else "中程度"
+    return {
+        "score": round(adjusted, 1),
+        "overall_score": baseline,
+        "condition_score": round(condition_average, 1),
+        "condition_sample_count": len(scores),
+        "matched_condition": label,
+        "confidence": confidence,
+    }
+
 def parse_lap_times(value: Any) -> list[float] | None:
     """Parse 200m split times without correcting or guessing OCR values."""
     if isinstance(value, str):
