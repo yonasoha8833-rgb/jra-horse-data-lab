@@ -134,20 +134,23 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
         if not 1 <= race_number <= 12:
             continue
 
-        date_match = DATE_RE.search(header)
+        # OCR often places meeting/date/distance metadata on adjacent lines.
+        header_window = "\\n".join(block[:8])
+        date_match = DATE_RE.search(header_window)
         race_date = None
         if date_match:
             month, day = map(int, date_match.groups())
-            year_match = re.search(r"(20\d{2})年", header)
+            year_match = re.search(r"(20\\d{2})年", header_window)
+            if not year_match and source_url:
+                year_match = re.search(r"/(20\\d{2})/", source_url)
             if year_match:
                 year = int(year_match.group(1))
                 try:
                     race_date = date(year, month, day).isoformat()
                 except ValueError:
-                    # Invalid calendar dates are left missing, never normalized.
                     race_date = None
 
-        distance_match = DISTANCE_RE.search(header)
+        distance_match = DISTANCE_RE.search(header_window)
         distance = _distance(distance_match.group(1)) if distance_match else None
         surface = None
         for line in block[:8]:
