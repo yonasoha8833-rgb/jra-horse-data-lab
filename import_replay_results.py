@@ -67,6 +67,21 @@ def validate_replay_records(rows: list[dict]) -> list[dict]:
                 raise ValueError(f"Runner row {index} has invalid individual last 3F")
             if not math.isfinite(value):
                 raise ValueError(f"Runner row {index} has non-finite individual last 3F")
+            if not 20.0 <= value <= 60.0:
+                raise ValueError(f"Runner row {index} has individual last 3F outside 20-60 seconds")
+        corners = row.get("corner_positions")
+        if corners is not None:
+            if not isinstance(corners, str):
+                raise ValueError(f"Runner row {index} has invalid corner positions")
+            positions = corners.replace("－", "-").split("-")
+            if not 2 <= len(positions) <= 4:
+                raise ValueError(f"Runner row {index} has invalid corner position count")
+            try:
+                parsed_positions = [int(value.strip()) for value in positions]
+            except ValueError:
+                raise ValueError(f"Runner row {index} has non-integer corner positions")
+            if any(not 1 <= value <= 18 for value in parsed_positions):
+                raise ValueError(f"Runner row {index} has corner position outside 1-18")
     return rows
 
 
