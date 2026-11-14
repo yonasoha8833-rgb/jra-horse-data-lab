@@ -9,6 +9,20 @@ import import_results
 
 class ImportResultsTests(unittest.TestCase):
 
+    def test_main_revalidates_saved_ocr_records_before_import(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            catalog = root / "catalog.json"
+            output = root / "race_results.json"
+            catalog.write_text(json.dumps({"items": []}), encoding="utf-8")
+            output.write_text(json.dumps({"records": [], "processed_sources": []}), encoding="utf-8")
+            with patch.object(import_results, "CATALOG", catalog), \
+                 patch.object(import_results, "OUTPUT", output), \
+                 patch.object(import_results, "sanitize_existing_records", return_value=[]) as sanitize, \
+                 patch("sys.argv", ["import_results.py", "--limit", "1"]):
+                import_results.main()
+            sanitize.assert_called_once_with([])
+
     def test_sanitize_existing_records_drops_invalid_legacy_ocr_race(self):
         ordinary = {"source_url": "manual", "horse_number": 1}
         invalid_ocr = [
