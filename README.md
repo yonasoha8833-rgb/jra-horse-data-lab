@@ -2,7 +2,7 @@
 
 スマートフォン向けJRA公式成績データ分析プロジェクト。
 
-初期版は公式成績PDFリンクの収集と表示までです。馬別成績・ラップ・調教データの構造化は未実装です。
+初期版は公式成績PDFリンクの収集と表示までです。馬別成績の基本集計と公式PDFの初期取り込み処理を実装中です。ラップ・調教データの本格的な構造化は未実装です。
 
 JRA公式のレースラップはレース全体のラップであり、各馬個別の1Fラップではありません。推定値と実測値を区別します。
 
@@ -21,8 +21,10 @@ Settings → Pages → Build and deployment → Deploy from a branch → main / 
 - `surface`: 芝・ダート
 - `distance`: 距離（m）
 - `finish`: 着順
-- `time_seconds`: 走破タイム（秒）
-- `last3f`: 上がり3F（秒）
+- `finish_time_seconds`: 走破タイム（秒、公式PDF取り込み形式）
+- `individual_last3f`: 個別馬の上がり3F（公式値がある場合のみ）
+- `race_last3f`: レース全体の上がり3F（個別馬の値とは別項目）
+- `time_seconds` / `last3f`: 旧形式データとの互換用キー
 - `corner_positions`: コーナー通過順位
 - `jockey`: 騎手
 
