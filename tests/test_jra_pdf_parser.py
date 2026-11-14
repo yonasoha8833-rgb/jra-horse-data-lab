@@ -233,6 +233,23 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(rows[1]["finish_time_seconds"], rows[0]["finish_time_seconds"])
         self.assertEqual(rows[2]["finish"], 3)
 
+    def test_parses_actual_jra_pdf_layout_with_dead_heat(self):
+        text = """11月 8日 晴良 （2026年5東京） 第2日 第1競走 2歳未勝利  1，600
+発走 9時55分 （ダート・左）
+2 2 サノノファイター 牡2鹿 56 田辺 裕信 佐野 信幸氏 栗田 徹 むかわ 上水牧場 484±01：39．0 1．8
+6 7 ブルーサンタ 牡2青鹿56 戸崎 圭太 SNSグループ 斎藤 誠 浦河 宮内牧場 452＋21：39．2 5．6
+4 4 ルボワ 牡2鹿 56 西村 淳也 亀岡 和彦氏 杉山 佳明 安平 ノーザンファーム 520±0 〃 アタマ 5．5
+811 ココビスケット 牝2鹿 55 小林 脩斗 吉田 千津氏 小島 茂之 千歳 社台ファーム 436＋21：39．3 88．0
+（11頭）
+"""
+        rows = parse_race_text(text)
+        self.assertEqual(len(rows), 4)
+        self.assertEqual([row["finish"] for row in rows], [1, 2, 2, 4])
+        self.assertEqual(rows[0]["distance"], 1600)
+        self.assertEqual(rows[0]["track"], "東京")
+        self.assertEqual(rows[0]["surface"], "ダート")
+        self.assertEqual(rows[2]["finish_time_seconds"], rows[1]["finish_time_seconds"])
+
 
 if __name__ == "__main__":
     unittest.main()
