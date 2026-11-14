@@ -55,9 +55,9 @@ ul{padding-left:22px}
 <li>JRA公式成績PDF一覧：利用可能</li>
 <li>公式PDFから馬名・馬番・基本着順を抽出：初期版を追加</li>
 <li>PDF一括取り込み：GitHub Actionsから手動実行可能</li>
-<li>レースラップ・前後半3F/5F：未実装</li>
+<li>レース全体ラップ・前後半3F/5F：基本集計を追加（実データ検証中）</li>
 <li>重賞PDFの個別上がり3F・通過順位：抽出器・自動取り込み・画面連携を追加（実データ検証中）</li>
-<li>テン速度・位置取り能力：未実装</li>
+<li>脚質×ペース別の実績集計：画面表示を追加（有効データ蓄積中）</li>\n<li>テン速度・位置取り能力：未実装</li>
 <li>トラックバイアス・不利補正：未実装</li>
 <li>調教・初ブリンカー検出：未実装</li>
 </ul>
@@ -236,7 +236,7 @@ function renderStylePacePerformance(records){
   const laps=Array.isArray(lapValue)?lapValue.map(Number):typeof lapValue==='string'?lapValue.trim().split(/[\\s,、/|‐-‒–—-]+/).map(Number):[];
   const distance=Number(rows.find(r=>Number(r.distance)>0)?.distance||first.distance);
   if(!Number.isInteger(distance)||distance<1000||distance>5000||distance%200!==0||laps.length!==distance/200||laps.some(v=>!Number.isFinite(v)||v<8||v>40))return;
-  const half=Math.floor(laps.length/2),balance=laps.slice(half).reduce((a,b)=>a+b,0)/laps.length*2-laps.slice(0,half).reduce((a,b)=>a+b,0)/laps.length*2;
+  const half=Math.floor(laps.length/2),firstHalf=laps.slice(0,half),secondHalf=laps.slice(half),balance=secondHalf.reduce((a,b)=>a+b,0)/secondHalf.length-firstHalf.reduce((a,b)=>a+b,0)/firstHalf.length;
   const pace=balance>=0.3?'前半速い':balance<=-0.3?'後半速い':'ほぼ均等';
   validRaces++;
   const field=Number(first.field_size)>1?Number(first.field_size):rows.length;
