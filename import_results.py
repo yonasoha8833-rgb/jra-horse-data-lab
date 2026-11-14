@@ -30,10 +30,16 @@ def main() -> None:
     }
     attempted = 0
 
-    for item in catalog.get("items", []):
+    # Do not let one persistently broken early catalog entry block every later PDF.
+    # Process never-attempted sources first, then retry failures oldest-first.
+    catalog_items = [item for item in catalog.get("items", []) if item.get("url") and item.get("url") not in processed]
+    catalog_items.sort(key=lambda item: (
+        item["url"] in failures_by_url,
+        failures_by_url.get(item["url"], {}).get("last_attempt_utc", ""),
+    ))
+
+    for item in catalog_items:
         url = item.get("url")
-        if not url or url in processed:
-            continue
         if attempted >= args.limit:
             break
         attempted += 1
