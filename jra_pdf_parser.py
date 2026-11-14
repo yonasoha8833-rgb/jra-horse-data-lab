@@ -157,6 +157,7 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
                 "surface": surface,
                 "distance": distance,
                 "finish": position,
+                "field_size": len(runners),
                 "race_last3f": last3f,
                 "race_last4f": last4f,
                 "race_lap_times": laps,
