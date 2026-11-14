@@ -1,6 +1,10 @@
 name: Inspect JRA result PDF
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'race_parser.py'
+      - '.github/workflows/inspect-pdf.yml'
 permissions:
   contents: read
 jobs:
