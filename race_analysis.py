@@ -39,7 +39,7 @@ def summarize_horses(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
         finishes = [v for v in finishes if v is not None and v > 0]
         times = [_number(r.get("finish_time_seconds", r.get("time_seconds"))) for r in rows]
         times = [v for v in times if v is not None and v > 0]
-        last3fs = [_number(r.get("last3f")) for r in rows]
+        last3fs = [_number(r.get("individual_last3f", r.get("last3f"))) for r in rows]
         last3fs = [v for v in last3fs if v is not None and v > 0]
         summaries.append({
             "horse_name": name,
