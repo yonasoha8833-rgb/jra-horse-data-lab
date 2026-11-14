@@ -66,5 +66,17 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertIsNone(rows[1]["finish_time_seconds"])
 
 
+    def test_does_not_mistake_race_year_for_distance(self):
+        text = SAMPLE.replace("1，600ｍ", "距離不明")
+        rows = parse_race_text(text)
+        self.assertEqual(len(rows), 2)
+        self.assertIsNone(rows[0]["distance"])
+
+    def test_accepts_ascii_meter_suffix(self):
+        text = SAMPLE.replace("1，600ｍ", "1600m")
+        rows = parse_race_text(text)
+        self.assertEqual(rows[0]["distance"], 1600)
+
+
 if __name__ == "__main__":
     unittest.main()
