@@ -245,6 +245,62 @@ def performance_score(records: Iterable[dict[str, Any]]) -> float | None:
     weights = list(range(len(recent), 0, -1))
     return round(sum(score * weight for (_, score), weight in zip(recent, weights)) / sum(weights), 1)
 
+def parse_lap_times(value: Any) -> list[float] | None:
+    """Parse 200m split times without correcting or guessing OCR values."""
+    if isinstance(value, str):
+        tokens = re.split(r"[\\s,、/|‐‑‒–—-]+", value.strip())
+        if not tokens or any(not token for token in tokens):
+            return None
+    elif isinstance(value, (list, tuple)):
+        tokens = list(value)
+    else:
+        return None
+    parsed = []
+    for token in tokens:
+        number = _number(token)
+        # A 200m split outside this broad plausibility range is treated as
+        # untrusted input; it is never silently repaired.
+        if number is None or number < 8 or number > 40:
+            return None
+        parsed.append(number)
+    return parsed or None
+
+
+def summarize_race_pace(lap_times: Any, distance: Any) -> dict[str, Any] | None:
+    """Describe race-level pace from official 200m splits, not horse-level speed.
+
+    The distance must match the number of 200m splits exactly. Positive
+    balance means the first half was faster per 200m than the second half.
+    """
+    splits = parse_lap_times(lap_times)
+    metres = _number(distance)
+    if splits is None or metres is None or metres < 1000 or metres > 5000:
+        return None
+    if metres % 200 != 0 or len(splits) != int(metres // 200):
+        return None
+    midpoint = len(splits) // 2
+    first_half = splits[:midpoint]
+    second_half = splits[midpoint:]
+    if not first_half or not second_half:
+        return None
+    first_avg = mean(first_half)
+    second_avg = mean(second_half)
+    balance = round(second_avg - first_avg, 2)
+    shape = "前半速い" if balance >= 0.3 else "後半速い" if balance <= -0.3 else "ほぼ均等"
+    return {
+        "split_count": len(splits),
+        "first_3f_seconds": round(sum(splits[:3]), 2) if len(splits) >= 3 else None,
+        "last_3f_seconds": round(sum(splits[-3:]), 2) if len(splits) >= 3 else None,
+        "first_5f_seconds": round(sum(splits[:5]), 2) if len(splits) >= 5 else None,
+        "last_5f_seconds": round(sum(splits[-5:]), 2) if len(splits) >= 5 else None,
+        "first_half_average_200m": round(first_avg, 2),
+        "second_half_average_200m": round(second_avg, 2),
+        "second_minus_first_seconds_per_200m": balance,
+        "pace_shape": shape,
+        "interpretation": "レース全体のラップ傾向。個々の馬の走破速度や展開利を直接示すものではありません。",
+    }
+
+
 def summarize_races(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     """Aggregate runner rows into race-level summaries without guessing missing data."""
     grouped: dict[tuple[str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
@@ -294,6 +350,7 @@ def summarize_races(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
             ],
             "race_last3f": _number(first.get("race_last3f")),
             "race_lap_times": first.get("race_lap_times") if isinstance(first.get("race_lap_times"), list) else None,
+            "pace_analysis": summarize_race_pace(first.get("race_lap_times"), first.get("distance")),
             "validation_warnings": warnings,
         })
     return sorted(summaries, key=lambda race: (
