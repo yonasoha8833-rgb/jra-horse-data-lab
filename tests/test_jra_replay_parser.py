@@ -64,6 +64,14 @@ class JraReplayParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["corner_positions"], "3-3-3-3")
         self.assertEqual(rows[0]["race_number"], 11)
 
+    def test_parses_two_corner_positions(self):
+        text = """2025年10月5日 東京競馬場 芝1,800メートル 曇・良
+1 ⑨ テストホース 牡5 57 津村明秀 1:44.0 3-2 33.3 484（±0） 7.7⑤ 田中博康（美浦）
+"""
+        rows = parse_replay_text(text)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["corner_positions"], "3-2")
+
     def test_does_not_guess_missing_runner_closing_time(self):
         text = SAMPLE.replace("33.8 508（－６）", "508（－６）")
         rows = parse_replay_text(text)
