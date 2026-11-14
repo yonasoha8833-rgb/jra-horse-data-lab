@@ -31,6 +31,19 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["runner_validation_warnings"], ["invalid_finish_time_seconds"])
         self.assertEqual(rows[1]["finish"], 1)
 
+    def test_accepts_ocr_pipe_delimited_jra_runner_row(self):
+        ocr_row = "6|7| ウォータージェード|牡2和|56 | 松若風馬 1:08.5"
+        text = SAMPLE.replace(
+            "2 2 サノノファイター 牡2鹿 56 田辺 裕信 佐野 信幸氏 栗田 徹 484±0 1：39．0",
+            ocr_row,
+        )
+        rows = parse_race_text(text)
+        self.assertEqual(rows[0]["frame"], 6)
+        self.assertEqual(rows[0]["horse_number"], 7)
+        self.assertEqual(rows[0]["horse_name"], "ウォータージェード")
+        self.assertEqual(rows[0]["sex"], "牡")
+        self.assertEqual(rows[0]["age"], 2)
+
     def test_accepts_ocr_pipe_separator_between_frame_and_horse_number(self):
         rows = parse_race_text(
             SAMPLE.replace("2 2 サノノファイター", "2|2 サノノファイター")
