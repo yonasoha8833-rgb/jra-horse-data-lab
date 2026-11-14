@@ -256,8 +256,38 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
 
 
 
+def _expected_frame(field_size: int, horse_number: int) -> int:
+    """Return the official JRA frame for a horse number and field size."""
+    if field_size <= 8:
+        return horse_number
+    base, remainder = divmod(field_size, 8)
+    frame = 1
+    first_larger_frame = 8 - remainder + 1 if remainder else 9
+    for current_frame in range(1, 9):
+        count = base + (1 if current_frame >= first_larger_frame else 0)
+        if horse_number <= count:
+            return current_frame
+        horse_number -= count
+    return 0
+
+
+def _inferred_complete_field_size(rows: list[dict[str, Any]]) -> int | None:
+    """Infer field size only when contiguous horse numbers and JRA frame assignments identify it uniquely."""
+    numbers = sorted(row.get("horse_number") for row in rows)
+    if not numbers or numbers != list(range(1, len(numbers) + 1)):
+        return None
+    candidates = []
+    for field_size in range(max(2, len(numbers)), 19):
+        if all(
+            row.get("frame") == _expected_frame(field_size, row.get("horse_number"))
+            for row in rows
+        ):
+            candidates.append(field_size)
+    return candidates[0] if len(candidates) == 1 else None
+
+
 def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Keep only OCR races whose parsed runner count matches the printed field size."""
+    """Keep only OCR races with a verified declared or uniquely inferred full field."""
     races: dict[tuple, list[dict[str, Any]]] = {}
     for row in records:
         key = (row.get("source_url"), row.get("date"), row.get("race_number"))
@@ -265,7 +295,15 @@ def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]
     accepted = []
     for rows in races.values():
         declared = rows[0].get("declared_field_size")
-        if declared is not None and len(rows) == declared:
+        if declared is not None:
+            complete = len(rows) == declared
+        else:
+            inferred = _inferred_complete_field_size(rows)
+            complete = inferred is not None and len(rows) == inferred
+            if complete:
+                for row in rows:
+                    row["declared_field_size"] = inferred
+        if complete:
             for row in rows:
                 row["extraction_status"] = "ocr_fallback_basic_fields"
                 accepted.append(row)
