@@ -438,7 +438,7 @@ class JraPdfParserTests(unittest.TestCase):
         )
         self.assertEqual(
             _ocr_identifier_column(tsv, scale=5, y_offset=30, allowed=r"[1-8]"),
-            [(35.0, 5), (43.0, 9)] if False else [(35.0, 5)]
+            [(35.0, 5)]
         )
 
     def test_ocr_identifier_rows_require_vertical_alignment(self):
