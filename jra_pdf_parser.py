@@ -395,6 +395,46 @@ def _ocr_identifier_pairs(text: str) -> list[tuple[int, int] | None]:
     return pairs
 
 
+def _ocr_identifier_column(tsv: str, *, scale: float, y_offset: float, allowed: str) -> list[tuple[float, int]]:
+    """Read one isolated identifier column without merging adjacent digits."""
+    values = []
+    for y, text in _ocr_tsv_lines(tsv, scale=scale, y_offset=y_offset):
+        token = re.sub(r"[^0-9]", "", text)
+        if re.fullmatch(allowed, token):
+            values.append((y, int(token)))
+    return values
+
+
+def _pair_identifier_columns(
+    frame_rows: list[tuple[float, int]],
+    horse_rows: list[tuple[float, int]],
+) -> list[tuple[float, tuple[int, int]]]:
+    """Pair independently recognized frame and horse columns by row position."""
+    if not frame_rows or len(frame_rows) != len(horse_rows):
+        return []
+    gaps = [b[0] - a[0] for a, b in zip(frame_rows, frame_rows[1:]) if b[0] > a[0]]
+    if len(gaps) != len(frame_rows) - 1:
+        return []
+    typical_gap = sorted(gaps)[len(gaps) // 2] if gaps else 0
+    tolerance = typical_gap * 0.40
+    paired = []
+    used = set()
+    for frame_y, frame in frame_rows:
+        candidates = [
+            i for i, (horse_y, horse) in enumerate(horse_rows)
+            if i not in used and abs(frame_y - horse_y) <= tolerance
+        ]
+        if len(candidates) != 1:
+            return []
+        index = candidates[0]
+        used.add(index)
+        horse_y, horse = horse_rows[index]
+        paired.append(((frame_y + horse_y) / 2, (frame, horse)))
+    if len(used) != len(horse_rows):
+        return []
+    return paired
+
+
 def _ocr_tsv_lines(tsv: str, *, scale: float = 1.0, y_offset: float = 0.0) -> list[tuple[float, str]]:
     """Return OCR text lines with vertical centers in original panel coordinates."""
     grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = {}
@@ -538,31 +578,35 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     ["tesseract", str(crop_path), "stdout", "-l", "jpn+eng", "--psm", "6", "tsv"],
                     check=True, timeout=30, capture_output=True, text=True,
                 ).stdout
-                number_tsv = subprocess.run(
-                    ["tesseract", str(number_path), "stdout", "-l", "eng", "--psm", "6", "tsv"],
+                # Split the two narrow identifier columns before OCR. A
+                # combined pass frequently merges neighboring digits (e.g. 5 and 9).
+                split_x = max(1, int(number_crop.width * 0.38))
+                frame_path = temp_dir / f"{page.stem}-{side}-frame.png"
+                horse_path = temp_dir / f"{page.stem}-{side}-horse.png"
+                number_crop.crop((0, 0, split_x, number_crop.height)).save(frame_path)
+                number_crop.crop((split_x, 0, number_crop.width, number_crop.height)).save(horse_path)
+                frame_tsv = subprocess.run(
+                    ["tesseract", str(frame_path), "stdout", "-l", "eng", "--psm", "6", "tsv"],
+                    check=True, timeout=30, capture_output=True, text=True,
+                ).stdout
+                horse_tsv = subprocess.run(
+                    ["tesseract", str(horse_path), "stdout", "-l", "eng", "--psm", "6", "tsv"],
                     check=True, timeout=30, capture_output=True, text=True,
                 ).stdout
                 panel_lines = _ocr_tsv_lines(panel_tsv, scale=5 / 3)
-                number_lines = _ocr_tsv_lines(
-                    number_tsv, scale=5, y_offset=float(number_box[1])
-                )
                 runner_indexes = [
                     i for i, line in enumerate(clean_lines) if _runner(line.strip())
                 ]
                 runner_centers = [
                     y for y, line in panel_lines if _runner(line.strip())
                 ]
-                # Parse each TSV line's own text so OCR text and bounding-box
-                # rows can never drift apart through a positional zip.
-                identifier_rows = []
-                for y, line_text in number_lines:
-                    pairs = _ocr_identifier_pairs(line_text)
-                    # The narrow crop also captures table borders, headers and
-                    # payout rows. Keep only actual frame/horse identifier rows;
-                    # including blank OCR rows makes the whole panel fail the
-                    # strict row-count/alignment check.
-                    if len(pairs) == 1 and pairs[0] is not None:
-                        identifier_rows.append((y, pairs[0]))
+                frame_rows = _ocr_identifier_column(
+                    frame_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"[1-8]"
+                )
+                horse_rows = _ocr_identifier_column(
+                    horse_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"(?:[1-9]|1[0-8])"
+                )
+                identifier_rows = _pair_identifier_columns(frame_rows, horse_rows)
                 matched = _match_ocr_identifier_rows(runner_centers, identifier_rows)
                 if len(runner_indexes) == len(runner_centers) and matched is not None:
                     for line_index, (frame, number) in zip(runner_indexes, matched):
