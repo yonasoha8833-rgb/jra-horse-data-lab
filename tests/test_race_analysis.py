@@ -1,6 +1,6 @@
 import unittest
 
-from race_analysis import analyze_race_scenario, classify_running_style, parse_corner_positions, distance_band, filter_records, parse_lap_times, performance_score, recent_form_summary, summarize_race_pace, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles
+from race_analysis import analyze_race_scenario, classify_running_style, parse_corner_positions, distance_band, filter_records, parse_lap_times, performance_score, recent_form_summary, summarize_race_pace, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles, summarize_running_style_pace_performance
 
 
 class RaceAnalysisTests(unittest.TestCase):
@@ -16,6 +16,36 @@ class RaceAnalysisTests(unittest.TestCase):
              "time_seconds": None, "last3f": None},
         ]
 
+
+
+    def test_style_pace_performance_uses_validated_race_laps(self):
+        rows = []
+        for race_number, finishes in [(1, [1, 2, 4]), (2, [2, 1, 3]), (3, [3, 1, 2])]:
+            for horse_number, finish in enumerate(finishes, 1):
+                rows.append({
+                    "source_url": "pace.pdf", "date": "2026-11-01", "track": "東京",
+                    "race_number": race_number, "horse_number": horse_number,
+                    "horse_name": f"馬{horse_number}", "finish": finish,
+                    "field_size": 3, "corner_positions": [1, 1, 1] if horse_number == 1 else [2, 2, 2],
+                    "distance": 1600, "race_lap_times": [12.5] * 4 + [11.5] * 4,
+                })
+        result = summarize_running_style_pace_performance(rows, min_starts=3)
+        front = next(item for item in result if item["running_style"] == "逃げ")
+        self.assertEqual(front["pace_shape"], "後半速い")
+        self.assertEqual(front["starts"], 3)
+        self.assertEqual(front["wins"], 1)
+        self.assertEqual(front["top3"], 3)
+        self.assertEqual(front["win_rate"], 0.3333)
+        self.assertEqual(front["top3_rate"], 1.0)
+
+    def test_style_pace_performance_excludes_missing_laps_and_small_samples(self):
+        rows = [
+            {"race_number": 1, "horse_name": "不明", "finish": 1,
+             "corner_positions": [1, 1], "field_size": 8, "distance": 1600},
+        ]
+        self.assertEqual(summarize_running_style_pace_performance(rows), [])
+        with self.assertRaises(ValueError):
+            summarize_running_style_pace_performance([], min_starts=0)
 
     def test_race_scenario_uses_front_runner_pressure_and_scores(self):
         result = analyze_race_scenario([
