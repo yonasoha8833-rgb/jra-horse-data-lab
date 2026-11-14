@@ -55,6 +55,10 @@ class ImportResultsTests(unittest.TestCase):
         self.assertEqual(report["records_missing_going"], 1)
         self.assertEqual(report["records_missing_finish_time"], 2)
         self.assertEqual(report["records_with_invalid_finish_time"], 1)
+        self.assertEqual(report["records_with_individual_last3f"], 0)
+        self.assertEqual(report["records_missing_individual_last3f"], 3)
+        self.assertEqual(report["records_with_horse_registration_number"], 0)
+        self.assertEqual(report["records_missing_horse_registration_number"], 3)
 
     def test_failed_source_is_recorded_and_remains_retryable(self):
         with tempfile.TemporaryDirectory() as directory:
