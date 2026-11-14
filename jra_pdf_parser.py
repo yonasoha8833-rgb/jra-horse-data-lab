@@ -6,6 +6,7 @@ individual horse's last-3F value from the race-level figure.
 """
 from __future__ import annotations
 
+import os
 import re
 from datetime import date
 
@@ -371,6 +372,17 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     capture_output=True,
                     text=True,
                 )
+                # Preserve only the first page's two crops and OCR text when
+                # explicitly enabled by CI, so layout errors can be inspected
+                # without committing diagnostic files to the repository.
+                debug_dir = os.environ.get("JRA_OCR_DEBUG_DIR")
+                if debug_dir and page == pages[0]:
+                    destination = Path(debug_dir)
+                    destination.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(crop_path, destination / f"{page.stem}-{side}.png")
+                    (destination / f"{page.stem}-{side}.txt").write_text(
+                        result.stdout, encoding="utf-8"
+                    )
                 chunks.append(result.stdout)
     return "\n".join(chunks)
 
