@@ -214,6 +214,25 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(rows[1]["result_status"], "中止")
         self.assertIsNone(rows[1]["finish"])
 
+    def test_parses_official_distance_control_glyph(self):
+        text = SAMPLE.replace("1，600ｍ", "1，600\\x02")
+        rows = parse_race_text(text)
+        self.assertEqual(rows[0]["distance"], 1600)
+
+    def test_dead_heat_marker_shares_previous_place_and_time(self):
+        text = SAMPLE.replace(
+            "6 7 ブルーサンタ 牡2青鹿56 戸崎 圭太 SNSグループ 452＋2 1：39．2",
+            "6 7 ブルーサンタ 牡2青鹿56 戸崎 圭太 SNSグループ 452＋2 〃 アタマ",
+        ).replace(
+            "（2頭）",
+            "6 6 タイセイアドーレ 牡2青鹿56 A．プーシャン 田中 成奉氏 伊藤 圭三 498＋0 1：39．8\\n（3頭）",
+        )
+        rows = parse_race_text(text)
+        self.assertEqual(rows[0]["finish"], 1)
+        self.assertEqual(rows[1]["finish"], 1)
+        self.assertEqual(rows[1]["finish_time_seconds"], rows[0]["finish_time_seconds"])
+        self.assertEqual(rows[2]["finish"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()
