@@ -59,7 +59,7 @@ GitHub Actions の `Python tests` が push / pull request 時に自動実行し�
 
 ## 重賞PDFの一覧取得と取り込み
 
-`jra_replay_catalog.py` はJRAの年度別重賞一覧ページから、レース結果PDFのURLと開催日・レース名・競馬場・コース・距離を収集します。対象は2002年以降です。例：
+`jra_replay_catalog.py` はJRAの年度別重賞一覧ページからレース結果リンクを抽出し、リンク先がHTMLの場合はそのページ内のPDFリンクまでたどって、PDFのURLと開催日・レース名・競馬場・コース・距離を収集します。対象は2002年以降です。例：
 
 ```bash
 python jra_replay_catalog.py --from-year 2025 --to-year 2026
