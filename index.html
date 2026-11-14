@@ -44,6 +44,7 @@ ul{padding-left:22px}
 <select id="horseSort" aria-label="馬の並び順"><option value="name">馬名順</option><option value="starts">出走数が多い順</option><option value="wins">勝利数が多い順</option><option value="winRate">勝率が高い順</option><option value="score">参考指数が高い順</option></select>
 </div>
 <div id="horseCompare" class="small"></div>
+<div class="panel" style="margin:14px 0;padding:12px"><h3>レース別成績</h3><p id="raceSummaryStatus" class="muted small">レースデータを集計します…</p><div id="raceResults"></div></div>
 <div id="horseResults"></div>
 <p class="muted small">能力指数は出走頭数で着順を0〜100点に換算し、直近5走を重み付けした参考値です。速度指数や勝率予測ではありません。</p>
 </section>
@@ -152,6 +153,47 @@ function updateHorseComparison(){
  const note=document.createElement('p');note.className='muted small';note.textContent='条件に合う記録だけで集計します。該当記録がない馬は「—」表示です。参考指数は条件内の有効な着順データから計算します。';horseCompare.append(note);
  const clear=document.createElement('button');clear.type='button';clear.textContent='比較を解除';clear.addEventListener('click',()=>{selectedHorses.clear();comparisonCondition='all';updateHorseComparison();renderHorses();});horseCompare.append(clear);
 }
+
+function renderRaceSummaries(records){
+ const target=document.getElementById('raceResults');
+ const status=document.getElementById('raceSummaryStatus');
+ target.replaceChildren();
+ const grouped=new Map();
+ records.forEach(row=>{
+  const number=String(row.race_number||'').trim();
+  if(!number)return;
+  const key=[row.source_url||'',row.date||'',row.track||'',number].join('|');
+  if(!grouped.has(key))grouped.set(key,[]);
+  grouped.get(key).push(row);
+ });
+ const races=[...grouped.values()].sort((a,b)=>{
+  const x=a[0],y=b[0];
+  return String(y.date||'').localeCompare(String(x.date||''))||String(y.track||'').localeCompare(String(x.track||''),'ja')||Number(y.race_number||0)-Number(x.race_number||0);
+ });
+ status.textContent='集計レース '+races.length+'件（新しい順・最大20件表示）';
+ if(!races.length){const empty=document.createElement('p');empty.className='muted small';empty.textContent='レース番号を確認できる記録がまだありません。';target.append(empty);return;}
+ races.slice(0,20).forEach(rows=>{
+  const placed=rows.filter(r=>Number.isFinite(Number(r.finish))&&Number(r.finish)>0).sort((a,b)=>Number(a.finish)-Number(b.finish)||Number(a.horse_number||99)-Number(b.horse_number||99));
+  const winners=placed.filter(r=>Number(r.finish)===1);
+  const first=rows[0];
+  const details=document.createElement('details');details.className='item small';
+  const summary=document.createElement('summary');
+  const title=[first.date||'日付不明',first.track||'競馬場不明',first.race_number+'R',first.race_name||'レース名未取得',first.surface||'コース不明',first.distance?first.distance+'m':'距離不明',first.going||'馬場状態不明'].join('・');
+  summary.textContent=title;details.append(summary);
+  const meta=document.createElement('p');meta.className='muted';
+  meta.textContent='出走記録 '+rows.length+'頭 ／ 着順記録 '+placed.length+'頭 ／ 着順なし '+(rows.length-placed.length)+'頭'+(winners.length===1&&winners[0].finish_time?' ／ 勝ち時計 '+winners[0].finish_time:'')+(first.race_last3f?' ／ レース上がり3F '+first.race_last3f+'秒':'');
+  details.append(meta);
+  const result=document.createElement('p');
+  const top=placed.filter(r=>Number(r.finish)<=3).map(r=>Number(r.finish)+'着 '+(r.horse_number?' '+r.horse_number+'番':'')+' '+(r.horse_name||'馬名未取得'));
+  result.textContent=top.length?'上位成績：'+top.join(' ／ '):'上位着順は確認できません。';
+  details.append(result);
+  const warnings=[...new Set(rows.flatMap(r=>Array.isArray(r.race_validation_warnings)?r.race_validation_warnings:[]).filter(v=>typeof v==='string'))];
+  if(warnings.length){const warning=document.createElement('p');warning.className='muted';warning.textContent='要確認：'+warnings.join(' ／ ');details.append(warning);}
+  if(first.race_lap_times&&Array.isArray(first.race_lap_times)&&first.race_lap_times.length){const laps=document.createElement('p');laps.className='muted';laps.textContent='レース全体のラップ（秒）：'+first.race_lap_times.join(' - ');details.append(laps);}
+  target.append(details);
+ });
+}
+
 function horseScore(rows){const valid=rows.filter(r=>Number.isFinite(Number(r.finish))&&Number.isFinite(Number(r.field_size))&&Number(r.field_size)>1&&Number(r.finish)>=1&&Number(r.finish)<=Number(r.field_size)).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,5);if(!valid.length)return null;const weighted=valid.reduce((sum,r,i)=>sum+(100*(Number(r.field_size)-Number(r.finish))/(Number(r.field_size)-1))*(valid.length-i),0);return weighted/(valid.length*(valid.length+1)/2);}
 function renderHorses(){
  const q=horseKeyword.value.trim().toLocaleLowerCase();
@@ -197,6 +239,7 @@ function renderHorses(){
 }
 fetch('./data/race_results.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('not imported');return r.json();}).then(d=>{
  horseRecords=Array.isArray(d.records)?d.records:[];
+ renderRaceSummaries(horseRecords);
  [...new Set(horseRecords.map(r=>r.distance).filter(v=>Number.isFinite(Number(v))&&Number(v)>0))].sort((a,b)=>Number(a)-Number(b)).forEach(v=>{const o=document.createElement('option');o.value=String(v);o.textContent=String(v)+'m';horseDistance.append(o);});
  window.__importFailures=Array.isArray(d.import_failures)?d.import_failures:[];
  const importMeta=document.createElement('p');importMeta.className='muted small';
