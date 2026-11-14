@@ -61,6 +61,7 @@ def extract_pdf_text(pdf_path: Path, first_page: int, last_page: int) -> str:
         raise ValueError("Extracted PDF text exceeds the permitted 2 MiB limit")
     return result.stdout
 
+
 def ocr_pdf_pages(pdf_path: Path, first_page: int, last_page: int, dpi: int = 300) -> str:
     if first_page < 1 or last_page < first_page:
         raise ValueError("Page numbers must be positive and ordered")
