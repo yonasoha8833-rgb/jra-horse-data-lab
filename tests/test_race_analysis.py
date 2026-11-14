@@ -1,6 +1,6 @@
 import unittest
 
-from race_analysis import distance_band, filter_records, parse_lap_times, performance_score, recent_form_summary, summarize_race_pace, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles
+from race_analysis import classify_running_style, parse_corner_positions, distance_band, filter_records, parse_lap_times, performance_score, recent_form_summary, summarize_race_pace, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles
 
 
 class RaceAnalysisTests(unittest.TestCase):
@@ -16,6 +16,27 @@ class RaceAnalysisTests(unittest.TestCase):
              "time_seconds": None, "last3f": None},
         ]
 
+
+    def test_running_style_parser_and_classification(self):
+        self.assertEqual(parse_corner_positions("1-1-2-2"), [1, 1, 2, 2])
+        self.assertIsNone(parse_corner_positions("1-二-3"))
+        self.assertEqual(classify_running_style([1, 1, 2, 2], 16), "逃げ")
+        self.assertEqual(classify_running_style([3, 4, 5, 4], 16), "先行")
+        self.assertEqual(classify_running_style([7, 8, 9, 8], 16), "差し")
+        self.assertEqual(classify_running_style([13, 14, 15, 14], 16), "追込")
+        self.assertIsNone(classify_running_style([1, 2], None))
+        self.assertIsNone(classify_running_style([1, 17], 16))
+
+    def test_horse_summary_includes_running_style_distribution(self):
+        rows = [
+            {"horse_name": "脚質集計馬", "finish": 1, "field_size": 16, "corner_positions": [1, 1, 2, 2]},
+            {"horse_name": "脚質集計馬", "finish": 2, "field_size": 16, "corner_positions": [3, 4, 5, 4]},
+            {"horse_name": "脚質集計馬", "finish": 4, "field_size": 16, "corner_positions": None},
+        ]
+        style = summarize_horses(rows)[0]["running_style"]
+        self.assertEqual(style["sample_starts"], 2)
+        self.assertEqual(style["dominant_style"], "逃げ")
+        self.assertEqual(style["counts"], {"逃げ": 1, "先行": 1})
 
     def test_official_registration_number_separates_same_named_horses(self):
         rows = [
