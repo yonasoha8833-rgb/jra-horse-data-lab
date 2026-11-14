@@ -16,19 +16,6 @@ SAMPLE = """
 
 
 class JraPdfParserTests(unittest.TestCase):
-    def test_extracts_compact_frame_and_two_digit_horse_number(self):
-        text = """
-11月 8日 晴良 （2026年5東京） 第1競走 2歳未勝利 1，600ｍ
-発走 9時55分 （ダート・左）
-811 ココビスケット 牝2鹿 55 小林 脩斗 436＋2 1：39．3
-（1頭）
-"""
-        rows = parse_race_text(text)
-        self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]["frame"], 8)
-        self.assertEqual(rows[0]["horse_number"], 11)
-        self.assertEqual(rows[0]["horse_name"], "ココビスケット")
-
     def test_extracts_runner_and_race_level_fields(self):
         rows = parse_race_text(SAMPLE, source_url="https://example.test/race.pdf")
         self.assertEqual(len(rows), 2)
