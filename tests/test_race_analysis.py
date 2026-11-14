@@ -1,6 +1,6 @@
 import unittest
 
-from race_analysis import distance_band, filter_records, performance_score, recent_form_summary, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles
+from race_analysis import distance_band, filter_records, parse_lap_times, performance_score, recent_form_summary, summarize_race_pace, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles
 
 
 class RaceAnalysisTests(unittest.TestCase):
@@ -196,6 +196,29 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["horse_name"], "サンプルホース")
 
+
+    def test_lap_parser_and_race_pace_summary(self):
+        splits = [12.0, 11.8, 11.7, 11.9, 12.0, 12.2, 12.5, 12.7]
+        self.assertEqual(parse_lap_times("12.0-11.8-11.7"), [12.0, 11.8, 11.7])
+        self.assertIsNone(parse_lap_times("12.0-2O.8-11.7"))
+        result = summarize_race_pace(splits, 1600)
+        self.assertEqual(result["first_3f_seconds"], 35.5)
+        self.assertEqual(result["last_3f_seconds"], 37.4)
+        self.assertEqual(result["pace_shape"], "前半速い")
+        self.assertEqual(result["second_minus_first_seconds_per_200m"], 0.5)
+        self.assertIsNone(summarize_race_pace(splits, 1800))
+        self.assertIsNone(summarize_race_pace(splits, 1600.5))
+        self.assertIsNone(summarize_race_pace(None, 1600))
+
+    def test_race_pace_classifies_even_and_latter_faster_patterns(self):
+        self.assertEqual(
+            summarize_race_pace([12] * 8, 1600)["pace_shape"],
+            "ほぼ均等",
+        )
+        self.assertEqual(
+            summarize_race_pace([12.5] * 4 + [11.5] * 4, 1600)["pace_shape"],
+            "後半速い",
+        )
 
     def test_race_summary_groups_runners_and_reports_official_top_three(self):
         rows = [
