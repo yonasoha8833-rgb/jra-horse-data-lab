@@ -20,7 +20,8 @@ Settings → Pages → Build and deployment → Deploy from a branch → main / 
 - `track`: 競馬場
 - `surface`: 芝・ダート
 - `distance`: 距離（m）
-- `finish`: 着順
+- `finish`: 着順（着順を付与できない場合は `null`）
+- `result_status`: 公式PDFの行内で確認できた結果状態（競走中止・失格・中止・取消・除外など）
 - `finish_time_seconds`: 走破タイム（秒、公式PDF取り込み形式）
 - `individual_last3f`: 個別馬の上がり3F（公式値がある場合のみ）
 - `race_last3f`: レース全体の上がり3F（個別馬の値とは別項目）
@@ -28,7 +29,7 @@ Settings → Pages → Build and deployment → Deploy from a branch → main / 
 - `corner_positions`: コーナー通過順位
 - `jockey`: 騎手
 
-欠損値や数値に変換できない値は平均計算から除外し、推測で補完しません。
+欠損値や数値に変換できない値は平均計算から除外し、推測で補完しません。馬別集計には出走数・着順記録数・着順なしの走数・結果状態別件数も含まれます。着順なしには中止等のほか、抽出できなかった行も含まれるため、必ずしも全件が競走中止を意味するわけではありません。
 
 ### 利用例
 
