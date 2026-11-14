@@ -364,7 +364,12 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
             )
             for side, bounds in regions:
                 crop_path = temp_dir / f"{page.stem}-{side}.png"
-                image.crop(bounds).save(crop_path)
+                # At 180 dpi the runner identifiers are only a few pixels
+                # tall. Upscale each isolated race column before OCR; this
+                # materially improves Japanese text and the frame/horse digits.
+                crop = image.crop(bounds)
+                scaled_size = (crop.width * 5 // 3, crop.height * 5 // 3)
+                crop.resize(scaled_size, Image.Resampling.LANCZOS).save(crop_path)
                 result = subprocess.run(
                     ["tesseract", str(crop_path), "stdout", "-l", "jpn+eng", "--psm", "6"],
                     check=True,
