@@ -1,7 +1,44 @@
 {
   "source": "JRA official result PDFs listed in data/catalog.json",
   "processed_sources": [],
+  "import_failures": [
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3fukushima2.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-14T08:09:51.861005+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-5kyoto2.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-14T08:09:51.329402+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-5tokyo2.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-14T08:09:50.464427+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    }
+  ],
+  "last_import_attempted": 3,
   "record_count": 0,
+  "quality_report": {
+    "race_count": 0,
+    "warning_race_count": 0,
+    "duplicate_number_race_count": 0,
+    "field_size_mismatch_race_count": 0,
+    "records_missing_date": 0,
+    "records_missing_track": 0,
+    "records_missing_distance": 0,
+    "records_missing_going": 0,
+    "records_missing_finish_time": 0,
+    "records_with_invalid_finish_time": 0,
+    "records_with_individual_last3f": 0,
+    "records_missing_individual_last3f": 0,
+    "records_with_horse_registration_number": 0,
+    "records_missing_horse_registration_number": 0
+  },
   "records": [],
   "notes": [
     "finish is based on the order of recognized official result rows",
