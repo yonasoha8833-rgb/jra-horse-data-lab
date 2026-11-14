@@ -38,7 +38,7 @@ def _clean_name(value: str) -> str:
             if annotation in name:
                 name = name.replace(annotation, "")
                 changed = True
-    return name
+    return "".join(name.split())
 
 
 def parse_registry_text(text: str) -> list[dict[str, Any]]:
