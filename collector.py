@@ -24,9 +24,9 @@ def parse_metadata(label, context="", year=YEAR):
             metadata["date"] = datetime(year, month, day).date().isoformat()
         except ValueError:
             pass
-    meeting = re.search(r"(\d+)回", label)
+    meeting = re.search(r"(\d+)回", text)
     day_match = re.search(r"(\d+)日(?:\s|$|（)", label)
-    track = next((name for name in TRACKS if name in label), None)
+    track = next((name for name in TRACKS if name in text), None)
     if track:
         metadata["track"] = track
     if meeting:
@@ -90,7 +90,7 @@ def main():
         charset = response.headers.get_content_charset()
 
     if not charset:
-        match = re.search(br'charset=["\']?([a-zA-Z0-9_-]+)', raw[:5000], re.I)
+        match = re.search(br'charset=["\\']?([a-zA-Z0-9_-]+)', raw[:5000], re.I)
         charset = match.group(1).decode() if match else "cp932"
     try:
         html = raw.decode(charset)
