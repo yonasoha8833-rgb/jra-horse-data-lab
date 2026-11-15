@@ -276,9 +276,9 @@ class SourceCompletenessTests(unittest.TestCase):
                 {"url": url, "expected_race_numbers": [1]},
             ]}), encoding="utf-8")
             extracted = self._rows()
-            with patch.object(import_results, "CATALOG", catalog), \\
-                 patch.object(import_results, "OUTPUT", output), \\
-                 patch.object(import_results, "download_and_extract", return_value=extracted) as download, \\
+            with patch.object(import_results, "CATALOG", catalog), \
+                 patch.object(import_results, "OUTPUT", output), \
+                 patch.object(import_results, "download_and_extract", return_value=extracted) as download, \
                  patch("sys.argv", ["import_results.py", "--limit", "2"]):
                 import_results.main()
             download.assert_called_once_with(url)
