@@ -640,13 +640,16 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     horse_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"(?:[1-9]|1[0-8])"
                 )
                 identifier_rows = _pair_identifier_columns(frame_rows, horse_rows)
-                if not identifier_rows:
-                    # A single unreadable frame digit should not discard a race
-                    # when the horse-number column independently proves every
-                    # runner exactly once; JRA frame assignment is deterministic.
-                    identifier_rows = _infer_identifier_pairs_from_complete_horse_column(
-                        horse_rows
-                    )
+                # When the horse-number column proves a complete 1..N field,
+                # derive frame numbers from the official JRA allocation. The
+                # neighboring narrow column can be shifted or read as another
+                # table field (for example, finish position), so a non-empty
+                # but inconsistent pair must not override the complete column.
+                inferred_identifier_rows = _infer_identifier_pairs_from_complete_horse_column(
+                    horse_rows
+                )
+                if inferred_identifier_rows:
+                    identifier_rows = inferred_identifier_rows
                 # Keep row-local OCR diagnostics separate from the full-panel pass.
                 row_diagnostics = []
                 # OCR each runner row independently to avoid cross-column merging.
