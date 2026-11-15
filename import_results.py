@@ -238,7 +238,9 @@ def main() -> None:
             }
             print(f"ERROR: {url}: {exc}")
 
-    # Keep the best available row; never overwrite it with a poorer duplicate.\n    unique = deduplicate_records(records)\n
+    # Keep the best available row; never overwrite it with a poorer duplicate.
+    unique = deduplicate_records(records)
+
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     quality_report = build_quality_report(list(unique.values()))
     OUTPUT.write_text(json.dumps({
