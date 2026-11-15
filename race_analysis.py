@@ -6,6 +6,7 @@ layer should provide one dictionary per runner using the documented keys.
 from __future__ import annotations
 
 from collections import defaultdict
+from math import isfinite
 import re
 from statistics import mean
 from typing import Any, Iterable
@@ -1005,6 +1006,336 @@ def integrated_condition_last3f_score(
         "relative_last3f_weight": relative_last3f_weight,
         "integrated": True,
         "confidence": "高め" if relative["sample_count"] >= 10 and base["confidence"] == "高め" else "中程度",
+    }
+
+
+
+def _normalized_finish_score(row: dict[str, Any]) -> float | None:
+    """Return a field-size-normalized placing score for a valid result row."""
+    finish = _number(row.get("finish"))
+    field_size = _number(row.get("field_size"))
+    if (finish is None or field_size is None or not finish.is_integer()
+            or not field_size.is_integer() or field_size <= 1
+            or finish < 1 or finish > field_size):
+        return None
+    return 100.0 * (field_size - finish) / (field_size - 1)
+
+
+def _score_condition_component(
+    rows: list[dict[str, Any]],
+    candidates: list[tuple[str, Any]],
+    baseline: float,
+    *,
+    min_starts: int,
+    prior_strength: float,
+) -> dict[str, Any]:
+    """Choose the most specific supported condition and shrink it to baseline."""
+    for label, matches in candidates:
+        scores = [
+            score for row in rows
+            if matches(row)
+            and (score := _normalized_finish_score(row)) is not None
+        ]
+        if len(scores) < min_starts:
+            continue
+        raw_score = mean(scores)
+        adjusted = (
+            (raw_score * len(scores) + baseline * prior_strength)
+            / (len(scores) + prior_strength)
+        )
+        return {
+            "score": round(adjusted, 1),
+            "raw_score": round(raw_score, 1),
+            "sample_count": len(scores),
+            "matched_condition": label,
+        }
+    return {
+        "score": None,
+        "raw_score": None,
+        "sample_count": 0,
+        "matched_condition": None,
+    }
+
+
+def integrated_horse_performance_score(
+    horse_records: Iterable[dict[str, Any]],
+    race_records: Iterable[dict[str, Any]],
+    target_conditions: dict[str, Any],
+    *,
+    horse_registration_number: str | None = None,
+    horse_name: str | None = None,
+    min_condition_starts: int = 3,
+    prior_strength: float = 5.0,
+    placing_weight: float = 0.4,
+    distance_weight: float = 0.2,
+    going_weight: float = 0.2,
+    relative_last3f_weight: float = 0.2,
+) -> dict[str, Any]:
+    """Integrate placing, distance suitability, going suitability and relative last-3F.
+
+    Distance and going are evaluated independently so one supported condition
+    cannot hide the other. Each condition score is shrunk toward overall form;
+    relative last-3F is shrunk toward a neutral 50. Missing components are
+    omitted and the remaining weights are renormalized. This is a descriptive
+    index, not a win probability.
+    """
+    if min_condition_starts < 1:
+        raise ValueError("min_condition_starts must be at least 1")
+    if not isinstance(prior_strength, (int, float)) or not isfinite(prior_strength) or prior_strength < 0:
+        raise ValueError("prior_strength must be a finite non-negative number")
+
+    weights = {
+        "placing": placing_weight,
+        "distance": distance_weight,
+        "going": going_weight,
+        "relative_last3f": relative_last3f_weight,
+    }
+    if any(
+        not isinstance(weight, (int, float)) or not isfinite(weight) or weight < 0
+        for weight in weights.values()
+    ):
+        raise ValueError("component weights must be finite non-negative numbers")
+    if placing_weight <= 0:
+        raise ValueError("placing_weight must be greater than zero")
+
+    # Suppress duplicate imports only when the complete runner identity exists.
+    rows = []
+    seen: set[tuple[str, str, str, str, str]] = set()
+    for row in horse_records:
+        source = str(row.get("source_url") or "").strip()
+        date = str(row.get("date") or "").strip()
+        track_value = str(row.get("track") or "").strip()
+        race_number = str(row.get("race_number") or "").strip()
+        horse_number = str(row.get("horse_number") or "").strip()
+        if all((source, date, track_value, race_number, horse_number)):
+            key = (source, date, track_value, race_number, horse_number)
+            if key in seen:
+                continue
+            seen.add(key)
+        rows.append(row)
+
+    valid_rows = [row for row in rows if _normalized_finish_score(row) is not None]
+    baseline = performance_score(valid_rows)
+    baseline_count = len(valid_rows)
+    if baseline is None:
+        return {
+            "score": None,
+            "baseline_score": None,
+            "baseline_sample_count": 0,
+            "distance_score": None,
+            "distance_raw_score": None,
+            "distance_sample_count": 0,
+            "distance_condition": None,
+            "going_score": None,
+            "going_raw_score": None,
+            "going_sample_count": 0,
+            "going_condition": None,
+            "relative_last3f_score": None,
+            "relative_last3f_raw_score": None,
+            "relative_last3f_sample_count": 0,
+            "relative_last3f_condition": None,
+            "component_weights": {},
+            "components_used": [],
+            "integrated": False,
+            "confidence": "判定材料不足",
+        }
+
+    target = target_conditions if isinstance(target_conditions, dict) else {}
+    surface = str(target.get("surface") or "").strip()
+    going = str(target.get("going") or "").strip()
+    distance = _number(target.get("distance"))
+    exact_distance = (
+        int(distance) if distance is not None and distance.is_integer() else None
+    )
+    band = distance_band(distance)
+
+    distance_candidates: list[tuple[str, Any]] = []
+    if surface and exact_distance is not None:
+        distance_candidates.append((
+            "芝ダート・同距離",
+            lambda row: row.get("surface") == surface
+            and _number(row.get("distance")) == exact_distance,
+        ))
+    if surface and band:
+        distance_candidates.append((
+            "芝ダート・距離帯",
+            lambda row: row.get("surface") == surface
+            and distance_band(row.get("distance")) == band,
+        ))
+    if exact_distance is not None:
+        distance_candidates.append((
+            "同距離",
+            lambda row: _number(row.get("distance")) == exact_distance,
+        ))
+    if band:
+        distance_candidates.append((
+            "距離帯",
+            lambda row: distance_band(row.get("distance")) == band,
+        ))
+
+    going_candidates: list[tuple[str, Any]] = []
+    if surface and going:
+        going_candidates.append((
+            "芝ダート・馬場状態",
+            lambda row: row.get("surface") == surface and row.get("going") == going,
+        ))
+    if going:
+        going_candidates.append((
+            "馬場状態",
+            lambda row: row.get("going") == going,
+        ))
+
+    distance_component = _score_condition_component(
+        valid_rows, distance_candidates, baseline,
+        min_starts=min_condition_starts, prior_strength=prior_strength,
+    )
+    going_component = _score_condition_component(
+        valid_rows, going_candidates, baseline,
+        min_starts=min_condition_starts, prior_strength=prior_strength,
+    )
+
+    registration = _registration_number(horse_registration_number)
+    name = str(horse_name or "").strip()
+    if not name and rows:
+        name = str(rows[0].get("horse_name") or "").strip()
+    relative_component = {
+        "score": None,
+        "raw_score": None,
+        "sample_count": 0,
+        "matched_condition": None,
+    }
+    if registration or name:
+        relative_summaries = summarize_relative_last3f(
+            race_records, min_condition_starts=min_condition_starts
+        )
+        horse_summary = next((
+            item for item in relative_summaries
+            if (
+                registration
+                and item["horse_registration_number"] == registration
+            ) or (
+                not registration
+                and not item["horse_registration_number"]
+                and item["horse_name"] == name
+            )
+        ), None)
+        if horse_summary is not None:
+            track = str(target.get("track") or "").strip()
+            relative_candidates = []
+            if track and surface and exact_distance is not None:
+                relative_candidates.append((
+                    "競馬場・芝ダート・距離",
+                    "track_surface_distance",
+                    f"{track} {surface} {exact_distance}m",
+                ))
+            if surface and going:
+                relative_candidates.append((
+                    "芝ダート・馬場状態",
+                    "surface_going",
+                    f"{surface}・{going}",
+                ))
+            if band:
+                relative_candidates.append(("距離帯", "distance_band", band))
+            if going:
+                relative_candidates.append(("馬場状態", "going", going))
+            if track:
+                relative_candidates.append(("競馬場", "track", track))
+            if surface:
+                relative_candidates.append(("芝ダート", "surface", surface))
+
+            selected = None
+            for label, dimension, condition in relative_candidates:
+                match = next((
+                    item for item in horse_summary["conditions"].get(dimension, [])
+                    if item["condition"] == condition
+                    and item["sample_count"] >= min_condition_starts
+                ), None)
+                if match is not None:
+                    selected = (label, match)
+                    break
+            if selected is not None:
+                label, match = selected
+                raw_score = float(match["average_relative_score"])
+                sample_count = int(match["sample_count"])
+                adjusted = (
+                    (raw_score * sample_count + 50.0 * prior_strength)
+                    / (sample_count + prior_strength)
+                )
+                relative_component = {
+                    "score": round(adjusted, 1),
+                    "raw_score": round(raw_score, 1),
+                    "sample_count": sample_count,
+                    "matched_condition": label,
+                }
+
+    components = {
+        "placing": (baseline, placing_weight, baseline_count),
+        "distance": (
+            distance_component["score"], distance_weight,
+            distance_component["sample_count"],
+        ),
+        "going": (
+            going_component["score"], going_weight,
+            going_component["sample_count"],
+        ),
+        "relative_last3f": (
+            relative_component["score"], relative_last3f_weight,
+            relative_component["sample_count"],
+        ),
+    }
+    available = {
+        key: (score, weight, count)
+        for key, (score, weight, count) in components.items()
+        if score is not None and weight > 0
+    }
+    total_weight = sum(weight for _, weight, _ in available.values())
+    component_weights = {
+        key: round(weight / total_weight, 4)
+        for key, (_, weight, _) in available.items()
+    }
+    combined = sum(
+        float(score) * weight for score, weight, _ in available.values()
+    ) / total_weight
+    extra_counts = [
+        count for key, (_, _, count) in available.items() if key != "placing"
+    ]
+    if not extra_counts:
+        confidence = "総合成績のみ"
+    else:
+        minimum_sample = min([baseline_count, *extra_counts])
+        confidence = "高め" if minimum_sample >= 10 else (
+            "中程度" if minimum_sample >= 5 else "低め"
+        )
+
+    components_used = list(available)
+    return {
+        "score": round(combined, 1),
+        "baseline_score": baseline,
+        "baseline_sample_count": baseline_count,
+        "distance_score": distance_component["score"],
+        "distance_raw_score": distance_component["raw_score"],
+        "distance_sample_count": distance_component["sample_count"],
+        "distance_condition": distance_component["matched_condition"],
+        "going_score": going_component["score"],
+        "going_raw_score": going_component["raw_score"],
+        "going_sample_count": going_component["sample_count"],
+        "going_condition": going_component["matched_condition"],
+        "relative_last3f_score": relative_component["score"],
+        "relative_last3f_raw_score": relative_component["raw_score"],
+        "relative_last3f_sample_count": relative_component["sample_count"],
+        "relative_last3f_condition": relative_component["matched_condition"],
+        "component_weights": component_weights,
+        "components_used": components_used,
+        "integrated": len(components_used) > 1,
+        "confidence": confidence,
+        "identity_basis": (
+            "official_registration_number" if registration else
+            "horse_name_only" if name else "unverified"
+        ),
+        "warning": (
+            "着順・距離・馬場状態・同一レース内の個別上がり3F順位を統合した説明用指数です。"
+            "不足した要素は除外し、残りの重みを再配分します。勝率や将来の着順予測ではありません。"
+        ),
     }
 
 
