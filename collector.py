@@ -90,7 +90,7 @@ def main():
         charset = response.headers.get_content_charset()
 
     if not charset:
-        match = re.search(br'charset=["\\']?([a-zA-Z0-9_-]+)', raw[:5000], re.I)
+        match = re.search(br"charset=[\"']?([a-zA-Z0-9_-]+)", raw[:5000], re.I)
         charset = match.group(1).decode() if match else "cp932"
     try:
         html = raw.decode(charset)
