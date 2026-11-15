@@ -25,6 +25,85 @@ def sanitize_existing_records(records: list[dict]) -> list[dict]:
     return ordinary + _complete_ocr_records(legacy_ocr)
 
 
+def assess_source_completeness(records: list[dict], expected_race_numbers: list[int] | None = None) -> dict:
+    """Conservatively validate race coverage and runner numbering for one PDF."""
+    if not records:
+        return {"status": "incomplete", "reasons": ["no_runner_records"],
+                "race_numbers": [], "race_count": 0}
+    races: dict[int, list[dict]] = {}
+    for row in records:
+        number = row.get("race_number")
+        if not isinstance(number, int) or not 1 <= number <= 12:
+            return {"status": "incomplete", "reasons": ["invalid_race_number"],
+                    "race_numbers": [], "race_count": 0}
+        races.setdefault(number, []).append(row)
+
+    reasons: list[str] = []
+    for race_number, rows in races.items():
+        numbers = [row.get("horse_number") for row in rows]
+        if any(not isinstance(n, int) or n < 1 for n in numbers):
+            reasons.append(f"race_{race_number}_missing_horse_number")
+            continue
+        if len(set(numbers)) != len(numbers):
+            reasons.append(f"race_{race_number}_duplicate_horse_number")
+            continue
+        sizes = {row.get("declared_field_size") for row in rows
+                 if isinstance(row.get("declared_field_size"), int)
+                 and row.get("declared_field_size") > 0}
+        if len(sizes) > 1:
+            reasons.append(f"race_{race_number}_conflicting_declared_field_size")
+        elif sizes:
+            size = next(iter(sizes))
+            if len(rows) != size or sorted(numbers) != list(range(1, size + 1)):
+                reasons.append(f"race_{race_number}_field_size_or_number_mismatch")
+
+    observed = sorted(races)
+    if expected_race_numbers is None:
+        if not reasons:
+            reasons.append("official_race_inventory_not_available")
+            status = "unverified"
+        else:
+            status = "incomplete"
+    else:
+        expected = sorted(set(expected_race_numbers))
+        if observed != expected:
+            reasons.append("race_inventory_mismatch")
+        status = "incomplete" if reasons else "complete"
+    return {"status": status, "reasons": reasons,
+            "race_numbers": observed, "race_count": len(observed)}
+
+
+def deduplicate_records(records: list[dict]) -> list[dict]:
+    """Keep the more complete row when duplicate source/race/horse keys occur."""
+    unique: dict[tuple, dict] = {}
+    for index, row in enumerate(records):
+        horse_key = row.get("horse_number")
+        if horse_key is None:
+            horse_key = ("unknown", row.get("horse_name"), row.get("frame"), index)
+        key = (row.get("source_url"), row.get("date"), row.get("race_number"), horse_key)
+        warnings = row.get("runner_validation_warnings")
+        race_warnings = row.get("race_validation_warnings")
+        quality = (
+            -(len(warnings) if isinstance(warnings, list) else 0)
+            -(len(race_warnings) if isinstance(race_warnings, list) else 0),
+            sum(value not in (None, "", []) for value in row.values()),
+        )
+        old = unique.get(key)
+        if old is None:
+            unique[key] = row
+            continue
+        old_w = old.get("runner_validation_warnings")
+        old_rw = old.get("race_validation_warnings")
+        old_quality = (
+            -(len(old_w) if isinstance(old_w, list) else 0)
+            -(len(old_rw) if isinstance(old_rw, list) else 0),
+            sum(value not in (None, "", []) for value in old.values()),
+        )
+        if quality > old_quality:
+            unique[key] = row
+    return list(unique.values())
+
+
 def build_quality_report(records: list[dict]) -> dict:
     """Summarize extraction completeness and race-level consistency warnings."""
     races: dict[tuple, list[dict]] = {}
@@ -103,7 +182,20 @@ def main() -> None:
 
     # Do not let one persistently broken early catalog entry block every later PDF.
     # Process never-attempted sources first, then retry failures oldest-first.
-    catalog_items = [item for item in catalog.get("items", []) if item.get("url") and item.get("url") not in processed]
+    # Merge duplicate catalog entries before applying the per-run limit.
+    catalog_by_url = {}
+    for item in catalog.get("items", []):
+        url = item.get("url")
+        if not url:
+            continue
+        if url not in catalog_by_url:
+            catalog_by_url[url] = dict(item)
+        else:
+            expected = set(catalog_by_url[url].get("expected_race_numbers", []))
+            expected.update(item.get("expected_race_numbers", []))
+            if expected:
+                catalog_by_url[url]["expected_race_numbers"] = sorted(expected)
+    catalog_items = [item for url, item in catalog_by_url.items() if url not in processed]
     catalog_items.sort(key=lambda item: (
         item["url"] in failures_by_url,
         failures_by_url.get(item["url"], {}).get("last_attempt_utc", ""),
@@ -116,21 +208,26 @@ def main() -> None:
         attempted += 1
         try:
             extracted = download_and_extract(url)
-            if not extracted:
-                message = "No runner rows recognized; source remains eligible for retry"
+            assessment = assess_source_completeness(
+                extracted, item.get("expected_race_numbers")
+            )
+            if extracted:
+                records.extend(extracted)
+            if assessment["status"] == "complete":
+                processed.add(url)
+                failures_by_url.pop(url, None)
+                print(f"Imported complete source ({len(extracted)} rows): {url}")
+            else:
                 previous = failures_by_url.get(url, {})
+                message = f"Source {assessment['status']}: " + ", ".join(assessment["reasons"])
                 failures_by_url[url] = {
                     "url": url,
                     "attempts": previous.get("attempts", 0) + 1,
                     "last_attempt_utc": datetime.now(timezone.utc).isoformat(),
                     "error": message,
+                    "assessment": assessment,
                 }
                 print(f"WARNING: {message}: {url}")
-                continue
-            records.extend(extracted)
-            processed.add(url)
-            failures_by_url.pop(url, None)
-            print(f"Imported {len(extracted)} runner rows from {url}")
         except Exception as exc:
             previous = failures_by_url.get(url, {})
             failures_by_url[url] = {
@@ -141,12 +238,7 @@ def main() -> None:
             }
             print(f"ERROR: {url}: {exc}")
 
-    # Stable deduplication protects against repeated imports.
-    unique = {}
-    for row in records:
-        key = (row.get("source_url"), row.get("race_number"), row.get("horse_number"))
-        unique[key] = row
-
+    # Keep the best available row; never overwrite it with a poorer duplicate.\n    unique = deduplicate_records(records)\n
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     quality_report = build_quality_report(list(unique.values()))
     OUTPUT.write_text(json.dumps({
@@ -160,7 +252,7 @@ def main() -> None:
         "notes": [
             "finish is based on the order of recognized official result rows",
             "race_last3f is the race-level closing 3F, not an individual horse figure",
-            "individual_last3f is intentionally null unless a source provides it"
+            "individual_last3f is intentionally null unless a source provides it",\n            "sources without an official expected_race_numbers inventory remain unverified and retryable"
         ]
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
