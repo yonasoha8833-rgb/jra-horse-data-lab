@@ -115,7 +115,7 @@ class ImportResultsTests(unittest.TestCase):
             extracted = [{
                 "source_url": "https://example.test/good.pdf",
                 "race_number": 1,
-                "horse_number": 3,
+                "horse_number": 1,
                 "horse_name": "テストホース",
                 "finish": 1,
                 "declared_field_size": 1,
