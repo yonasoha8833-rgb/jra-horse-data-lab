@@ -1,6 +1,6 @@
 import unittest
 
-from race_analysis import analyze_race_scenario, classify_running_style, parse_corner_positions, distance_band, filter_records, parse_lap_times, performance_score, condition_adjusted_performance_score, integrated_condition_last3f_score, recent_form_summary, summarize_race_pace, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles, summarize_relative_last3f, summarize_running_style_pace_performance
+from race_analysis import analyze_race_scenario, classify_running_style, parse_corner_positions, distance_band, filter_records, parse_lap_times, performance_score, condition_adjusted_performance_score, integrated_condition_last3f_score, integrated_horse_performance_score, recent_form_summary, summarize_race_pace, summarize_conditions, summarize_distance_bands, summarize_horses, summarize_races, summarize_race_conditions, summarize_horse_condition_profiles, summarize_relative_last3f, summarize_running_style_pace_performance
 
 
 class RaceAnalysisTests(unittest.TestCase):
@@ -615,6 +615,137 @@ class RaceAnalysisTests(unittest.TestCase):
             [horse], [], {}, horse_registration_number=None, horse_name=None
         )
         self.assertFalse(result["integrated"])
+
+
+    def test_integrated_horse_performance_score_combines_independent_components(self):
+        horse_rows = []
+        specifications = [
+            (1600, "良", 1),
+            (1600, "良", 2),
+            (1600, "重", 10),
+            (2000, "良", 4),
+            (2200, "良", 5),
+            (1200, "良", 6),
+        ]
+        for index, (distance, going, finish) in enumerate(specifications, start=1):
+            horse_rows.append({
+                "horse_name": "統合評価馬",
+                "horse_registration_number": "2020-12345",
+                "source_url": f"race-{index}.pdf",
+                "date": f"2026-11-{index:02d}",
+                "track": "東京",
+                "race_number": 1,
+                "horse_number": 1,
+                "surface": "芝",
+                "distance": distance,
+                "going": going,
+                "finish": finish,
+                "field_size": 10,
+                "individual_last3f": 33.0,
+            })
+
+        race_rows = []
+        for target in horse_rows[:3]:
+            race_rows.append(target)
+            race_rows.extend([
+                {
+                    **target,
+                    "horse_name": "相手馬A",
+                    "horse_registration_number": "2021-12345",
+                    "horse_number": 2,
+                    "finish": 2,
+                    "individual_last3f": 34.0,
+                },
+                {
+                    **target,
+                    "horse_name": "相手馬B",
+                    "horse_registration_number": "2022-12345",
+                    "horse_number": 3,
+                    "finish": 3,
+                    "individual_last3f": 35.0,
+                },
+            ])
+
+        result = integrated_horse_performance_score(
+            horse_rows,
+            race_rows,
+            {"track": "東京", "surface": "芝", "distance": 1600, "going": "良"},
+            horse_registration_number="2020-12345",
+        )
+
+        self.assertTrue(result["integrated"])
+        self.assertEqual(result["distance_sample_count"], 3)
+        self.assertEqual(result["distance_condition"], "芝ダート・同距離")
+        self.assertEqual(result["going_sample_count"], 5)
+        self.assertEqual(result["going_condition"], "芝ダート・馬場状態")
+        self.assertEqual(result["relative_last3f_sample_count"], 3)
+        self.assertEqual(result["relative_last3f_condition"], "競馬場・芝ダート・距離")
+        self.assertEqual(result["relative_last3f_raw_score"], 100.0)
+        self.assertLess(result["relative_last3f_score"], 100.0)
+        self.assertEqual(
+            result["component_weights"],
+            {"placing": 0.4, "distance": 0.2, "going": 0.2, "relative_last3f": 0.2},
+        )
+        expected = (
+            result["baseline_score"] * 0.4
+            + result["distance_score"] * 0.2
+            + result["going_score"] * 0.2
+            + result["relative_last3f_score"] * 0.2
+        )
+        self.assertAlmostEqual(result["score"], round(expected, 1))
+        self.assertEqual(result["identity_basis"], "official_registration_number")
+
+    def test_integrated_horse_performance_score_uses_distance_band_and_shrinks_small_samples(self):
+        rows = [
+            {"horse_name": "距離評価馬", "date": "2026-11-01", "finish": 1,
+             "field_size": 10, "surface": "芝", "distance": 1600, "going": "良"},
+            {"horse_name": "距離評価馬", "date": "2026-11-02", "finish": 1,
+             "field_size": 10, "surface": "芝", "distance": 1600, "going": "良"},
+            {"horse_name": "距離評価馬", "date": "2026-11-03", "finish": 1,
+             "field_size": 10, "surface": "芝", "distance": 1800, "going": "重"},
+            {"horse_name": "距離評価馬", "date": "2026-11-04", "finish": 10,
+             "field_size": 10, "surface": "芝", "distance": 2000, "going": "重"},
+        ]
+        result = integrated_horse_performance_score(
+            rows, [], {"surface": "芝", "distance": 1600, "going": "良"},
+            horse_name="距離評価馬",
+        )
+        self.assertEqual(result["distance_sample_count"], 3)
+        self.assertEqual(result["distance_condition"], "芝ダート・距離帯")
+        self.assertIsNone(result["going_score"])
+        self.assertIsNone(result["relative_last3f_score"])
+        self.assertGreater(result["distance_score"], result["baseline_score"])
+        self.assertLess(result["distance_score"], result["distance_raw_score"])
+        self.assertEqual(result["confidence"], "低め")
+
+    def test_integrated_horse_performance_score_falls_back_without_condition_data(self):
+        rows = [
+            {"horse_name": "基準馬", "date": "2026-11-01", "finish": 1, "field_size": 10},
+            {"horse_name": "基準馬", "date": "2026-11-02", "finish": 3, "field_size": 10},
+            {"horse_name": "基準馬", "date": "2026-11-03", "finish": 5, "field_size": 10},
+        ]
+        result = integrated_horse_performance_score(
+            rows, [], {"surface": "芝", "distance": 1600, "going": "良"},
+            horse_name="基準馬",
+        )
+        self.assertFalse(result["integrated"])
+        self.assertEqual(result["score"], result["baseline_score"])
+        self.assertEqual(result["component_weights"], {"placing": 1.0})
+        self.assertIsNone(result["distance_score"])
+        self.assertIsNone(result["going_score"])
+        self.assertIsNone(result["relative_last3f_score"])
+
+    def test_integrated_horse_performance_score_validates_weights(self):
+        with self.assertRaises(ValueError):
+            integrated_horse_performance_score(
+                [{"finish": 1, "field_size": 10}], [], {},
+                placing_weight=0,
+            )
+        with self.assertRaises(ValueError):
+            integrated_horse_performance_score(
+                [{"finish": 1, "field_size": 10}], [], {},
+                distance_weight=float("nan"),
+            )
 
 
 if __name__ == "__main__":
