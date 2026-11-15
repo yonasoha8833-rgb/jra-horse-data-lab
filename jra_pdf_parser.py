@@ -619,7 +619,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 ).stdout
                 # Split the two narrow identifier columns before OCR. A
                 # combined pass frequently merges neighboring digits (e.g. 5 and 9).
-                split_x = max(1, int(number_crop.width * 0.38))
+                split_x = max(1, int(number_crop.width * 0.35))
                 frame_path = temp_dir / f"{page.stem}-{side}-frame.png"
                 horse_path = temp_dir / f"{page.stem}-{side}-horse.png"
                 number_crop.crop((0, 0, split_x, number_crop.height)).save(frame_path)
@@ -702,9 +702,9 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                         number_tsv, encoding="utf-8"
                     )
                     (destination / f"{page.stem}-{side}-rows.txt").write_text(
-                        "\\n".join(row_diagnostics)
-                        + "\\n--- metadata and parser input ---\\n"
-                        + "\\n".join(clean_lines),
+                        "\n".join(row_diagnostics)
+                        + "\n--- metadata and parser input ---\n"
+                        + "\n".join(clean_lines),
                         encoding="utf-8",
                     )
 
