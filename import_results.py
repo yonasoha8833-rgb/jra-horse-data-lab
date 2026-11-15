@@ -101,7 +101,7 @@ def deduplicate_records(records: list[dict]) -> list[dict]:
         )
         if quality > old_quality:
             unique[key] = row
-    return list(unique.values())
+    return unique
 
 
 def build_quality_report(records: list[dict]) -> dict:
@@ -242,7 +242,7 @@ def main() -> None:
     unique = deduplicate_records(records)
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    quality_report = build_quality_report(list(unique.values()))
+    quality_report = build_quality_report(unique)
     OUTPUT.write_text(json.dumps({
         "source": "JRA official result PDFs listed in data/catalog.json",
         "processed_sources": sorted(processed),
@@ -250,7 +250,7 @@ def main() -> None:
         "last_import_attempted": attempted,
         "record_count": len(unique),
         "quality_report": quality_report,
-        "records": list(unique.values()),
+        "records": unique,
         "notes": [
             "finish is based on the order of recognized official result rows",
             "race_last3f is the race-level closing 3F, not an individual horse figure",
