@@ -59,9 +59,14 @@ class Parser(HTMLParser):
         self.href = None
         self.parts = []
         self.links = []
-        self.context_parts = []
+        self.headings = []
+        self.heading_tag = None
+        self.heading_parts = []
 
     def handle_starttag(self, tag, attrs):
+        if tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+            self.heading_tag = tag
+            self.heading_parts = []
         if tag == "a":
             self.href = dict(attrs).get("href")
             self.parts = []
@@ -72,13 +77,21 @@ class Parser(HTMLParser):
             return
         if self.href is not None:
             self.parts.append(value)
-        else:
-            self.context_parts.append(value)
+        elif self.heading_tag is not None:
+            self.heading_parts.append(value)
 
     def handle_endtag(self, tag):
+        if tag == self.heading_tag:
+            value = " ".join(self.heading_parts)
+            if value:
+                if tag in ("h1", "h2", "h3"):
+                    self.headings = [value]
+                else:
+                    self.headings.append(value)
+            self.heading_tag = None
+            self.heading_parts = []
         if tag == "a" and self.href is not None:
-            context = " ".join(self.context_parts[-12:])
-            self.links.append((self.href, " ".join(self.parts), context))
+            self.links.append((self.href, " ".join(self.parts), " ".join(self.headings)))
             self.href = None
             self.parts = []
 
@@ -99,6 +112,7 @@ def main():
 
     parser = Parser()
     parser.feed(html)
+    raw_pdf_links = 0
     items = []
     for href, label, context in parser.links:
         url = urljoin(PAGE, href)
@@ -107,20 +121,31 @@ def main():
             continue
         if "-hyo-" in lower_url or "票数" in label or "発売票数" in label:
             continue
+        raw_pdf_links += 1
         metadata = parse_metadata(label, context, YEAR)
         item = {"label": label or "JRA公式成績PDF", "url": url, "year": YEAR}
         item.update(metadata)
         items.append(item)
 
-    items = merge_catalog_items(items)
+    unique_items = merge_catalog_items(items)
+    stats = {
+        "raw_pdf_links": raw_pdf_links,
+        "unique_pdf_links": len(unique_items),
+        "duplicate_links_merged": raw_pdf_links - len(unique_items),
+        "missing_track": sum("track" not in item for item in unique_items),
+        "missing_meeting_number": sum("meeting_number" not in item for item in unique_items),
+        "missing_meeting_day": sum("meeting_day" not in item for item in unique_items),
+        "missing_date": sum("date" not in item for item in unique_items),
+    }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({
         "source": PAGE,
         "checked_at": datetime.now().astimezone().isoformat(),
         "notice": "JRA公式成績PDFリンク一覧。開催情報は公式ページに明記された範囲で付与。",
-        "items": items
+        "stats": stats,
+        "items": unique_items
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"Collected {len(items)} unique result PDF links")
+    print("Catalog validation: " + json.dumps(stats, ensure_ascii=False))
 
 
 if __name__ == "__main__":
