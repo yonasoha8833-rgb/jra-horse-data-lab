@@ -101,7 +101,7 @@ def deduplicate_records(records: list[dict]) -> list[dict]:
         )
         if quality > old_quality:
             unique[key] = row
-    return unique
+    return list(unique.values())
 
 
 def build_quality_report(records: list[dict]) -> dict:
