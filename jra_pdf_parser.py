@@ -620,10 +620,14 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 # Split the two narrow identifier columns before OCR. A
                 # combined pass frequently merges neighboring digits (e.g. 5 and 9).
                 split_x = max(1, int(number_crop.width * 0.35))
+                # The horse-number column is immediately beside the frame column.
+                # Do not include the wide blank/payout area to its right: Tesseract
+                # otherwise groups footer text into the same OCR lines.
+                horse_end = min(number_crop.width, split_x + int(number_crop.width * 0.30))
                 frame_path = temp_dir / f"{page.stem}-{side}-frame.png"
                 horse_path = temp_dir / f"{page.stem}-{side}-horse.png"
                 number_crop.crop((0, 0, split_x, number_crop.height)).save(frame_path)
-                number_crop.crop((split_x, 0, number_crop.width, number_crop.height)).save(horse_path)
+                number_crop.crop((split_x, 0, horse_end, number_crop.height)).save(horse_path)
                 frame_tsv = subprocess.run(
                     ["tesseract", str(frame_path), "stdout", "-l", "eng", "--psm", "6", "tsv"],
                     check=True, timeout=30, capture_output=True, text=True,
