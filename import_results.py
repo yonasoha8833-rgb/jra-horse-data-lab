@@ -252,7 +252,8 @@ def main() -> None:
         "notes": [
             "finish is based on the order of recognized official result rows",
             "race_last3f is the race-level closing 3F, not an individual horse figure",
-            "individual_last3f is intentionally null unless a source provides it",\n            "sources without an official expected_race_numbers inventory remain unverified and retryable"
+            "individual_last3f is intentionally null unless a source provides it",
+            "sources without an official expected_race_numbers inventory remain unverified and retryable"
         ]
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
