@@ -109,7 +109,7 @@ class ImportResultsTests(unittest.TestCase):
             output = root / "race_results.json"
             catalog.write_text(json.dumps({"items": [
                 {"url": "https://example.test/fail.pdf"},
-                {"url": "https://example.test/good.pdf"},
+                {"url": "https://example.test/good.pdf", "expected_race_numbers": [1]},
             ]}), encoding="utf-8")
 
             extracted = [{
@@ -118,6 +118,7 @@ class ImportResultsTests(unittest.TestCase):
                 "horse_number": 3,
                 "horse_name": "テストホース",
                 "finish": 1,
+                "declared_field_size": 1,
             }]
             with patch.object(import_results, "CATALOG", catalog), \
                  patch.object(import_results, "OUTPUT", output), \
@@ -161,7 +162,7 @@ class ImportResultsTests(unittest.TestCase):
             failed_url = "https://example.test/previously-failed.pdf"
             new_url = "https://example.test/new.pdf"
             catalog.write_text(json.dumps({"items": [
-                {"url": failed_url}, {"url": new_url},
+                {"url": failed_url}, {"url": new_url, "expected_race_numbers": [1]},
             ]}), encoding="utf-8")
             output.write_text(json.dumps({
                 "records": [],
@@ -179,6 +180,7 @@ class ImportResultsTests(unittest.TestCase):
                 "horse_number": 1,
                 "horse_name": "新規取込馬",
                 "finish": 1,
+                "declared_field_size": 1,
             }]
             with patch.object(import_results, "CATALOG", catalog), \
                  patch.object(import_results, "OUTPUT", output), \
