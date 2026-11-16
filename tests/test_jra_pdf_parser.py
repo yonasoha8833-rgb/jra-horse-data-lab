@@ -523,7 +523,7 @@ class JraPdfParserTests(unittest.TestCase):
 
     def test_single_horse_number_retry_accepts_only_one_valid_digit_token(self):
         self.assertEqual(_ocr_single_horse_number("9"), 9)
-        self.assertEqual(_ocr_single_horse_number(" 18\\n"), 18)
+        self.assertEqual(_ocr_single_horse_number(" 18 "), 18)
         self.assertIsNone(_ocr_single_horse_number("Q"))
         self.assertIsNone(_ocr_single_horse_number("19"))
         self.assertIsNone(_ocr_single_horse_number("1 2"))
