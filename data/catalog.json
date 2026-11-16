@@ -1,8 +1,38 @@
 {
   "source": "https://www.jra.go.jp/datafile/seiseki/report/2026.html",
-  "checked_at": "2026-11-14T02:41:19.855330+00:00",
+  "checked_at": "2026-11-16T01:30:22.600192+00:00",
   "notice": "公式成績PDFリンク一覧。馬別解析は未実装。",
   "items": [
+    {
+      "label": "5回 東京4日 （PDF：668KB）",
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-5tokyo4.pdf",
+      "year": 2026
+    },
+    {
+      "label": "5回 京都4日 （PDF：699KB）",
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-5kyoto4.pdf",
+      "year": 2026
+    },
+    {
+      "label": "3回 福島4日 （PDF：688KB）",
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3fukushima4.pdf",
+      "year": 2026
+    },
+    {
+      "label": "5回 東京3日 （PDF：701KB）",
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-5tokyo3.pdf",
+      "year": 2026
+    },
+    {
+      "label": "5回 京都3日 （PDF：672KB）",
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-5kyoto3.pdf",
+      "year": 2026
+    },
+    {
+      "label": "3回 福島3日 （PDF：693KB）",
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3fukushima3.pdf",
+      "year": 2026
+    },
     {
       "label": "5回 東京2日 （PDF：655KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-5tokyo2.pdf",
@@ -211,26 +241,6 @@
     {
       "label": "4回 阪神5日 （PDF：676KB）",
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin5.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4回 中山4日 （PDF：687KB）",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama4.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4回 阪神4日 （PDF：652KB）",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin4.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4回 中山3日 （PDF：702KB）",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama3.pdf",
-      "year": 2026
-    },
-    {
-      "label": "4回 阪神3日 （PDF：660KB）",
-      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin3.pdf",
       "year": 2026
     },
     {
