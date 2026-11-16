@@ -1,6 +1,6 @@
 import unittest
 
-from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text
+from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text, _ocr_single_horse_number
 
 
 SAMPLE = """
@@ -520,6 +520,14 @@ class JraPdfParserTests(unittest.TestCase):
             [(100.0, 1), (140.0, 5)],
             [(100.0, 1), (170.0, 5)],
         ), [])
+
+    def test_single_horse_number_retry_accepts_only_one_valid_digit_token(self):
+        self.assertEqual(_ocr_single_horse_number("9"), 9)
+        self.assertEqual(_ocr_single_horse_number(" 18\\n"), 18)
+        self.assertIsNone(_ocr_single_horse_number("Q"))
+        self.assertIsNone(_ocr_single_horse_number("19"))
+        self.assertIsNone(_ocr_single_horse_number("1 2"))
+        self.assertIsNone(_ocr_single_horse_number(""))
 
     def test_identifier_column_slots_preserve_unreadable_rows(self):
         tsv = (
