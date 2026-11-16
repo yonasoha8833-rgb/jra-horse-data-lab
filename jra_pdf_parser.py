@@ -435,13 +435,25 @@ def _pair_identifier_columns(
     return paired
 
 
+def _ocr_identifier_column_slots(
+    tsv: str, *, scale: float, y_offset: float, allowed: str,
+) -> list[tuple[float, int | None]]:
+    """Preserve unreadable OCR rows as positional slots instead of dropping them."""
+    values: list[tuple[float, int | None]] = []
+    for y, text in _ocr_tsv_lines(tsv, scale=scale, y_offset=y_offset):
+        token = re.sub(r"[^0-9]", "", text)
+        value = int(token) if re.fullmatch(allowed, token) else None
+        values.append((y, value))
+    return values
+
+
 def _infer_identifier_pairs_from_complete_frame_column(
     frame_rows: list[tuple[float, int]],
-    horse_rows: list[tuple[float, int]],
+    horse_rows: list[tuple[float, int | None]],
 ) -> list[tuple[float, tuple[int, int]]]:
-    """Recover unreadable horse numbers only from a complete, aligned frame column."""
+    """Recover unreadable horse numbers only when every aligned row is accounted for."""
     field_size = len(frame_rows)
-    if not 2 <= field_size <= 18 or not horse_rows:
+    if not 2 <= field_size <= 18 or len(horse_rows) != field_size:
         return []
 
     centers = [y for y, _ in frame_rows]
@@ -456,6 +468,7 @@ def _infer_identifier_pairs_from_complete_frame_column(
     observed: set[int] = set()
     used_rows: set[int] = set()
     missing_slots: list[tuple[float, int]] = []
+    row_numbers: dict[float, int] = {}
     for center, frame in frame_rows:
         if not isinstance(frame, int) or not 1 <= frame <= 8:
             return []
@@ -463,27 +476,29 @@ def _infer_identifier_pairs_from_complete_frame_column(
             index for index, (horse_y, _) in enumerate(horse_rows)
             if abs(center - horse_y) <= tolerance
         ]
-        if len(candidates) > 1:
+        if len(candidates) != 1:
             return []
-        if not candidates:
-            missing_slots.append((center, frame))
-            continue
         index = candidates[0]
         if index in used_rows:
             return []
         used_rows.add(index)
         horse = horse_rows[index][1]
-        if not isinstance(horse, int) or not 1 <= horse <= field_size:
+        if horse is None:
+            missing_slots.append((center, frame))
+            continue
+        if not 1 <= horse <= field_size:
             return []
         if horse in observed or _expected_frame(field_size, horse) != frame:
             return []
         observed.add(horse)
+        row_numbers[center] = horse
 
+    if len(used_rows) != field_size:
+        return []
     missing_numbers = set(range(1, field_size + 1)) - observed
     if len(missing_numbers) != len(missing_slots):
         return []
 
-    inferred: dict[float, int] = {}
     assigned: set[int] = set()
     for center, frame in missing_slots:
         candidates = [
@@ -492,16 +507,13 @@ def _infer_identifier_pairs_from_complete_frame_column(
         ]
         if len(candidates) != 1:
             return []
-        inferred[center] = candidates[0]
-        assigned.add(candidates[0])
+        row_numbers[center] = candidates[0]
+        assigned.add(candidates[0]
 
     if assigned != missing_numbers:
         return []
     return [
-        (center, (frame, next(
-            (horse for horse_y, horse in horse_rows if abs(center - horse_y) <= tolerance),
-            inferred.get(center),
-        )))
+        (center, (frame, row_numbers[center]))
         for center, frame in frame_rows
     ]
 
@@ -714,12 +726,15 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 horse_rows = _ocr_identifier_column(
                     horse_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"(?:[1-9]|1[0-8])"
                 )
+                horse_slot_rows = _ocr_identifier_column_slots(
+                    horse_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"(?:[1-9]|1[0-8])"
+                )
                 identifier_rows = _pair_identifier_columns(frame_rows, horse_rows)
                 # If a complete frame column is available, fill unreadable horse
                 # digits only when the remaining numbers and JRA frame allocation
                 # identify every missing row uniquely.
                 inferred_from_frames = _infer_identifier_pairs_from_complete_frame_column(
-                    frame_rows, horse_rows
+                    frame_rows, horse_slot_rows
                 )
                 if inferred_from_frames:
                     identifier_rows = inferred_from_frames
