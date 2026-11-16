@@ -407,7 +407,9 @@ def _ocr_identifier_column(tsv: str, *, scale: float, y_offset: float, allowed: 
     """Read one isolated identifier column without merging adjacent digits."""
     values = []
     for y, text in _ocr_tsv_lines(tsv, scale=scale, y_offset=y_offset):
-        token = re.sub(r"[^0-9]", "", text)
+        # Do not strip OCR punctuation: e.g. "1]" must not silently become
+        # horse number 1 when the printed value may be 11 or 12.
+        token = _ascii_digits(text.strip())
         if re.fullmatch(allowed, token):
             values.append((y, int(token)))
     return values
@@ -449,7 +451,9 @@ def _ocr_identifier_column_slots(
     """Preserve unreadable OCR rows as positional slots instead of dropping them."""
     values: list[tuple[float, int | None]] = []
     for y, text in _ocr_tsv_lines(tsv, scale=scale, y_offset=y_offset):
-        token = re.sub(r"[^0-9]", "", text)
+        # Preserve the whole OCR token so mixed text such as "1]" remains
+        # unreadable and can be retried with the row-local digit whitelist.
+        token = _ascii_digits(text.strip())
         value = int(token) if re.fullmatch(allowed, token) else None
         values.append((y, value))
     return values
