@@ -543,6 +543,25 @@ class JraPdfParserTests(unittest.TestCase):
             [(5.0, 15), (55.0, None), (105.0, 13)],
         )
 
+    def test_identifier_column_reader_does_not_strip_mixed_ocr_tokens(self):
+        tsv = (
+            "level\\tpage_num\\tblock_num\\tpar_num\\tline_num\\tword_num\\tleft\\ttop\\twidth\\theight\\tconf\\ttext\\n"
+            "5\\t1\\t1\\t1\\t1\\t1\\t0\\t20\\t10\\t10\\t90\\t1]\\n"
+            "5\\t1\\t1\\t1\\t2\\t1\\t0\\t60\\t10\\t10\\t90\\t11\\n"
+        )
+        self.assertEqual(
+            _ocr_identifier_column_slots(
+                tsv, scale=1, y_offset=0, allowed=r"(?:[1-9]|1[0-8])"
+            ),
+            [(25.0, None), (65.0, 11)],
+        )
+        self.assertEqual(
+            _ocr_identifier_column(
+                tsv, scale=1, y_offset=0, allowed=r"(?:[1-9]|1[0-8])"
+            ),
+            [(65.0, 11)],
+        )
+
     def test_identifier_column_reader_keeps_only_valid_single_column_values(self):
         tsv = (
             "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
