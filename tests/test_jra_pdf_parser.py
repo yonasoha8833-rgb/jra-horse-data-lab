@@ -440,6 +440,20 @@ class JraPdfParserTests(unittest.TestCase):
 
         self.assertEqual([pair for _, pair in inferred], entries)
 
+    def test_infers_missing_horses_when_ocr_rows_are_present_but_unreadable(self):
+        entries = [
+            (4, 8), (3, 5), (4, 7), (6, 11), (6, 12), (1, 1),
+            (8, 16), (7, 13), (5, 9), (7, 14), (1, 2), (5, 10),
+            (2, 4), (2, 3), (3, 6), (8, 15),
+        ]
+        frame_rows = [(100.0 + index * 40, frame) for index, (frame, _) in enumerate(entries)]
+        horse_slots = [
+            (100.0 + index * 40, None if horse in {5, 12} else horse)
+            for index, (_, horse) in enumerate(entries)
+        ]
+        inferred = _infer_identifier_pairs_from_complete_frame_column(frame_rows, horse_slots)
+        self.assertEqual([pair for _, pair in inferred], entries)
+
     def test_does_not_infer_two_missing_horses_in_the_same_frame(self):
         entries = [
             (4, 8), (3, 5), (3, 6), (6, 11), (6, 12), (1, 1),
