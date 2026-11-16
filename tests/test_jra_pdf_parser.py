@@ -1,6 +1,6 @@
 import unittest
 
-from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _build_ocr_runner_lines, parse_race_text
+from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text
 
 
 SAMPLE = """
@@ -422,6 +422,49 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(paired, [
             (100.5, (1, 1)), (140.5, (5, 5)), (180.5, (3, 3))
         ])
+
+    def test_infers_missing_horse_numbers_from_complete_aligned_frame_column(self):
+        entries = [
+            (4, 8), (3, 5), (4, 7), (6, 11), (6, 12), (1, 1),
+            (8, 16), (7, 13), (5, 9), (7, 14), (1, 2), (5, 10),
+            (2, 4), (2, 3), (3, 6), (8, 15),
+        ]
+        frame_rows = [(100.0 + index * 40, frame) for index, (frame, _) in enumerate(entries)]
+        horse_rows = [
+            (100.0 + index * 40, horse)
+            for index, (_, horse) in enumerate(entries)
+            if horse not in {5, 12}
+        ]
+
+        inferred = _infer_identifier_pairs_from_complete_frame_column(frame_rows, horse_rows)
+
+        self.assertEqual([pair for _, pair in inferred], entries)
+
+    def test_does_not_infer_two_missing_horses_in_the_same_frame(self):
+        entries = [
+            (4, 8), (3, 5), (3, 6), (6, 11), (6, 12), (1, 1),
+            (8, 16), (7, 13), (5, 9), (7, 14), (1, 2), (5, 10),
+            (2, 4), (2, 3), (3, 7), (8, 15),
+        ]
+        frame_rows = [(100.0 + index * 40, frame) for index, (frame, _) in enumerate(entries)]
+        horse_rows = [
+            (100.0 + index * 40, horse)
+            for index, (_, horse) in enumerate(entries)
+            if horse not in {5, 6}
+        ]
+
+        self.assertEqual(
+            _infer_identifier_pairs_from_complete_frame_column(frame_rows, horse_rows), []
+        )
+
+    def test_does_not_infer_when_a_recognized_horse_has_the_wrong_frame(self):
+        frame_rows = [(100.0, 1), (140.0, 2), (180.0, 3), (220.0, 4)]
+        horse_rows = [(100.0, 1), (140.0, 2), (180.0, 3), (220.0, 4)]
+        frame_rows[2] = (180.0, 4)
+
+        self.assertEqual(
+            _infer_identifier_pairs_from_complete_frame_column(frame_rows, horse_rows), []
+        )
 
     def test_infers_frame_column_from_complete_horse_number_sequence(self):
         rows = _infer_identifier_pairs_from_complete_horse_column(
