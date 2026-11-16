@@ -1,6 +1,6 @@
 import unittest
 
-from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text
+from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text
 
 
 SAMPLE = """
@@ -440,6 +440,20 @@ class JraPdfParserTests(unittest.TestCase):
 
         self.assertEqual([pair for _, pair in inferred], entries)
 
+    def test_infers_missing_horses_when_ocr_rows_are_present_but_unreadable(self):
+        entries = [
+            (4, 8), (3, 5), (4, 7), (6, 11), (6, 12), (1, 1),
+            (8, 16), (7, 13), (5, 9), (7, 14), (1, 2), (5, 10),
+            (2, 4), (2, 3), (3, 6), (8, 15),
+        ]
+        frame_rows = [(100.0 + index * 40, frame) for index, (frame, _) in enumerate(entries)]
+        horse_slots = [
+            (100.0 + index * 40, None if horse in {5, 12} else horse)
+            for index, (_, horse) in enumerate(entries)
+        ]
+        inferred = _infer_identifier_pairs_from_complete_frame_column(frame_rows, horse_slots)
+        self.assertEqual([pair for _, pair in inferred], entries)
+
     def test_does_not_infer_two_missing_horses_in_the_same_frame(self):
         entries = [
             (4, 8), (3, 5), (3, 6), (6, 11), (6, 12), (1, 1),
@@ -506,6 +520,20 @@ class JraPdfParserTests(unittest.TestCase):
             [(100.0, 1), (140.0, 5)],
             [(100.0, 1), (170.0, 5)],
         ), [])
+
+    def test_identifier_column_slots_preserve_unreadable_rows(self):
+        tsv = (
+            "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+            "5\t1\t1\t1\t1\t1\t0\t0\t10\t10\t90\t15\n"
+            "5\t1\t1\t1\t2\t1\t0\t50\t10\t10\t40\td\n"
+            "5\t1\t1\t1\t3\t1\t0\t100\t10\t10\t90\t13\n"
+        )
+        self.assertEqual(
+            _ocr_identifier_column_slots(
+                tsv, scale=1, y_offset=0, allowed=r"(?:[1-9]|1[0-8])"
+            ),
+            [(5.0, 15), (55.0, None), (105.0, 13)],
+        )
 
     def test_identifier_column_reader_keeps_only_valid_single_column_values(self):
         tsv = (
