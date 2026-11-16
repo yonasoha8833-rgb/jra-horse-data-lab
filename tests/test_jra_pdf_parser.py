@@ -444,7 +444,7 @@ class JraPdfParserTests(unittest.TestCase):
         entries = [
             (4, 8), (3, 5), (3, 6), (6, 11), (6, 12), (1, 1),
             (8, 16), (7, 13), (5, 9), (7, 14), (1, 2), (5, 10),
-            (2, 4), (2, 3), (3, 7), (8, 15),
+            (2, 4), (2, 3), (4, 7), (8, 15),
         ]
         frame_rows = [(100.0 + index * 40, frame) for index, (frame, _) in enumerate(entries)]
         horse_rows = [
