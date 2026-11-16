@@ -545,9 +545,9 @@ class JraPdfParserTests(unittest.TestCase):
 
     def test_identifier_column_reader_does_not_strip_mixed_ocr_tokens(self):
         tsv = (
-            "level\\tpage_num\\tblock_num\\tpar_num\\tline_num\\tword_num\\tleft\\ttop\\twidth\\theight\\tconf\\ttext\\n"
-            "5\\t1\\t1\\t1\\t1\\t1\\t0\\t20\\t10\\t10\\t90\\t1]\\n"
-            "5\\t1\\t1\\t1\\t2\\t1\\t0\\t60\\t10\\t10\\t90\\t11\\n"
+            "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+            "5\t1\t1\t1\t1\t1\t0\t20\t10\t10\t90\t1]\n"
+            "5\t1\t1\t1\t2\t1\t0\t60\t10\t10\t90\t11\n"
         )
         self.assertEqual(
             _ocr_identifier_column_slots(
