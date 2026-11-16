@@ -453,7 +453,7 @@ def _infer_identifier_pairs_from_complete_frame_column(
 ) -> list[tuple[float, tuple[int, int]]]:
     """Recover unreadable horse numbers only when every aligned row is accounted for."""
     field_size = len(frame_rows)
-    if not 2 <= field_size <= 18 or len(horse_rows) != field_size:
+    if not 2 <= field_size <= 18 or not horse_rows:
         return []
 
     centers = [y for y, _ in frame_rows]
@@ -476,8 +476,11 @@ def _infer_identifier_pairs_from_complete_frame_column(
             index for index, (horse_y, _) in enumerate(horse_rows)
             if abs(center - horse_y) <= tolerance
         ]
-        if len(candidates) != 1:
+        if len(candidates) > 1:
             return []
+        if not candidates:
+            missing_slots.append((center, frame))
+            continue
         index = candidates[0]
         if index in used_rows:
             return []
@@ -493,7 +496,7 @@ def _infer_identifier_pairs_from_complete_frame_column(
         observed.add(horse)
         row_numbers[center] = horse
 
-    if len(used_rows) != field_size:
+    if len(used_rows) != len(horse_rows):
         return []
     missing_numbers = set(range(1, field_size + 1)) - observed
     if len(missing_numbers) != len(missing_slots):
@@ -508,7 +511,7 @@ def _infer_identifier_pairs_from_complete_frame_column(
         if len(candidates) != 1:
             return []
         row_numbers[center] = candidates[0]
-        assigned.add(candidates[0]
+        assigned.add(candidates[0])
 
     if assigned != missing_numbers:
         return []
