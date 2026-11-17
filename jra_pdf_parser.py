@@ -451,6 +451,14 @@ def _pair_identifier_columns(
     return paired
 
 
+def _identifier_column_inner_bounds(width: int, *, column: str) -> tuple[int, int]:
+    """Exclude vertical table rules while keeping the printed identifier glyph."""
+    left_ratio = 0.235 if column == "frame" else 0.14
+    left = max(0, min(width - 1, int(width * left_ratio)))
+    right = max(left + 1, min(width, int(width * 0.82)))
+    return left, right
+
+
 def _ocr_identifier_column_slots(
     tsv: str, *, scale: float, y_offset: float, allowed: str,
 ) -> list[tuple[float, int | None]]:
@@ -668,7 +676,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
     if not pages:
         return None
     try:
-        from PIL import Image
+        from PIL import Image, ImageOps
     except ImportError:
         print("Pillow unavailable; cannot safely split JRA result columns")
         return None
@@ -772,21 +780,36 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     half_height = max(2, int(typical_slot_gap * 5 * 0.38))
                                     top = max(0, local_center - half_height)
                                     bottom = min(horse_column_image.height, local_center + half_height + 1)
+                                    frame_retry_text = ""
                                     if frame_value is None:
                                         retry_path = temp_dir / f"{page.stem}-{side}-frame-row-{row_index}.png"
-                                        frame_column_image.crop((0, top, frame_column_image.width, min(frame_column_image.height, bottom))).save(retry_path)
-                                        retry_text = subprocess.run(
+                                        frame_left, frame_right = _identifier_column_inner_bounds(
+                                            frame_column_image.width, column="frame"
+                                        )
+                                        frame_crop = frame_column_image.crop((
+                                            frame_left, top, frame_right,
+                                            min(frame_column_image.height, bottom),
+                                        ))
+                                        ImageOps.expand(frame_crop, border=15, fill="white").save(retry_path)
+                                        frame_retry_text = subprocess.run(
                                             ["tesseract", str(retry_path), "stdout", "-l", "eng", "--psm", "10", "-c", "tessedit_char_whitelist=12345678"],
                                             check=True, timeout=15, capture_output=True, text=True,
                                         ).stdout.strip()
-                                        frame_value = _ocr_single_frame_number(retry_text)
+                                        frame_value = _ocr_single_frame_number(frame_retry_text)
                                     horse_retry_path = temp_dir / f"{page.stem}-{side}-horse-row-{row_index}.png"
-                                    horse_column_image.crop((0, top, horse_column_image.width, bottom)).save(horse_retry_path)
-                                    retry_text = subprocess.run(
+                                    horse_left, horse_right = _identifier_column_inner_bounds(
+                                        horse_column_image.width, column="horse"
+                                    )
+                                    horse_crop = horse_column_image.crop((
+                                        horse_left, top, horse_right,
+                                        min(horse_column_image.height, bottom),
+                                    ))
+                                    ImageOps.expand(horse_crop, border=15, fill="white").save(horse_retry_path)
+                                    horse_retry_text = subprocess.run(
                                         ["tesseract", str(horse_retry_path), "stdout", "-l", "eng", "--psm", "10", "-c", "tessedit_char_whitelist=0123456789"],
                                         check=True, timeout=15, capture_output=True, text=True,
                                     ).stdout.strip()
-                                    horse_value = _ocr_single_horse_number(retry_text)
+                                    horse_value = _ocr_single_horse_number(horse_retry_text)
                                     if horse_value is None:
                                         aligned = [
                                             value for y, value in horse_slot_rows
@@ -794,6 +817,11 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         ]
                                         if len(aligned) == 1:
                                             horse_value = aligned[0]
+                                    row_diagnostics.append(
+                                        f"row={row_index + 1} y={center:.1f} "
+                                        f"frame={frame_value} frame_retry={frame_retry_text!r} "
+                                        f"horse={horse_value} horse_retry={horse_retry_text!r}"
+                                    )
                                     refined_frames.append((center, frame_value))
                                     refined_horses.append((center, horse_value))
                             frame_rows = [(y, value) for y, value in refined_frames if value is not None]
