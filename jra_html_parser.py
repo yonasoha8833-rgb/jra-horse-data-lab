@@ -52,14 +52,20 @@ class _TableParser(HTMLParser):
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self.rows: list[list[_Cell]] = []
+        self.tables: list[list[list[_Cell]]] = []
         self.text_parts: list[str] = []
+        self._table_depth = 0
+        self._table_rows: list[list[_Cell]] | None = None
         self._row: list[_Cell] | None = None
         self._cell: _Cell | None = None
 
     def handle_starttag(self, tag: str, attrs) -> None:
         attrs = dict(attrs)
-        if tag == "tr":
+        if tag == "table":
+            self._table_depth += 1
+            if self._table_depth == 1:
+                self._table_rows = []
+        elif tag == "tr" and self._table_depth == 1:
             self._row = []
         elif tag in {"td", "th"} and self._row is not None:
             self._cell = _Cell()
@@ -84,8 +90,14 @@ class _TableParser(HTMLParser):
             if self._cell is not None:
                 self._row.append(self._cell)
                 self._cell = None
-            self.rows.append(self._row)
+            if self._table_rows is not None:
+                self._table_rows.append(self._row)
             self._row = None
+        elif tag == "table" and self._table_depth > 0:
+            self._table_depth -= 1
+            if self._table_depth == 0 and self._table_rows is not None:
+                self.tables.append(self._table_rows)
+                self._table_rows = None
 
 
 def _column(headers: list[str], *names: str) -> int | None:
@@ -121,7 +133,7 @@ def _race_metadata(page_text: str) -> dict[str, Any]:
     if meeting_match:
         result["track"] = meeting_match.group(1)
     else:
-        result["track"] = next((track for track in TRACKS if track in page_text), None)
+        result["track"] = None
 
     race_match = re.search(r"(\d{1,2})\s*レース", page_text)
     if race_match and 1 <= int(race_match.group(1)) <= 12:
@@ -196,7 +208,7 @@ def parse_result_html(html: str, *, source_url: str = "") -> list[dict[str, Any]
     page_text = " ".join(parser.text_parts)
     metadata = _race_metadata(page_text)
 
-    for table_rows in _split_tables(parser.rows):
+    for table_rows in parser.tables:
         header_index = None
         headers: list[str] = []
         for index, row in enumerate(table_rows):
@@ -231,10 +243,16 @@ def parse_result_html(html: str, *, source_url: str = "") -> list[dict[str, Any]
             "popularity": _column(headers, "単勝人気", "人気"),
         }
         records: list[dict[str, Any]] = []
+        incomplete_rows = 0
         for row in table_rows[header_index + 1:]:
             number_text = _cell_text(row, columns["horse_number"])
             name_text = _cell_text(row, columns["horse_name"])
+            if not number_text and not name_text:
+                if any(_cell_text(row, index) for index in range(len(row))):
+                    incomplete_rows += 1
+                continue
             if not number_text or not name_text:
+                incomplete_rows += 1
                 continue
             number_match = NUMBER_RE.search(_ascii_digits(number_text))
             if not number_match:
@@ -315,27 +333,17 @@ def parse_result_html(html: str, *, source_url: str = "") -> list[dict[str, Any]
         warnings = []
         if len(numbers) != len(set(numbers)):
             warnings.append("duplicate_horse_number")
-        field_size = len(records)
+        if incomplete_rows:
+            warnings.append(f"incomplete_runner_rows:{incomplete_rows}")
+        # Only expose a field size when every non-empty row in the official
+        # result table was parsed. Otherwise downstream complete-field scoring
+        # must not treat the partial table as a complete race.
+        field_size = len(records) if not warnings else None
         for record in records:
             record["field_size"] = field_size
             record["race_validation_warnings"] = warnings.copy()
         return records
     return []
-
-
-def _split_tables(rows: list[list[_Cell]]) -> list[list[list[_Cell]]]:
-    """Split collected rows at table header candidates; nested table markup is rare."""
-    tables: list[list[list[_Cell]]] = []
-    current: list[list[_Cell]] = []
-    for row in rows:
-        if current and not row:
-            if current:
-                tables.append(current)
-            current = []
-        current.append(row)
-    if current:
-        tables.append(current)
-    return tables
 
 
 def read_limited_html(response, max_bytes: int = MAX_HTML_BYTES) -> bytes:
