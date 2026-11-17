@@ -234,6 +234,24 @@
       "error": "UnboundLocalError: cannot access local variable 'identifier_rows' where it is not associated with a value"
     },
     {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1tokyo6.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-17T07:53:37.285337+00:00",
+      "error": "UnboundLocalError: cannot access local variable 'identifier_rows' where it is not associated with a value"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1tokyo7.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-17T07:53:57.232850+00:00",
+      "error": "UnboundLocalError: cannot access local variable 'identifier_rows' where it is not associated with a value"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1tokyo8.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-17T07:54:15.459876+00:00",
+      "error": "UnboundLocalError: cannot access local variable 'identifier_rows' where it is not associated with a value"
+    },
+    {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2fukushima1.pdf",
       "attempts": 1,
       "last_attempt_utc": "2026-11-14T11:49:06.820021+00:00",
