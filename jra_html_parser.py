@@ -404,8 +404,18 @@ def fetch_result_html(url: str) -> str:
         if content_type and "html" not in content_type:
             raise ValueError("JRA result response is not HTML")
         body = read_limited_html(response)
-        charset_match = re.search(r"charset=([a-zA-Z0-9._-]+)", content_type)
-        charset = charset_match.group(1) if charset_match else "utf-8"
+        charset_match = re.search(r"charset\\s*=\\s*[\"']?\\s*([a-zA-Z0-9._-]+)", content_type, re.I)
+        if charset_match:
+            charset = charset_match.group(1)
+        else:
+            # JRA result pages declare Shift_JIS in a meta tag even when the
+            # HTTP Content-Type header omits its charset parameter.
+            meta_charset = re.search(
+                rb"charset\\s*=\\s*[\"']?\\s*([a-zA-Z0-9._-]+)",
+                body[:4096],
+                re.I,
+            )
+            charset = meta_charset.group(1).decode("ascii") if meta_charset else "utf-8"
         try:
             return body.decode(charset, errors="replace")
         except LookupError:
