@@ -7,7 +7,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from jra_html_parser import fetch_and_parse_result  # noqa: E402
+from jra_html_parser import (  # noqa: E402
+    _TableParser,
+    fetch_result_html,
+    parse_result_html,
+)
 
 SOURCE_URL = (
     "https://www.jra.go.jp/JRADB/accessS.html?"
@@ -15,10 +19,44 @@ SOURCE_URL = (
 )
 
 
+def _diagnostics(html: str, parser: _TableParser) -> dict:
+    return {
+        "html_bytes": len(html.encode("utf-8")),
+        "table_count": len(parser.tables),
+        "tables": [
+            {
+                "row_count": len(rows),
+                "sample_rows": [
+                    [
+                        {
+                            "text": " ".join(cell.text).strip(),
+                            "alt": cell.alt,
+                        }
+                        for cell in row
+                    ]
+                    for row in rows[:4]
+                ],
+            }
+            for rows in parser.tables[:8]
+        ],
+        "text_sample": " ".join(parser.text_parts)[:1800],
+        "html_prefix": html[:1200],
+    }
+
+
 def main() -> None:
-    records = fetch_and_parse_result(SOURCE_URL)
+    html = fetch_result_html(SOURCE_URL)
+    dom = _TableParser()
+    dom.feed(html)
+    records = parse_result_html(html, source_url=SOURCE_URL)
+
     if len(records) != 18:
-        raise SystemExit(f"Expected 18 runner rows, got {len(records)}")
+        raise SystemExit(
+            "Expected 18 runner rows, got "
+            + str(len(records))
+            + "\nDOM diagnostics: "
+            + json.dumps(_diagnostics(html, dom), ensure_ascii=False)
+        )
 
     by_number = {row["horse_number"]: row for row in records}
     if set(by_number) != set(range(1, 19)):
