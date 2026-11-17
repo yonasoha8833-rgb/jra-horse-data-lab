@@ -64,6 +64,7 @@ ul{padding-left:22px}
 </ul>
 <p class="muted small">現在は公式成績PDFへのリンク検索と、基本項目の試験的な抽出に対応しています。抽出精度の検証と馬別分析の接続は開発中です。</p>
 </section>
+<script src="./horse_scoring.js"></script>
 <script>
 (function(){
 const status=document.getElementById('status');
@@ -103,6 +104,7 @@ const horseSort=document.getElementById('horseSort');
 const horseResults=document.getElementById('horseResults');
 const horseCompare=document.getElementById('horseCompare');
 let horseRecords=[];
+let relativeLast3fSummaries=[];
 const selectedHorses=new Map();
 let comparisonCondition='all';
 function appendRecentForm(card,rows){
@@ -169,6 +171,59 @@ function horseDataConfidence(rows){
  return {label,valid,completeness,detail};
 }
 
+function latestHorseTargetRow(rows){
+ const ordered=(rows||[]).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+ return ordered.find(r=>r.track&&r.surface&&Number.isInteger(Number(r.distance))&&Number(r.distance)>0&&r.going)
+  ||ordered.find(r=>r.surface&&Number.isInteger(Number(r.distance))&&Number(r.distance)>0)
+  ||ordered[0]||{};
+}
+function integratedScoreForHorse(allRows,targetRows,registration,name){
+ const target=latestHorseTargetRow(targetRows&&targetRows.length?targetRows:allRows);
+ return window.JraHorseScoring.integratedHorsePerformanceScore(
+  allRows,horseRecords,
+  {track:target.track||'',surface:target.surface||'',distance:target.distance,going:target.going||''},
+  {horseRegistrationNumber:registration||null,horseName:name||'',relativeSummaries:relativeLast3fSummaries}
+ );
+}
+function appendIntegratedHorseScore(card,result,target){
+ const details=document.createElement('details');details.className='small';
+ const summary=document.createElement('summary');summary.textContent='4要素の総合評価を表示';details.append(summary);
+ const targetBits=[target.track,target.surface,target.distance?String(target.distance)+'m':'',target.going].filter(Boolean);
+ const targetLine=document.createElement('p');targetLine.className='muted';
+ targetLine.textContent=targetBits.length?'評価対象条件：'+targetBits.join('・'):'評価対象条件：未設定';
+ details.append(targetLine);
+ const headline=document.createElement('p');headline.className='count';
+ headline.textContent=result.score===null?'総合指数：判定材料不足':'4要素総合指数：'+result.score.toFixed(1)+' / 100（'+result.confidence+'）';
+ details.append(headline);
+ const labels={
+  placing:'着順成績',distance:'距離適性',going:'馬場適性',relative_last3f:'個別上がり3F相対'
+ };
+ const components=[
+  ['placing',result.baseline_score,result.baseline_sample_count,'直近5走を重み付け'],
+  ['distance',result.distance_score,result.distance_sample_count,result.distance_condition],
+  ['going',result.going_score,result.going_sample_count,result.going_condition],
+  ['relative_last3f',result.relative_last3f_score,result.relative_last3f_sample_count,result.relative_last3f_condition]
+ ];
+ components.forEach(([key,value,count,condition])=>{
+  const line=document.createElement('p');
+  const weight=result.component_weights[key];
+  const weightText=weight===undefined?'':'・構成比 '+(weight*100).toFixed(1)+'%';
+  const conditionText=condition?'・'+condition:'';
+  line.textContent=labels[key]+'：'+(value===null||value===undefined?'未算入':Number(value).toFixed(1)+'点')+'（'+(count||0)+'件'+conditionText+weightText+'）';
+  details.append(line);
+ });
+ const identity=document.createElement('p');identity.className='muted';
+ identity.textContent=result.identity_basis==='official_registration_number'
+  ?'馬の識別：競走馬登録番号で確認'
+  :result.identity_basis==='horse_name_only'
+   ?'注意：登録番号がないため馬名による仮集計です'
+   :'注意：馬の識別情報が不足しています';
+ details.append(identity);
+ const note=document.createElement('p');note.className='muted';
+ note.textContent='条件別成績と個別上がり3Fは各3走以上を採用し、少数標本は基準値へ縮約します。利用できない要素は推測せず除外し、残りの重みを再配分します。勝率や将来の着順予測ではありません。';
+ details.append(note);
+ card.append(details);
+}
 function updateHorseComparison(){
  horseCompare.replaceChildren();
  if(!selectedHorses.size)return;
@@ -201,21 +256,31 @@ function updateHorseComparison(){
  });
  const table=document.createElement('table');table.style.width='100%';table.style.borderCollapse='collapse';
  const head=document.createElement('tr');
- ['馬名','出走','勝利','勝率','複勝率','全体指数','条件補正指数','上がり相対','参考統合指数','信頼度'].forEach(label=>{const th=document.createElement('th');th.textContent=label;th.style.textAlign='left';th.style.padding='6px';head.append(th);});table.append(head);
+ ['馬名','出走','勝利','勝率','複勝率','着順指数','距離適性','馬場適性','上がり相対','4要素総合','信頼度'].forEach(label=>{const th=document.createElement('th');th.textContent=label;th.style.textAlign='left';th.style.padding='6px';head.append(th);});table.append(head);
  selectedHorses.forEach(item=>{
   const rows=filterRows(item.rows);
   const wins=rows.filter(r=>Number(r.finish)===1).length;
   const top3=rows.filter(r=>[1,2,3].includes(Number(r.finish))).length;
-  const adjusted=horseConditionAdjustedScore(rows,item.rows);
-  const relative=horseRelativeLast3fSummary(rows,horseRecords);
-  const integrated=adjusted.score!==null&&relative.averageScore!==null?adjusted.score*0.8+relative.averageScore*0.2:null;
+  const integrated=integratedScoreForHorse(item.rows,rows,item.registration,item.name);
   const confidence=horseDataConfidence(rows);
+  const formatScore=(value,count)=>value===null||value===undefined?'—':Number(value).toFixed(1)+(count?'（'+count+'件）':'');
   const tr=document.createElement('tr');
-  const values=[item.name,rows.length?rows.length+'戦':'—',rows.length?wins+'勝':'—',rows.length?(wins/rows.length*100).toFixed(1)+'%':'—',rows.length?(top3/rows.length*100).toFixed(1)+'%':'—',adjusted.baseline===null?'—':adjusted.baseline.toFixed(1),adjusted.score===null?'—':adjusted.score.toFixed(1)+(adjusted.sampleCount<3?'*':''),relative.averageScore===null?'—':relative.averageScore.toFixed(1)+'（'+relative.sampleCount+'走）',integrated===null?'—':integrated.toFixed(1),confidence.label+'（'+confidence.valid+'件）'];
+  const values=[
+   item.name,rows.length?rows.length+'戦':'—',rows.length?wins+'勝':'—',
+   rows.length?(wins/rows.length*100).toFixed(1)+'%':'—',
+   rows.length?(top3/rows.length*100).toFixed(1)+'%':'—',
+   formatScore(integrated.baseline_score,integrated.baseline_sample_count),
+   formatScore(integrated.distance_score,integrated.distance_sample_count),
+   formatScore(integrated.going_score,integrated.going_sample_count),
+   formatScore(integrated.relative_last3f_score,integrated.relative_last3f_sample_count),
+   integrated.score===null?'—':integrated.score.toFixed(1)+(integrated.integrated?'':'（着順のみ）'),
+   confidence.label+'（'+confidence.valid+'件）'
+  ];
   values.forEach(value=>{const td=document.createElement('td');td.textContent=value;td.style.padding='6px';td.style.borderTop='1px solid #40516a';tr.append(td);});
   table.append(tr);
- });horseCompare.append(table);
- const note=document.createElement('p');note.className='muted small';note.textContent='信頼度は有効着順件数と日付・競馬場・コース・距離・馬場状態・着順・頭数の充足率による目安です。高：有効10件以上かつ充足率90％以上、中：有効5件以上かつ充足率75％以上、それ以外は低。条件補正指数の*は条件データ3走未満です。全体指数は頭数補正した直近5走の参考値、条件補正指数は条件成績を全体指数へ5走分相当で縮約した値です。上がり相対は同一レース内で3頭以上を比較できた出走のみ集計し、参考統合指数は条件補正指数80％・上がり相対20％の暫定値です。指数は勝率や将来の結果を示すものではありません。';horseCompare.append(note);
+ });
+ horseCompare.append(table);
+ const note=document.createElement('p');note.className='muted small';note.textContent='総合指数は着順40％・距離20％・馬場状態20％・個別上がり3F相対20％を標準重みとし、利用できない要素は除外して再配分します。条件成績は各3走以上を採用し、5走分相当の基準値へ縮約します。個別上がり3Fは同一レース内で3頭以上を比較できた走のみ使用します。信頼度は有効着順件数と必須項目の充足率も併せて確認してください。指数は勝率や将来の着順予測ではありません。';horseCompare.append(note);
  const clear=document.createElement('button');clear.type='button';clear.textContent='比較を解除';clear.addEventListener('click',()=>{selectedHorses.clear();comparisonCondition='all';updateHorseComparison();renderHorses();});horseCompare.append(clear);
 }
 
@@ -451,7 +516,7 @@ function renderHorses(){
   const identity=registration?'登録番号:'+registration:'馬名:'+name;
   const choose=document.createElement('label');choose.className='small';choose.style.display='block';choose.style.marginTop='6px';
   const check=document.createElement('input');check.type='checkbox';check.style.width='auto';check.checked=selectedHorses.has(identity);check.disabled=!check.checked&&selectedHorses.size>=3;
-  check.addEventListener('change',()=>{if(check.checked){const allRows=uniqueRunnerRows(horseRecords.filter(r=>{const reg=String(r.horse_registration_number||'').trim();return (reg?'登録番号:'+reg:'馬名:'+String(r.horse_name||'馬名不明'))===identity;}));selectedHorses.set(identity,{name:name,rows:allRows});}else selectedHorses.delete(identity);updateHorseComparison();renderHorses();});
+  check.addEventListener('change',()=>{if(check.checked){const allRows=uniqueRunnerRows(horseRecords.filter(r=>{const reg=String(r.horse_registration_number||'').trim();return (reg?'登録番号:'+reg:'馬名:'+String(r.horse_name||'馬名不明'))===identity;}));selectedHorses.set(identity,{name:name,registration:registration,rows:allRows});}else selectedHorses.delete(identity);updateHorseComparison();renderHorses();});
   choose.append(check,document.createTextNode(' 比較対象に追加'));card.append(choose);
   const stat=document.createElement('p');stat.className='muted small';stat.textContent='勝率 '+(wins/rows.length*100).toFixed(1)+'% ／ 複勝率 '+(top3/rows.length*100).toFixed(1)+'%';card.append(stat);
   const finishes=rows.map(r=>Number(r.finish)).filter(v=>Number.isFinite(v)&&v>0);
@@ -473,6 +538,13 @@ function renderHorses(){
   }
   appendRecentForm(card,rows);
   appendConditionBreakdown(card,rows);
+  const allHorseRows=uniqueRunnerRows(horseRecords.filter(r=>{
+   const reg=String(r.horse_registration_number||'').trim();
+   return (reg?'登録番号:'+reg:'馬名:'+String(r.horse_name||'馬名不明'))===identity;
+  }));
+  const targetRow=latestHorseTargetRow(rows);
+  const integrated=integratedScoreForHorse(allHorseRows,rows,registration,name);
+  appendIntegratedHorseScore(card,integrated,targetRow);
   const scoreValue=horseScore(rows);
   if(scoreValue!==null){const score=document.createElement('p');score.className='small';score.textContent='着順ベース参考指数：'+scoreValue.toFixed(1)+' / 100';card.append(score);}
   rows.forEach(r=>{
@@ -515,6 +587,7 @@ Promise.all([
    replayAdded++;
   }
  });
+ relativeLast3fSummaries=window.JraHorseScoring.summarizeRelativeLast3f(horseRecords);
  renderRaceSummaries(horseRecords);
  renderStylePacePerformance(horseRecords);
  renderRaceConditionSummaries(horseRecords);
