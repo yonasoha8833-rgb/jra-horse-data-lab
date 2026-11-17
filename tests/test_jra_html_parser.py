@@ -99,6 +99,17 @@ class JraHtmlParserTests(unittest.TestCase):
         self.assertIsNone(row["finish"])
         self.assertEqual(row["result_status"], "中止")
 
+
+    def test_partial_result_table_does_not_claim_a_complete_field(self):
+        html = SAMPLE_HTML.replace(
+            "<tr><td>2</td><td>8</td><td>17</td><td><a>ルーチェブリラーレ</a></td>",
+            "<tr><td></td><td>8</td><td>17</td><td><a>ルーチェブリラーレ</a></td>",
+        )
+        rows = parse_result_html(html)
+        self.assertEqual(len(rows), 3)
+        self.assertIsNone(rows[1]["field_size"])
+        self.assertIn("incomplete_runner_rows:1", rows[1]["race_validation_warnings"])
+
     def test_returns_empty_for_unrecognized_table(self):
         self.assertEqual(parse_result_html("<html><table><tr><td>説明のみ</td></tr></table></html>"), [])
 
