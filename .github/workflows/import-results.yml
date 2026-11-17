@@ -5,6 +5,7 @@ concurrency:
   cancel-in-progress: false # Keep imports serialized so data commits cannot race.
 on:
   push:
+    branches: [main]
     paths:
       - .github/workflows/import-results.yml
       - jra_pdf_parser.py

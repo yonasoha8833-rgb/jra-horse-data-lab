@@ -763,6 +763,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 horse_slot_rows = _ocr_identifier_column_slots(
                     horse_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"(?:[1-9]|1[0-8])"
                 )
+                identifier_row_diagnostics = []
                 if len(frame_slot_rows) >= 2:
                     slot_centers = [center for center, _ in frame_slot_rows]
                     slot_gaps = [
@@ -817,8 +818,8 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         ]
                                         if len(aligned) == 1:
                                             horse_value = aligned[0]
-                                    row_diagnostics.append(
-                                        f"row={row_index + 1} y={center:.1f} "
+                                    identifier_row_diagnostics.append(
+                                        f"identifier_row={row_index + 1} y={center:.1f} "
                                         f"frame={frame_value} frame_retry={frame_retry_text!r} "
                                         f"horse={horse_value} horse_retry={horse_retry_text!r}"
                                     )
@@ -847,9 +848,8 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 )
                 if inferred_identifier_rows:
                     identifier_rows = inferred_identifier_rows
-                # Keep row-local OCR diagnostics separate from the full-panel pass.
+                # OCR complete runner rows only after identifier pairs are valid.
                 row_diagnostics = []
-                # OCR each runner row independently to avoid cross-column merging.
                 if len(identifier_rows) >= 2:
                     centers = [row[0] for row in identifier_rows]
                     gaps = [b - a for a, b in zip(centers, centers[1:]) if b > a]
@@ -902,7 +902,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                         number_tsv, encoding="utf-8"
                     )
                     (destination / f"{page.stem}-{side}-rows.txt").write_text(
-                        "\n".join(row_diagnostics)
+                        "\n".join(identifier_row_diagnostics + row_diagnostics)
                         + "\n--- metadata and parser input ---\n"
                         + "\n".join(clean_lines),
                         encoding="utf-8",
