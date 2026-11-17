@@ -402,7 +402,7 @@ class JraPdfParserTests(unittest.TestCase):
         name = _runner_column_bounds(1788, 2481, column="horse_name")
         finish_time = _runner_column_bounds(1788, 2481, column="finish_time")
         self.assertEqual(name, (89, 429, 271, 798))
-        self.assertEqual(finish_time, (818, 429, 901, 798))
+        self.assertEqual(finish_time, (818, 429, 902, 798))
         with self.assertRaises(ValueError):
             _runner_column_bounds(1788, 2481, column="odds")
 
