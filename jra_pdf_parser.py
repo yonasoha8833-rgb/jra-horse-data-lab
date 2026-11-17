@@ -799,6 +799,8 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                             frame_rows = [(y, value) for y, value in refined_frames if value is not None]
                             horse_slot_rows = refined_horses
                             horse_rows = [(y, value) for y, value in refined_horses if value is not None]
+                # Preserve the ordinary aligned-column result when no inference is needed.
+                identifier_rows = _pair_identifier_columns(frame_rows, horse_rows)
                 # If a complete frame column is available, fill unreadable horse
                 # digits only when the remaining numbers and JRA frame allocation
                 # identify every missing row uniquely.
