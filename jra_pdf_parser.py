@@ -395,6 +395,12 @@ def _ocr_identifier_pairs(text: str) -> list[tuple[int, int] | None]:
     return pairs
 
 
+def _ocr_single_frame_number(text: str) -> int | None:
+    """Accept exactly one frame digit from a row-local OCR pass."""
+    token = text.strip()
+    return int(token) if re.fullmatch(r"[1-8]", token) else None
+
+
 def _ocr_single_horse_number(text: str) -> int | None:
     """Accept exactly one digit-only horse number from a row-local OCR pass."""
     token = text.strip()
@@ -741,53 +747,58 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 horse_rows = _ocr_identifier_column(
                     horse_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"(?:[1-9]|1[0-8])"
                 )
+                # Anchor row-local retries to frame-column positions. The normal
+                # horse-column TSV pass can omit whole rows or merge digits.
+                frame_slot_rows = _ocr_identifier_column_slots(
+                    frame_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"[1-8]"
+                )
                 horse_slot_rows = _ocr_identifier_column_slots(
                     horse_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"(?:[1-9]|1[0-8])"
                 )
-                # Re-read OCR rows that Tesseract could not classify (for example,
-                # a printed "9" recognized as "Q") using a tight row crop and a
-                # digits-only whitelist. Keep the original row positions; never
-                # create a slot from an unlocated guess.
-                if len(horse_slot_rows) >= 2:
-                    slot_centers = [center for center, _ in horse_slot_rows]
+                if len(frame_slot_rows) >= 2:
+                    slot_centers = [center for center, _ in frame_slot_rows]
                     slot_gaps = [
                         later - earlier
                         for earlier, later in zip(slot_centers, slot_centers[1:])
-                        if later > earlier
                     ]
-                    if len(slot_gaps) == len(slot_centers) - 1:
+                    if all(gap > 0 for gap in slot_gaps):
                         typical_slot_gap = sorted(slot_gaps)[len(slot_gaps) // 2]
                         if typical_slot_gap > 0:
-                            with Image.open(horse_path) as horse_column_image:
-                                refined_slots = []
-                                for center, number in horse_slot_rows:
-                                    if number is None:
-                                        local_center = int((center - number_box[1]) * 5)
-                                        half_height = max(2, int(typical_slot_gap * 5 * 0.38))
-                                        top = max(0, local_center - half_height)
-                                        bottom = min(
-                                            horse_column_image.height,
-                                            local_center + half_height + 1,
-                                        )
-                                        row_crop_path = temp_dir / (
-                                            f"{page.stem}-{side}-horse-row-{len(refined_slots)}.png"
-                                        )
-                                        horse_column_image.crop(
-                                            (0, top, horse_column_image.width, bottom)
-                                        ).save(row_crop_path)
+                            refined_frames = []
+                            refined_horses = []
+                            with Image.open(frame_path) as frame_column_image, Image.open(horse_path) as horse_column_image:
+                                for row_index, (center, frame_value) in enumerate(frame_slot_rows):
+                                    local_center = int((center - number_box[1]) * 5)
+                                    half_height = max(2, int(typical_slot_gap * 5 * 0.38))
+                                    top = max(0, local_center - half_height)
+                                    bottom = min(horse_column_image.height, local_center + half_height + 1)
+                                    if frame_value is None:
+                                        retry_path = temp_dir / f"{page.stem}-{side}-frame-row-{row_index}.png"
+                                        frame_column_image.crop((0, top, frame_column_image.width, min(frame_column_image.height, bottom))).save(retry_path)
                                         retry_text = subprocess.run(
-                                            [
-                                                "tesseract", str(row_crop_path), "stdout",
-                                                "-l", "eng", "--psm", "10",
-                                                "-c", "tessedit_char_whitelist=0123456789",
-                                            ],
-                                            check=True, timeout=15,
-                                            capture_output=True, text=True,
+                                            ["tesseract", str(retry_path), "stdout", "-l", "eng", "--psm", "10", "-c", "tessedit_char_whitelist=12345678"],
+                                            check=True, timeout=15, capture_output=True, text=True,
                                         ).stdout.strip()
-                                        number = _ocr_single_horse_number(retry_text)
-                                    refined_slots.append((center, number))
-                                horse_slot_rows = refined_slots
-                identifier_rows = _pair_identifier_columns(frame_rows, horse_rows)
+                                        frame_value = _ocr_single_frame_number(retry_text)
+                                    horse_retry_path = temp_dir / f"{page.stem}-{side}-horse-row-{row_index}.png"
+                                    horse_column_image.crop((0, top, horse_column_image.width, bottom)).save(horse_retry_path)
+                                    retry_text = subprocess.run(
+                                        ["tesseract", str(horse_retry_path), "stdout", "-l", "eng", "--psm", "10", "-c", "tessedit_char_whitelist=0123456789"],
+                                        check=True, timeout=15, capture_output=True, text=True,
+                                    ).stdout.strip()
+                                    horse_value = _ocr_single_horse_number(retry_text)
+                                    if horse_value is None:
+                                        aligned = [
+                                            value for y, value in horse_slot_rows
+                                            if abs(y - center) <= typical_slot_gap * 0.40 and value is not None
+                                        ]
+                                        if len(aligned) == 1:
+                                            horse_value = aligned[0]
+                                    refined_frames.append((center, frame_value))
+                                    refined_horses.append((center, horse_value))
+                            frame_rows = [(y, value) for y, value in refined_frames if value is not None]
+                            horse_slot_rows = refined_horses
+                            horse_rows = [(y, value) for y, value in refined_horses if value is not None]
                 # If a complete frame column is available, fill unreadable horse
                 # digits only when the remaining numbers and JRA frame allocation
                 # identify every missing row uniquely.
