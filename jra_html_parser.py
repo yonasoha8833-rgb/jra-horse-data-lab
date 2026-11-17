@@ -256,9 +256,11 @@ def parse_result_html(html: str, *, source_url: str = "") -> list[dict[str, Any]
                 continue
             number_match = NUMBER_RE.search(_ascii_digits(number_text))
             if not number_match:
+                incomplete_rows += 1
                 continue
             horse_number = int(number_match.group())
             if not 1 <= horse_number <= 18:
+                incomplete_rows += 1
                 continue
 
             finish_text = _cell_text(row, columns["finish"])
@@ -267,6 +269,8 @@ def parse_result_html(html: str, *, source_url: str = "") -> list[dict[str, Any]
             finish = int(finish_match.group()) if finish_match and not status_match else None
             if finish is not None and not 1 <= finish <= 18:
                 finish = None
+            if finish is None and status_match is None:
+                incomplete_rows += 1
 
             time_text = _cell_text(row, columns["finish_time"])
             time_match = TIME_RE.search(_ascii_digits(time_text).replace("．", "."))
