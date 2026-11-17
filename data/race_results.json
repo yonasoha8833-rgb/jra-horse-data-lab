@@ -384,6 +384,24 @@
       "error": "TypeError: \"delimiter\" must be a 1-character string"
     },
     {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo1.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-17T08:04:11.459666+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo2.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-17T08:06:51.581556+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo3.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-17T08:09:25.311665+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3fukushima1.pdf",
       "attempts": 1,
       "last_attempt_utc": "2026-11-14T08:13:41.322288+00:00",
