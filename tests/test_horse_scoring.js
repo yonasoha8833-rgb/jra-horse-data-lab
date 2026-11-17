@@ -2,6 +2,8 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const {
   integratedHorsePerformanceScore,
   summarizeRelativeLast3f
@@ -166,4 +168,12 @@ test("averages tied last-3F ranks and rejects invalid weights", () => {
   const score = tied.conditions.track.find(item => item.condition === "東京").average_relative_score;
   assert.equal(score, 75);
   assert.throws(() => integratedHorsePerformanceScore([], [], {}, { distanceWeight: -0.1 }), RangeError);
+});
+
+
+test("browser page inline JavaScript has valid syntax", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const scripts = Array.from(html.matchAll(/<script>([\\s\\S]*?)<\\/script>/g));
+  assert.equal(scripts.length, 1);
+  assert.doesNotThrow(() => new Function(scripts[0][1]));
 });
