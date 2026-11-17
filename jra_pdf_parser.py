@@ -473,18 +473,6 @@ def _ocr_identifier_column_slots(
     return values
 
 
-def _identifier_row_centers(
-    frame_slot_rows: list[tuple[float, int | None]],
-) -> list[float]:
-    """Use all detected frame-column slots, including rows with unreadable digits."""
-    if len(frame_slot_rows) < 2:
-        return []
-    centers = [center for center, _ in frame_slot_rows]
-    if any(later <= earlier for earlier, later in zip(centers, centers[1:])):
-        return []
-    return centers
-
-
 def _infer_identifier_pairs_from_complete_frame_column(
     frame_rows: list[tuple[float, int]],
     horse_rows: list[tuple[float, int | None]],
@@ -775,6 +763,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 horse_slot_rows = _ocr_identifier_column_slots(
                     horse_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"(?:[1-9]|1[0-8])"
                 )
+                identifier_row_diagnostics = []
                 if len(frame_slot_rows) >= 2:
                     slot_centers = [center for center, _ in frame_slot_rows]
                     slot_gaps = [
@@ -829,8 +818,8 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         ]
                                         if len(aligned) == 1:
                                             horse_value = aligned[0]
-                                    row_diagnostics.append(
-                                        f"row={row_index + 1} y={center:.1f} "
+                                    identifier_row_diagnostics.append(
+                                        f"identifier_row={row_index + 1} y={center:.1f} "
                                         f"frame={frame_value} frame_retry={frame_retry_text!r} "
                                         f"horse={horse_value} horse_retry={horse_retry_text!r}"
                                     )
@@ -859,13 +848,10 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 )
                 if inferred_identifier_rows:
                     identifier_rows = inferred_identifier_rows
-                # Keep diagnostics available even when no identifiers could be paired.
+                # OCR complete runner rows only after identifier pairs are valid.
                 row_diagnostics = []
-                # Retry every detected frame-column slot, including rows whose
-                # horse number was unreadable in the normal TSV pass. Requiring
-                # pre-paired identifiers here would skip the very rows needing retry.
-                centers = _identifier_row_centers(frame_slot_rows)
-                if centers:
+                if len(identifier_rows) >= 2:
+                    centers = [row[0] for row in identifier_rows]
                     gaps = [b - a for a, b in zip(centers, centers[1:]) if b > a]
                     if len(gaps) == len(centers) - 1:
                         typical_gap = sorted(gaps)[len(gaps) // 2]
@@ -916,7 +902,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                         number_tsv, encoding="utf-8"
                     )
                     (destination / f"{page.stem}-{side}-rows.txt").write_text(
-                        "\n".join(row_diagnostics)
+                        "\n".join(identifier_row_diagnostics + row_diagnostics)
                         + "\n--- metadata and parser input ---\n"
                         + "\n".join(clean_lines),
                         encoding="utf-8",
