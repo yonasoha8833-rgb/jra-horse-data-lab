@@ -35,7 +35,7 @@ function buildFourFactorFixture() {
   }));
   const raceRows = [];
   for (const target of horseRows.slice(0, 3)) {
-    raceRows.push({ ...target, field_size: 3 });
+    raceRows.push({ ...target, finish: 1, field_size: 3 });
     raceRows.push({
       ...target,
       horse_name: "相手馬A",
