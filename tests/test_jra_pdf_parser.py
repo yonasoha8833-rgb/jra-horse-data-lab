@@ -1,6 +1,6 @@
 import unittest
 
-from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds
+from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _identifier_row_centers
 
 
 SAMPLE = """
@@ -534,6 +534,17 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertIsNone(_ocr_single_horse_number("19"))
         self.assertIsNone(_ocr_single_horse_number("1 2"))
         self.assertIsNone(_ocr_single_horse_number(""))
+
+    def test_row_retry_uses_all_frame_slots_even_when_horse_numbers_are_unreadable(self):
+        slots = [(100.0 + index * 40, value) for index, value in enumerate(
+            [7, 8, None, 6, 2, None, 2, 4]
+        )]
+        self.assertEqual(
+            _identifier_row_centers(slots),
+            [100.0, 140.0, 180.0, 220.0, 260.0, 300.0, 340.0, 380.0],
+        )
+        self.assertEqual(_identifier_row_centers([(100.0, 1)]), [])
+        self.assertEqual(_identifier_row_centers([(100.0, 1), (90.0, 2)]), [])
 
     def test_identifier_row_crops_exclude_table_rules(self):
         self.assertEqual(_identifier_column_inner_bounds(129, column="frame"), (30, 105))
