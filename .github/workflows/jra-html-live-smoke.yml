@@ -1,0 +1,29 @@
+name: JRA official HTML live smoke test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "jra_html_parser.py"
+      - "scripts/smoke_jra_html_parser.py"
+      - ".github/workflows/jra-html-live-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch and validate one JRA official result page
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python scripts/smoke_jra_html_parser.py
