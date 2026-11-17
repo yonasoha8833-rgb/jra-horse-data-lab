@@ -145,8 +145,15 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
         if not 1 <= race_number <= 12:
             continue
 
-        # OCR often places meeting/date/distance metadata on adjacent lines.
-        header_window = "\n".join(block[:8])
+        # OCR may place date, track, surface and distance several lines after
+        # the race heading. Read the complete pre-runner header, with a hard
+        # bound, rather than assuming all metadata is within the first 8 lines.
+        header_lines = []
+        for line in block[:30]:
+            if _runner(line.strip()):
+                break
+            header_lines.append(line)
+        header_window = "\n".join(header_lines)
         date_match = DATE_RE.search(header_window)
         race_date = None
         if date_match:
