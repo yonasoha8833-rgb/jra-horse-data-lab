@@ -143,7 +143,7 @@
         }
         position = end;
       }
-      for (const [index, row] of runners.entries()) {
+      for (const [index, row] of finishers.entries()) {
         if (!ranks.has(index)) continue;
         scored.push({
           ...row,
