@@ -89,8 +89,7 @@
       const date = String(row.date || "").trim();
       const track = String(row.track || "").trim();
       const raceNumber = String(row.race_number || "").trim();
-      const last3f = numeric(row.individual_last3f ?? row.last3f);
-      if (!date || !track || !raceNumber || last3f === null || last3f <= 0) continue;
+      if (!date || !track || !raceNumber) continue;
       const key = [
         String(row.source_url || "").trim(), date, track, raceNumber
       ].join("|");
@@ -111,14 +110,27 @@
         if (!unique.has(identity)) unique.set(identity, row);
       });
       const runners = Array.from(unique.values());
-      if (runners.length < minRaceRunners) continue;
+      const fieldSizes = runners.map(row => numeric(row.field_size));
+      if (fieldSizes.length < minRaceRunners
+          || fieldSizes.some(size => !Number.isInteger(size))
+          || new Set(fieldSizes).size !== 1
+          || fieldSizes[0] !== runners.length) continue;
 
-      const ranked = runners.map((row, index) => ({
+      const finishers = runners.filter(row => normalizedFinishScore(row) !== null);
+      const explicitNonFinishers = runners.filter(row =>
+        String(row.result_status || "").trim() !== ""
+      );
+      // Rank only when every official runner is accounted for and every finisher
+      // has an individual time. Unclassified rows and missing times invalidate
+      // the race rather than shrinking the comparison field silently.
+      if (finishers.length < minRaceRunners
+          || finishers.length + explicitNonFinishers.length !== runners.length) continue;
+
+      const ranked = finishers.map((row, index) => ({
         index,
         time: numeric(row.individual_last3f ?? row.last3f)
-      })).filter(item => item.time !== null && item.time > 0)
-        .sort((a, b) => a.time - b.time);
-      if (ranked.length < minRaceRunners) continue;
+      })).sort((a, b) => a.time - b.time);
+      if (ranked.some(item => item.time === null || item.time <= 0)) continue;
 
       const ranks = new Map();
       let position = 0;
