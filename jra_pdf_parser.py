@@ -473,6 +473,18 @@ def _ocr_identifier_column_slots(
     return values
 
 
+def _identifier_row_centers(
+    frame_slot_rows: list[tuple[float, int | None]],
+) -> list[float]:
+    """Use all detected frame-column slots, including rows with unreadable digits."""
+    if len(frame_slot_rows) < 2:
+        return []
+    centers = [center for center, _ in frame_slot_rows]
+    if any(later <= earlier for earlier, later in zip(centers, centers[1:])):
+        return []
+    return centers
+
+
 def _infer_identifier_pairs_from_complete_frame_column(
     frame_rows: list[tuple[float, int]],
     horse_rows: list[tuple[float, int | None]],
@@ -847,11 +859,13 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 )
                 if inferred_identifier_rows:
                     identifier_rows = inferred_identifier_rows
-                # Keep row-local OCR diagnostics separate from the full-panel pass.
+                # Keep diagnostics available even when no identifiers could be paired.
                 row_diagnostics = []
-                # OCR each runner row independently to avoid cross-column merging.
-                if len(identifier_rows) >= 2:
-                    centers = [row[0] for row in identifier_rows]
+                # Retry every detected frame-column slot, including rows whose
+                # horse number was unreadable in the normal TSV pass. Requiring
+                # pre-paired identifiers here would skip the very rows needing retry.
+                centers = _identifier_row_centers(frame_slot_rows)
+                if centers:
                     gaps = [b - a for a, b in zip(centers, centers[1:]) if b > a]
                     if len(gaps) == len(centers) - 1:
                         typical_gap = sorted(gaps)[len(gaps) // 2]
