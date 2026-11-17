@@ -35,14 +35,15 @@ function buildFourFactorFixture() {
   }));
   const raceRows = [];
   for (const target of horseRows.slice(0, 3)) {
-    raceRows.push(target);
+    raceRows.push({ ...target, field_size: 3 });
     raceRows.push({
       ...target,
       horse_name: "相手馬A",
       horse_registration_number: "2021-12345",
       horse_number: 2,
       finish: 2,
-      individual_last3f: 34
+      individual_last3f: 34,
+      field_size: 3
     });
     raceRows.push({
       ...target,
@@ -50,7 +51,8 @@ function buildFourFactorFixture() {
       horse_registration_number: "2022-12345",
       horse_number: 3,
       finish: 3,
-      individual_last3f: 35
+      individual_last3f: 35,
+      field_size: 3
     });
   }
   return { horseRows, raceRows };
@@ -159,9 +161,9 @@ test("does not count complete duplicate runner rows twice", () => {
 
 test("averages tied last-3F ranks and rejects invalid weights", () => {
   const rows = [
-    { horse_name: "同着A", horse_registration_number: "2020-11111", date: "2026-11-01", track: "東京", race_number: 1, surface: "芝", distance: 1600, going: "良", horse_number: 1, individual_last3f: 33 },
-    { horse_name: "同着B", horse_registration_number: "2021-11111", date: "2026-11-01", track: "東京", race_number: 1, surface: "芝", distance: 1600, going: "良", horse_number: 2, individual_last3f: 33 },
-    { horse_name: "相手C", horse_registration_number: "2022-11111", date: "2026-11-01", track: "東京", race_number: 1, surface: "芝", distance: 1600, going: "良", horse_number: 3, individual_last3f: 34 }
+    { horse_name: "同着A", horse_registration_number: "2020-11111", date: "2026-11-01", track: "東京", race_number: 1, surface: "芝", distance: 1600, going: "良", horse_number: 1, finish: 1, field_size: 3, individual_last3f: 33 },
+    { horse_name: "同着B", horse_registration_number: "2021-11111", date: "2026-11-01", track: "東京", race_number: 1, surface: "芝", distance: 1600, going: "良", horse_number: 2, finish: 2, field_size: 3, individual_last3f: 33 },
+    { horse_name: "相手C", horse_registration_number: "2022-11111", date: "2026-11-01", track: "東京", race_number: 1, surface: "芝", distance: 1600, going: "良", horse_number: 3, finish: 3, field_size: 3, individual_last3f: 34 }
   ];
   const summaries = summarizeRelativeLast3f(rows, { minConditionStarts: 1 });
   const tied = summaries.find(item => item.horse_registration_number === "2020-11111");
@@ -170,6 +172,38 @@ test("averages tied last-3F ranks and rejects invalid weights", () => {
   assert.throws(() => integratedHorsePerformanceScore([], [], {}, { distanceWeight: -0.1 }), RangeError);
 });
 
+
+
+test("does not rank a race when a finisher's individual last-3F is missing", () => {
+  const rows = [
+    { horse_name: "計測馬A", date: "2026-11-01", track: "東京", race_number: 1, horse_number: 1, finish: 1, field_size: 3, individual_last3f: 33 },
+    { horse_name: "計測欠損馬", date: "2026-11-01", track: "東京", race_number: 1, horse_number: 2, finish: 2, field_size: 3, individual_last3f: null },
+    { horse_name: "計測馬C", date: "2026-11-01", track: "東京", race_number: 1, horse_number: 3, finish: 3, field_size: 3, individual_last3f: 35 }
+  ];
+  assert.deepEqual(summarizeRelativeLast3f(rows, { minConditionStarts: 1 }), []);
+});
+
+test("ranks all finishers while excluding an explicitly recorded non-finisher", () => {
+  const rows = [
+    { horse_name: "完走馬A", date: "2026-11-01", track: "東京", race_number: 1, horse_number: 1, finish: 1, field_size: 4, individual_last3f: 33 },
+    { horse_name: "完走馬B", date: "2026-11-01", track: "東京", race_number: 1, horse_number: 2, finish: 2, field_size: 4, individual_last3f: 34 },
+    { horse_name: "完走馬C", date: "2026-11-01", track: "東京", race_number: 1, horse_number: 3, finish: 3, field_size: 4, individual_last3f: 35 },
+    { horse_name: "中止馬", date: "2026-11-01", track: "東京", race_number: 1, horse_number: 4, finish: null, field_size: 4, individual_last3f: null, result_status: "競走中止" }
+  ];
+  const summaries = summarizeRelativeLast3f(rows, { minConditionStarts: 1 });
+  assert.equal(summaries.length, 3);
+  assert.equal(summaries.find(item => item.horse_name === "完走馬A").conditions.track[0].average_relative_score, 100);
+  assert.equal(summaries.some(item => item.horse_name === "中止馬"), false);
+});
+
+test("does not rank a race when a runner row is missing from the official field", () => {
+  const rows = [
+    { horse_name: "完走馬A", date: "2026-11-01", track: "東京", race_number: 1, horse_number: 1, finish: 1, field_size: 4, individual_last3f: 33 },
+    { horse_name: "完走馬B", date: "2026-11-01", track: "東京", race_number: 1, horse_number: 2, finish: 2, field_size: 4, individual_last3f: 34 },
+    { horse_name: "完走馬C", date: "2026-11-01", track: "東京", race_number: 1, horse_number: 3, finish: 3, field_size: 4, individual_last3f: 35 }
+  ];
+  assert.deepEqual(summarizeRelativeLast3f(rows, { minConditionStarts: 1 }), []);
+});
 
 test("browser page inline JavaScript has valid syntax", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
