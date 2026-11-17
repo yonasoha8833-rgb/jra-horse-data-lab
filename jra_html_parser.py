@@ -121,7 +121,19 @@ def _cell_alt(row: list[_Cell], index: int | None) -> list[str]:
 
 
 def _race_metadata(page_text: str) -> dict[str, Any]:
-    result: dict[str, Any] = {}
+    # Keep a stable schema even when an official field is absent or invalid.
+    result: dict[str, Any] = {
+        "date": None,
+        "track": None,
+        "race_number": None,
+        "surface": None,
+        "distance": None,
+        "going": None,
+        "race_class": None,
+        "race_lap_times": None,
+        "race_last4f": None,
+        "race_last3f": None,
+    }
     date_match = re.search(r"(20\d{2})年\s*(\d{1,2})月\s*(\d{1,2})日", page_text)
     if date_match:
         try:
