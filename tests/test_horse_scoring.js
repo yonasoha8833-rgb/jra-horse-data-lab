@@ -173,7 +173,9 @@ test("averages tied last-3F ranks and rejects invalid weights", () => {
 
 test("browser page inline JavaScript has valid syntax", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
-  const scripts = Array.from(html.matchAll(/<script>([\\s\\S]*?)<\\/script>/g));
-  assert.equal(scripts.length, 1);
-  assert.doesNotThrow(() => new Function(scripts[0][1]));
+  const start = html.indexOf("<script>");
+  const end = html.indexOf("</script>", start);
+  assert.ok(start >= 0 && end > start);
+  const inlineScript = html.slice(start + "<script>".length, end);
+  assert.doesNotThrow(() => new Function(inlineScript));
 });
