@@ -1,6 +1,6 @@
 import unittest
 
-from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds
+from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _runner_column_bounds
 
 
 SAMPLE = """
@@ -396,6 +396,15 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(_complete_ocr_records(rows), [])
 
 
+
+
+    def test_runner_column_bounds_target_runner_table_columns(self):
+        name = _runner_column_bounds(1788, 2481, column="horse_name")
+        finish_time = _runner_column_bounds(1788, 2481, column="finish_time")
+        self.assertEqual(name, (89, 429, 271, 798))
+        self.assertEqual(finish_time, (818, 429, 901, 798))
+        with self.assertRaises(ValueError):
+            _runner_column_bounds(1788, 2481, column="odds")
 
     def test_accepts_ocr_brace_separator_between_frame_and_horse_number(self):
         rows = parse_race_text(
