@@ -141,6 +141,25 @@ class JraHtmlParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["source_url"], url)
         self.assertEqual(rows[0]["source_type"], "jra_official_result_html")
 
+    def test_detects_shift_jis_from_html_meta_when_header_omits_charset(self):
+        url = "https://www.jra.go.jp/JRADB/accessS.html?CNAME=test"
+        html = SAMPLE_HTML.replace(
+            "<html><body>",
+            '<html><head><meta charset="Shift_JIS"></head><body>',
+        )
+        body = html.encode("shift_jis")
+        response = FakeResponse(
+            body,
+            {"Content-Type": "text/html", "Content-Length": str(len(body))},
+            url=url,
+        )
+        with patch("jra_html_parser.urlopen", return_value=response):
+            rows = fetch_and_parse_result(url)
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(rows[0]["horse_name"], "ミラキュラスアース")
+        self.assertEqual(rows[0]["individual_last3f"], 34.2)
+        self.assertEqual(rows[0]["race_last3f"], 34.5)
+
     def test_rejects_redirect_outside_jra(self):
         url = "https://www.jra.go.jp/JRADB/accessS.html?CNAME=test"
         response = FakeResponse(b"<html/>", {"Content-Type": "text/html"},
