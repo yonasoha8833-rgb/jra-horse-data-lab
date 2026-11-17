@@ -390,6 +390,24 @@
       "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo10.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-17T12:23:28.825022+00:00",
+      "error": "UnboundLocalError: cannot access local variable 'row_diagnostics' where it is not associated with a value"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo11.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-17T12:23:40.741166+00:00",
+      "error": "UnboundLocalError: cannot access local variable 'row_diagnostics' where it is not associated with a value"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo12.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-17T12:23:53.097333+00:00",
+      "error": "UnboundLocalError: cannot access local variable 'row_diagnostics' where it is not associated with a value"
+    },
+    {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo2.pdf",
       "attempts": 1,
       "last_attempt_utc": "2026-11-17T08:06:51.581556+00:00",
