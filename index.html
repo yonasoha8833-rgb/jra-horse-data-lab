@@ -198,8 +198,11 @@ function appendIntegratedHorseScore(card,result,target){
  const labels={
   placing:'着順成績',distance:'距離適性',going:'馬場適性',relative_last3f:'個別上がり3F相対'
  };
+ const placingCount=result.baseline_used_sample_count===undefined
+  ?(result.baseline_sample_count||0)+'件'
+  :(result.baseline_used_sample_count||0)+'件使用・有効'+(result.baseline_sample_count||0)+'件';
  const components=[
-  ['placing',result.baseline_score,result.baseline_sample_count,'直近5走を重み付け'],
+  ['placing',result.baseline_score,placingCount,'直近5走を重み付け'],
   ['distance',result.distance_score,result.distance_sample_count,result.distance_condition],
   ['going',result.going_score,result.going_sample_count,result.going_condition],
   ['relative_last3f',result.relative_last3f_score,result.relative_last3f_sample_count,result.relative_last3f_condition]
@@ -209,7 +212,8 @@ function appendIntegratedHorseScore(card,result,target){
   const weight=result.component_weights[key];
   const weightText=weight===undefined?'':'・構成比 '+(weight*100).toFixed(1)+'%';
   const conditionText=condition?'・'+condition:'';
-  line.textContent=labels[key]+'：'+(value===null||value===undefined?'未算入':Number(value).toFixed(1)+'点')+'（'+(count||0)+'件'+conditionText+weightText+'）';
+  const countText=typeof count==='string'?count:(count||0)+'件';
+  line.textContent=labels[key]+'：'+(value===null||value===undefined?'未算入':Number(value).toFixed(1)+'点')+'（'+countText+conditionText+weightText+'）';
   details.append(line);
  });
  const identity=document.createElement('p');identity.className='muted';
@@ -264,12 +268,14 @@ function updateHorseComparison(){
   const integrated=integratedScoreForHorse(item.rows,rows,item.registration,item.name);
   const confidence=horseDataConfidence(rows);
   const formatScore=(value,count)=>value===null||value===undefined?'—':Number(value).toFixed(1)+(count?'（'+count+'件）':'');
+  const formatBaselineScore=integrated.baseline_score===null||integrated.baseline_score===undefined?'—'
+   :Number(integrated.baseline_score).toFixed(1)+'（'+(integrated.baseline_used_sample_count??integrated.baseline_sample_count??0)+'件使用・有効'+(integrated.baseline_sample_count||0)+'件）';
   const tr=document.createElement('tr');
   const values=[
    item.name,rows.length?rows.length+'戦':'—',rows.length?wins+'勝':'—',
    rows.length?(wins/rows.length*100).toFixed(1)+'%':'—',
    rows.length?(top3/rows.length*100).toFixed(1)+'%':'—',
-   formatScore(integrated.baseline_score,integrated.baseline_sample_count),
+   formatBaselineScore,
    formatScore(integrated.distance_score,integrated.distance_sample_count),
    formatScore(integrated.going_score,integrated.going_sample_count),
    formatScore(integrated.relative_last3f_score,integrated.relative_last3f_sample_count),
