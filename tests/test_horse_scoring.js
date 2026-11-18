@@ -123,6 +123,34 @@ test("shrinks strong condition results toward overall form", () => {
   assert.ok(result.going_score < result.going_raw_score);
 });
 
+test("confidence uses the effective five-start baseline window", () => {
+  const horseRows = Array.from({ length: 12 }, (_, index) => ({
+    horse_name: "履歴多数馬",
+    source_url: "history-" + index + ".pdf",
+    date: "2026-10-" + String(index + 1).padStart(2, "0"),
+    track: "東京",
+    race_number: 1,
+    horse_number: 1,
+    surface: "芝",
+    distance: 1600,
+    going: "良",
+    finish: (index % 4) + 1,
+    field_size: 10
+  }));
+  const result = integratedHorsePerformanceScore(
+    horseRows,
+    [],
+    { surface: "芝", distance: 1600, going: "良" },
+    { horseName: "履歴多数馬" }
+  );
+
+  assert.equal(result.baseline_sample_count, 12);
+  assert.equal(result.baseline_used_sample_count, 5);
+  assert.equal(result.distance_sample_count, 12);
+  assert.equal(result.going_sample_count, 12);
+  assert.equal(result.confidence, "中程度");
+});
+
 test("omits condition components when sample sizes are insufficient", () => {
   const horseRows = [
     { horse_name: "少数馬", date: "2026-11-01", surface: "芝", distance: 1600, going: "良", finish: 1, field_size: 10 },
