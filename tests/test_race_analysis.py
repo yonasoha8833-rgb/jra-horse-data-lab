@@ -695,6 +695,34 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertAlmostEqual(result["score"], round(expected, 1))
         self.assertEqual(result["identity_basis"], "official_registration_number")
 
+    def test_integrated_score_confidence_uses_effective_five_start_baseline(self):
+        rows = [
+            {
+                "horse_name": "履歴多数馬",
+                "source_url": f"history-{index}.pdf",
+                "date": f"2026-10-{index:02d}",
+                "track": "東京",
+                "race_number": 1,
+                "horse_number": 1,
+                "surface": "芝",
+                "distance": 1600,
+                "going": "良",
+                "finish": (index % 4) + 1,
+                "field_size": 10,
+            }
+            for index in range(1, 13)
+        ]
+        result = integrated_horse_performance_score(
+            rows, [], {"track": "東京", "surface": "芝", "distance": 1600, "going": "良"},
+            horse_name="履歴多数馬",
+        )
+
+        self.assertEqual(result["baseline_sample_count"], 12)
+        self.assertEqual(result["baseline_used_sample_count"], 5)
+        self.assertEqual(result["distance_sample_count"], 12)
+        self.assertEqual(result["going_sample_count"], 12)
+        self.assertEqual(result["confidence"], "中程度")
+
     def test_integrated_horse_performance_score_uses_distance_band_and_shrinks_small_samples(self):
         rows = [
             {"horse_name": "距離評価馬", "date": "2026-11-01", "finish": 1,

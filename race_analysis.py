@@ -21,6 +21,7 @@ def _number(value: Any) -> float | None:
         return None
 
 
+BASELINE_RECENT_LIMIT = 5
 REGISTRATION_NUMBER_RE = re.compile(r"^[0-9]{4}-[0-9]{5}$")
 
 
@@ -370,7 +371,7 @@ def performance_score(records: Iterable[dict[str, Any]]) -> float | None:
         score = 100.0 * (field_size - finish) / (field_size - 1)
         valid.append((str(row.get("date") or ""), score))
     valid.sort(key=lambda item: item[0], reverse=True)
-    recent = valid[:5]
+    recent = valid[:BASELINE_RECENT_LIMIT]
     if not recent:
         return None
     weights = list(range(len(recent), 0, -1))
@@ -1117,11 +1118,13 @@ def integrated_horse_performance_score(
     valid_rows = [row for row in rows if _normalized_finish_score(row) is not None]
     baseline = performance_score(valid_rows)
     baseline_count = len(valid_rows)
+    baseline_used_count = min(BASELINE_RECENT_LIMIT, baseline_count)
     if baseline is None:
         return {
             "score": None,
             "baseline_score": None,
             "baseline_sample_count": 0,
+            "baseline_used_sample_count": 0,
             "distance_score": None,
             "distance_raw_score": None,
             "distance_sample_count": 0,
@@ -1302,7 +1305,7 @@ def integrated_horse_performance_score(
     if not extra_counts:
         confidence = "総合成績のみ"
     else:
-        minimum_sample = min([baseline_count, *extra_counts])
+        minimum_sample = min([baseline_used_count, *extra_counts])
         confidence = "高め" if minimum_sample >= 10 else (
             "中程度" if minimum_sample >= 5 else "低め"
         )
@@ -1312,6 +1315,7 @@ def integrated_horse_performance_score(
         "score": round(combined, 1),
         "baseline_score": baseline,
         "baseline_sample_count": baseline_count,
+        "baseline_used_sample_count": baseline_used_count,
         "distance_score": distance_component["score"],
         "distance_raw_score": distance_component["raw_score"],
         "distance_sample_count": distance_component["sample_count"],
