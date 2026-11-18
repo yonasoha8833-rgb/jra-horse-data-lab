@@ -458,13 +458,12 @@ def _pair_identifier_columns(
     return paired
 
 
-def _runner_column_bounds(width: int, height: int, *, column: str) -> tuple[int, int, int, int]:
-    """Return conservative panel bounds for an isolated runner-table column."""
-    columns = {"horse_name": (0.050, 0.152), "finish_time": (0.458, 0.505)}
-    if column not in columns:
-        raise ValueError("unsupported runner column")
-    left, right = columns[column]
-    return (int(width * left), int(height * 0.173), int(width * right), int(height * 0.322))
+def _runner_identifier_bounds(width: int, height: int) -> tuple[int, int, int, int]:
+    """Return the frame/horse-number strip bounds inside the runner table."""
+    return (
+        int(width * 0.043), int(height * 0.292),
+        int(width * 0.112), int(height * 0.526),
+    )
 
 def _identifier_column_inner_bounds(width: int, *, column: str) -> tuple[int, int]:
     """Exclude vertical table rules while keeping the printed identifier glyph."""
@@ -724,11 +723,9 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 # number strip separately at 5x; this avoids names and odds
                 # confusing the two small identifier fields.
                 panel_width, panel_height = bounds[2] - bounds[0], bounds[3] - bounds[1]
-                # Restrict OCR to the actual runner table, not the payout area.
-                number_box = (
-                    int(panel_width * 0.025), int(panel_height * 0.173),
-                    int(panel_width * 0.055), int(panel_height * 0.322),
-                )
+                # Keep the identifier strip inside the runner rows and exclude
+                # the blank summary row immediately below the declared field.
+                number_box = _runner_identifier_bounds(panel_width, panel_height)
                 number_crop = image.crop((
                     bounds[0] + number_box[0], bounds[1] + number_box[1],
                     bounds[0] + number_box[2], bounds[1] + number_box[3],
@@ -747,11 +744,11 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 ).stdout
                 # Split the two narrow identifier columns before OCR. A
                 # combined pass frequently merges neighboring digits (e.g. 5 and 9).
-                split_x = max(1, int(number_crop.width * 0.40))
+                split_x = max(1, int(number_crop.width * 0.35))
                 # The horse-number column is immediately beside the frame column.
                 # Do not include the wide blank/payout area to its right: Tesseract
                 # otherwise groups footer text into the same OCR lines.
-                horse_end = min(number_crop.width, split_x + int(number_crop.width * 0.55))
+                horse_end = min(number_crop.width, split_x + int(number_crop.width * 0.30))
                 frame_path = temp_dir / f"{page.stem}-{side}-frame.png"
                 horse_path = temp_dir / f"{page.stem}-{side}-horse.png"
                 number_crop.crop((0, 0, split_x, number_crop.height)).save(frame_path)
