@@ -5,6 +5,8 @@
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.JraHorseScoring = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  const BASELINE_RECENT_LIMIT = 5;
+
   function numeric(value) {
     if (value === null || value === undefined || (typeof value === "string" && value.trim() === "")) return null;
     const parsed = Number(value);
@@ -40,7 +42,7 @@
       if (score !== null) valid.push({ date: String(row.date || ""), score });
     }
     valid.sort((a, b) => b.date.localeCompare(a.date));
-    const recent = valid.slice(0, 5);
+    const recent = valid.slice(0, BASELINE_RECENT_LIMIT);
     if (!recent.length) return null;
     let weighted = 0;
     let totalWeight = 0;
@@ -270,9 +272,10 @@
     const validRows = rows.filter(row => normalizedFinishScore(row) !== null);
     const baseline = performanceScore(validRows);
     const baselineCount = validRows.length;
+    const baselineUsedCount = Math.min(BASELINE_RECENT_LIMIT, baselineCount);
     if (baseline === null) {
       return {
-        score: null, baseline_score: null, baseline_sample_count: 0,
+        score: null, baseline_score: null, baseline_sample_count: 0, baseline_used_sample_count: 0,
         distance_score: null, distance_raw_score: null, distance_sample_count: 0, distance_condition: null,
         going_score: null, going_raw_score: null, going_sample_count: 0, going_condition: null,
         relative_last3f_score: null, relative_last3f_raw_score: null,
@@ -391,7 +394,7 @@
       .map(([, item]) => item.count);
     let confidence = "総合成績のみ";
     if (extraCounts.length) {
-      const minimumSample = Math.min(baselineCount, ...extraCounts);
+      const minimumSample = Math.min(baselineUsedCount, ...extraCounts);
       confidence = minimumSample >= 10 ? "高め" : minimumSample >= 5 ? "中程度" : "低め";
     }
     const componentsUsed = available.map(([key]) => key);
@@ -399,6 +402,7 @@
       score: Number(combined.toFixed(1)),
       baseline_score: baseline,
       baseline_sample_count: baselineCount,
+      baseline_used_sample_count: baselineUsedCount,
       distance_score: distanceComponent.score,
       distance_raw_score: distanceComponent.raw_score,
       distance_sample_count: distanceComponent.sample_count,
