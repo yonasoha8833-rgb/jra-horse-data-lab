@@ -745,9 +745,10 @@ def summarize_relative_last3f(
 ) -> list[dict[str, Any]]:
     """Summarize each horse's last-3F rank relative to runners in the same race.
 
-    The fastest valid individual last-3F receives 100 and the slowest 0.
-    Ties receive average ranks. A race is comparable only when its identity
-    and at least min_race_runners valid runner times are available.
+    A race is ranked only when every declared runner is present, field size is
+    consistent, and every finisher has a valid individual last-3F. Explicitly
+    recorded non-finishers are included in the field check but are not ranked.
+    Ties receive average ranks.
     """
     if min_race_runners < 2:
         raise ValueError("min_race_runners must be at least 2")
@@ -759,8 +760,7 @@ def summarize_relative_last3f(
         date = str(row.get("date") or "").strip()
         track = str(row.get("track") or "").strip()
         race_number = str(row.get("race_number") or "").strip()
-        last3f = _number(row.get("individual_last3f", row.get("last3f")))
-        if not (date and track and race_number and last3f is not None and last3f > 0):
+        if not (date and track and race_number):
             continue
         key = (str(row.get("source_url") or "").strip(), date, track, race_number)
         races[key].append(row)
@@ -782,10 +782,37 @@ def summarize_relative_last3f(
         if len(runners) < min_race_runners:
             continue
 
-        ranked = sorted(
-            (float(_number(row.get("individual_last3f", row.get("last3f")))), index)
-            for index, row in enumerate(runners)
-        )
+        field_sizes = [_number(row.get("field_size")) for row in runners]
+        if any(size is None or not size.is_integer() for size in field_sizes):
+            continue
+        if len(set(field_sizes)) != 1 or int(field_sizes[0]) != len(runners):
+            continue
+
+        finishers = [row for row in runners if _normalized_finish_score(row) is not None]
+        explicit_nonfinishers = [
+            row for row in runners if str(row.get("result_status") or "").strip()
+        ]
+        if (
+            len(finishers) < min_race_runners
+            or len(finishers) + len(explicit_nonfinishers) != len(runners)
+        ):
+            continue
+
+        ranked = []
+        invalid_finisher_time = False
+        for index, row in enumerate(finishers):
+            last3f = row.get("individual_last3f")
+            if last3f is None:
+                last3f = row.get("last3f")
+            value = _number(last3f)
+            if value is None or value <= 0:
+                invalid_finisher_time = True
+                break
+            ranked.append((float(value), index))
+        if invalid_finisher_time:
+            continue
+        ranked.sort()
+
         ranks: dict[int, float] = {}
         pos = 0
         while pos < len(ranked):
@@ -796,8 +823,8 @@ def summarize_relative_last3f(
             for _, index in ranked[pos:end]:
                 ranks[index] = average_rank
             pos = end
-        for index, row in enumerate(runners):
-            score = 100.0 * (len(runners) - ranks[index]) / (len(runners) - 1)
+        for index, row in enumerate(finishers):
+            score = 100.0 * (len(finishers) - ranks[index]) / (len(finishers) - 1)
             scored.append({**row, "relative_last3f_score": score})
 
     horses: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
@@ -854,11 +881,14 @@ def summarize_relative_last3f(
             for condition, items in groups.items():
                 if len(items) < min_condition_starts:
                     continue
-                times = [
-                    value for item in items
-                    if (value := _number(item.get("individual_last3f", item.get("last3f")))) is not None
-                    and value > 0
-                ]
+                times = []
+                for item in items:
+                    value = item.get("individual_last3f")
+                    if value is None:
+                        value = item.get("last3f")
+                    numeric_value = _number(value)
+                    if numeric_value is not None and numeric_value > 0:
+                        times.append(numeric_value)
                 summaries.append({
                     "condition": condition,
                     "sample_count": len(items),
@@ -879,8 +909,6 @@ def summarize_relative_last3f(
             "warning": "同一レース内の個別上がり3F順位を0〜100点に換算した相対指数です。異なるレース間の走破速度や勝率を示すものではありません。",
         })
     return results
-
-
 
 def integrated_condition_last3f_score(
     horse_records: Iterable[dict[str, Any]],
