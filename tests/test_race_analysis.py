@@ -674,7 +674,7 @@ class RaceAnalysisTests(unittest.TestCase):
 
         race_rows = []
         for target in horse_rows[:3]:
-            race_rows.append({**target, "field_size": 3})
+            race_rows.append({**target, "finish": 1, "field_size": 3})
             race_rows.extend([
                 {
                     **target,
