@@ -513,11 +513,14 @@ class RaceAnalysisTests(unittest.TestCase):
     def test_relative_last3f_compares_runners_within_same_race(self):
         rows = [
             {"horse_name": "最速馬", "date": "2026-11-01", "track": "東京", "race_number": 1,
-             "surface": "芝", "distance": 1600, "going": "良", "last3f": 33.0},
+             "surface": "芝", "distance": 1600, "going": "良", "horse_number": 1,
+             "finish": 1, "field_size": 3, "individual_last3f": None, "last3f": 33.0},
             {"horse_name": "中間馬", "date": "2026-11-01", "track": "東京", "race_number": 1,
-             "surface": "芝", "distance": 1600, "going": "良", "last3f": 34.0},
+             "surface": "芝", "distance": 1600, "going": "良", "horse_number": 2,
+             "finish": 2, "field_size": 3, "last3f": 34.0},
             {"horse_name": "最遅馬", "date": "2026-11-01", "track": "東京", "race_number": 1,
-             "surface": "芝", "distance": 1600, "going": "良", "last3f": 35.0},
+             "surface": "芝", "distance": 1600, "going": "良", "horse_number": 3,
+             "finish": 3, "field_size": 3, "last3f": 35.0},
         ]
         result = summarize_relative_last3f(rows)
         scores = {item["horse_name"]: item["average_relative_score"] for item in result}
@@ -526,11 +529,17 @@ class RaceAnalysisTests(unittest.TestCase):
 
     def test_relative_last3f_excludes_incomplete_races_and_tolerates_ties(self):
         rows = [
-            {"horse_name": "同着A", "date": "2026-11-01", "track": "東京", "race_number": 1, "last3f": 33.0},
-            {"horse_name": "同着B", "date": "2026-11-01", "track": "東京", "race_number": 1, "last3f": 33.0},
-            {"horse_name": "3番手", "date": "2026-11-01", "track": "東京", "race_number": 1, "last3f": 34.0},
-            {"horse_name": "データ不足", "date": "2026-11-02", "track": "東京", "race_number": 2, "last3f": 34.0},
-            {"horse_name": "欠損", "date": "2026-11-01", "track": "東京", "race_number": 1, "last3f": None},
+            {"horse_name": "同着A", "date": "2026-11-01", "track": "東京", "race_number": 1,
+             "horse_number": 1, "finish": 1, "field_size": 4, "last3f": 33.0},
+            {"horse_name": "同着B", "date": "2026-11-01", "track": "東京", "race_number": 1,
+             "horse_number": 2, "finish": 2, "field_size": 4, "last3f": 33.0},
+            {"horse_name": "3番手", "date": "2026-11-01", "track": "東京", "race_number": 1,
+             "horse_number": 3, "finish": 3, "field_size": 4, "last3f": 34.0},
+            {"horse_name": "データ不足", "date": "2026-11-02", "track": "東京", "race_number": 2,
+             "horse_number": 1, "finish": 1, "field_size": 3, "last3f": 34.0},
+            {"horse_name": "欠損", "date": "2026-11-01", "track": "東京", "race_number": 1,
+             "horse_number": 4, "finish": None, "field_size": 4, "last3f": None,
+             "result_status": "競走中止"},
         ]
         result = summarize_relative_last3f(rows)
         scores = {item["horse_name"]: item["average_relative_score"] for item in result}
@@ -540,6 +549,24 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertNotIn("データ不足", scores)
         self.assertNotIn("欠損", scores)
 
+    def test_relative_last3f_rejects_missing_finisher_times_and_missing_field_rows(self):
+        rows = [
+            {"horse_name": "計測馬A", "date": "2026-11-01", "track": "東京", "race_number": 1,
+             "horse_number": 1, "finish": 1, "field_size": 3, "individual_last3f": 33.0},
+            {"horse_name": "計測欠損馬", "date": "2026-11-01", "track": "東京", "race_number": 1,
+             "horse_number": 2, "finish": 2, "field_size": 3, "individual_last3f": None},
+            {"horse_name": "計測馬C", "date": "2026-11-01", "track": "東京", "race_number": 1,
+             "horse_number": 3, "finish": 3, "field_size": 3, "individual_last3f": 35.0},
+            {"horse_name": "欠落レースA", "date": "2026-11-02", "track": "東京", "race_number": 2,
+             "horse_number": 1, "finish": 1, "field_size": 3, "individual_last3f": 33.0},
+            {"horse_name": "欠落レースB", "date": "2026-11-02", "track": "東京", "race_number": 2,
+             "horse_number": 2, "finish": 2, "field_size": 3, "individual_last3f": 34.0},
+        ]
+        self.assertEqual(
+            summarize_relative_last3f(rows, min_condition_starts=1),
+            [],
+        )
+
     def test_relative_last3f_requires_minimum_comparable_starts_for_conditions(self):
         rows = []
         for race_number, times in [(1, [33.0, 34.0, 35.0]), (2, [33.5, 34.5, 35.5])]:
@@ -548,6 +575,7 @@ class RaceAnalysisTests(unittest.TestCase):
                     "horse_name": "対象馬" if index == 0 else f"相手{race_number}-{index}",
                     "date": f"2026-11-0{race_number}", "track": "東京",
                     "race_number": race_number, "surface": "芝", "distance": 1600,
+                    "horse_number": index + 1, "finish": index + 1, "field_size": 3,
                     "last3f": value,
                 })
         target = next(item for item in summarize_relative_last3f(rows) if item["horse_name"] == "対象馬")
@@ -572,12 +600,12 @@ class RaceAnalysisTests(unittest.TestCase):
                 "finish": 2, "field_size": 10, "horse_number": 1, "last3f": 33.0,
             }
             horse_rows.append(target)
-            race_rows.append(target)
+            race_rows.append({**target, "field_size": 3})
             race_rows.extend([
                 {**target, "horse_name": "相手馬A", "horse_registration_number": f"2021-{race_number:05d}",
-                 "horse_number": 2, "finish": 1, "last3f": 34.0},
+                 "horse_number": 2, "finish": 1, "field_size": 3, "last3f": 34.0},
                 {**target, "horse_name": "相手馬B", "horse_registration_number": f"2022-{race_number:05d}",
-                 "horse_number": 3, "finish": 3, "last3f": 35.0},
+                 "horse_number": 3, "finish": 3, "field_size": 3, "last3f": 35.0},
             ])
         result = integrated_condition_last3f_score(
             horse_rows, race_rows, {"track": "東京", "surface": "芝", "distance": 1600, "going": "良"},
@@ -646,7 +674,7 @@ class RaceAnalysisTests(unittest.TestCase):
 
         race_rows = []
         for target in horse_rows[:3]:
-            race_rows.append(target)
+            race_rows.append({**target, "field_size": 3})
             race_rows.extend([
                 {
                     **target,
@@ -654,6 +682,7 @@ class RaceAnalysisTests(unittest.TestCase):
                     "horse_registration_number": "2021-12345",
                     "horse_number": 2,
                     "finish": 2,
+                    "field_size": 3,
                     "individual_last3f": 34.0,
                 },
                 {
@@ -662,6 +691,7 @@ class RaceAnalysisTests(unittest.TestCase):
                     "horse_registration_number": "2022-12345",
                     "horse_number": 3,
                     "finish": 3,
+                    "field_size": 3,
                     "individual_last3f": 35.0,
                 },
             ])
