@@ -901,8 +901,8 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 horse_column_image.width, column="horse"
                             )
                             retry_specs = (
-                                ("frame", frame_column_image, frame_left, frame_right, r"[1-8]"),
-                                ("horse", horse_column_image, horse_left, horse_right, r"(?:[1-9]|1[0-8])"),
+                                ("frame", frame_column_image, frame_left, frame_right, "12345678"),
+                                ("horse", horse_column_image, horse_left, horse_right, "1234567890"),
                             )
                             retry_values = {}
                             for column, column_image, x_left, x_right, whitelist in retry_specs:
@@ -911,7 +911,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 ImageOps.expand(row_crop, border=15, fill="white").save(retry_path)
                                 retry_text = subprocess.run(
                                     ["tesseract", str(retry_path), "stdout", "-l", "eng", "--psm", "10",
-                                     "-c", f"tessedit_char_whitelist={whitelist.replace('(?:[1-9]|1[0-8])', '1234567890')}"],
+                                     "-c", f"tessedit_char_whitelist={whitelist}"],
                                     check=True, timeout=15, capture_output=True, text=True,
                                 ).stdout.strip()
                                 retry_values[column] = (
@@ -926,10 +926,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 x_right = int(panel_width * 0.82 * scale)
                                 previous_center = slot_centers[-1]
                                 y_top = max(0, int(((previous_center + expected_center) / 2) * scale))
-                                y_bottom = min(
-                                    int(crop_path.stat().st_size * 0 + 10**9),
-                                    int(((expected_center + expected_center + typical_slot_gap) / 2) * scale),
-                                )
+                                y_bottom = int(((expected_center + expected_center + typical_slot_gap) / 2) * scale)
                                 with Image.open(crop_path) as panel_image:
                                     y_bottom = min(panel_image.height, y_bottom)
                                     row_path = temp_dir / f"{page.stem}-{side}-projected-trailing-row.png"
