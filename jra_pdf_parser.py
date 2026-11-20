@@ -1204,6 +1204,17 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     ["tesseract", str(row_path), "stdout", "-l", "jpn+eng", "--psm", "7"],
                                     check=True, timeout=20, capture_output=True, text=True,
                                 ).stdout.strip()
+                                frame_value, horse_value = identifier_rows[row_index][1]
+                                if _runner(f"{frame_value}|{horse_value} {row_result}") is None:
+                                    # Single-line mode can miss a faint sex/age glyph near a table rule.
+                                    # Retry only that row with block mode, and use it only if the
+                                    # normal runner validator can parse the complete row.
+                                    retry_result = subprocess.run(
+                                        ["tesseract", str(row_path), "stdout", "-l", "jpn+eng", "--psm", "6"],
+                                        check=True, timeout=20, capture_output=True, text=True,
+                                    ).stdout.strip()
+                                    if _runner(f"{frame_value}|{horse_value} {retry_result}") is not None:
+                                        row_result = retry_result
                                 row_texts.append(row_result)
                             row_lines = _build_ocr_runner_lines(identifier_rows, row_texts)
                             row_diagnostics = [
@@ -1244,6 +1255,23 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 chunks.append(f"第{race_number}競走\n" + "\n".join(clean_lines))
     return "\n".join(chunks)
 
+def _propagate_pdf_identity(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Fill missing date/track only when one value is verified across this single-day JRA PDF."""
+    for field in ("date", "track"):
+        observed = {
+            row.get(field)
+            for row in records
+            if isinstance(row.get(field), str) and row.get(field).strip()
+        }
+        if len(observed) != 1:
+            continue
+        verified_value = next(iter(observed))
+        for row in records:
+            if not row.get(field):
+                row[field] = verified_value
+    return records
+
+
 def extract_pdf(pdf_bytes: bytes, *, source_url: str = "") -> list[dict[str, Any]]:
     """Parse PDF text first, then use bounded Japanese OCR if its text layer is unusable."""
     with tempfile.TemporaryDirectory(prefix="jra-pdf-") as temp_dir_name:
@@ -1279,6 +1307,10 @@ def extract_pdf(pdf_bytes: bytes, *, source_url: str = "") -> list[dict[str, Any
             return []
         ocr_lines = [line.strip()[:180] for line in ocr_text.splitlines() if line.strip()]
         ocr_records = parse_race_text(ocr_text, source_url=source_url)
+        # Each official JRA result PDF represents one course and one meeting day.
+        # Reuse a date/track only when OCR independently found exactly one value
+        # somewhere in that same PDF; conflicting or wholly missing values stay unknown.
+        ocr_records = _propagate_pdf_identity(ocr_records)
         accepted = _complete_ocr_records(ocr_records)
         race_groups: dict[tuple, list[dict[str, Any]]] = {}
         for row in ocr_records:
