@@ -503,6 +503,25 @@ def _unmatched_trailing_identifier_slots(
     return sorted(candidates)
 
 
+def _trailing_identifier_slot_center(
+    existing_rows: list[tuple[float, int | None]],
+    *,
+    typical_gap: float,
+    max_center: float,
+) -> float | None:
+    """Project one final table row only when the observed row spacing is stable."""
+    centers = sorted(center for center, _ in existing_rows)
+    if len(centers) < 3 or typical_gap <= 0:
+        return None
+    gaps = [later - earlier for earlier, later in zip(centers, centers[1:])]
+    if any(gap <= 0 or not 0.60 * typical_gap <= gap <= 1.40 * typical_gap for gap in gaps):
+        return None
+    expected = centers[-1] + typical_gap
+    if expected + typical_gap * 0.40 > max_center:
+        return None
+    return expected
+
+
 def _infer_identifier_pairs_from_complete_frame_column(
     frame_rows: list[tuple[float, int]],
     horse_rows: list[tuple[float, int | None]],
@@ -848,6 +867,86 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     )
                         frame_slot_rows.sort(key=lambda item: item[0])
                         horse_slot_rows.sort(key=lambda item: item[0])
+                # A final table row can be missed by both TSV passes when it
+                # touches a horizontal rule. Project only one trailing slot from
+                # stable frame-column spacing, then require independent frame,
+                # horse, and runner-text OCR before adding it.
+                if len(frame_slot_rows) >= 3:
+                    slot_centers = [center for center, _ in frame_slot_rows]
+                    slot_gaps = [
+                        later - earlier
+                        for earlier, later in zip(slot_centers, slot_centers[1:])
+                    ]
+                    typical_slot_gap = sorted(slot_gaps)[len(slot_gaps) // 2] if slot_gaps else 0
+                    with Image.open(frame_path) as frame_column_image, Image.open(horse_path) as horse_column_image:
+                        expected_center = _trailing_identifier_slot_center(
+                            frame_slot_rows,
+                            typical_gap=typical_slot_gap,
+                            max_center=number_box[1] + min(
+                                frame_column_image.height, horse_column_image.height
+                            ) / 5,
+                        )
+                        if expected_center is not None and not any(
+                            abs(expected_center - center) <= typical_slot_gap * 0.40
+                            for center, _ in horse_slot_rows
+                        ):
+                            local_center = int((expected_center - number_box[1]) * 5)
+                            half_height = max(2, int(typical_slot_gap * 5 * 0.38))
+                            top = max(0, local_center - half_height)
+                            bottom = min(horse_column_image.height, local_center + half_height + 1)
+                            frame_left, frame_right = _identifier_column_inner_bounds(
+                                frame_column_image.width, column="frame"
+                            )
+                            horse_left, horse_right = _identifier_column_inner_bounds(
+                                horse_column_image.width, column="horse"
+                            )
+                            retry_specs = (
+                                ("frame", frame_column_image, frame_left, frame_right, r"[1-8]"),
+                                ("horse", horse_column_image, horse_left, horse_right, r"(?:[1-9]|1[0-8])"),
+                            )
+                            retry_values = {}
+                            for column, column_image, x_left, x_right, whitelist in retry_specs:
+                                retry_path = temp_dir / f"{page.stem}-{side}-{column}-projected-trailing.png"
+                                row_crop = column_image.crop((x_left, top, x_right, bottom))
+                                ImageOps.expand(row_crop, border=15, fill="white").save(retry_path)
+                                retry_text = subprocess.run(
+                                    ["tesseract", str(retry_path), "stdout", "-l", "eng", "--psm", "10",
+                                     "-c", f"tessedit_char_whitelist={whitelist.replace('(?:[1-9]|1[0-8])', '1234567890')}"],
+                                    check=True, timeout=15, capture_output=True, text=True,
+                                ).stdout.strip()
+                                retry_values[column] = (
+                                    _ocr_single_frame_number(retry_text)
+                                    if column == "frame" else _ocr_single_horse_number(retry_text)
+                                )
+                            frame_value = retry_values["frame"]
+                            horse_value = retry_values["horse"]
+                            if frame_value is not None and horse_value is not None:
+                                scale = 5 / 3
+                                x_left = int(panel_width * 0.115 * scale)
+                                x_right = int(panel_width * 0.82 * scale)
+                                previous_center = slot_centers[-1]
+                                y_top = max(0, int(((previous_center + expected_center) / 2) * scale))
+                                y_bottom = min(
+                                    int(crop_path.stat().st_size * 0 + 10**9),
+                                    int(((expected_center + expected_center + typical_slot_gap) / 2) * scale),
+                                )
+                                with Image.open(crop_path) as panel_image:
+                                    y_bottom = min(panel_image.height, y_bottom)
+                                    row_path = temp_dir / f"{page.stem}-{side}-projected-trailing-row.png"
+                                    panel_image.crop((x_left, y_top, x_right, y_bottom)).save(row_path)
+                                    row_text = subprocess.run(
+                                        ["tesseract", str(row_path), "stdout", "-l", "jpn+eng", "--psm", "7"],
+                                        check=True, timeout=20, capture_output=True, text=True,
+                                    ).stdout.strip()
+                                if _runner(f"{frame_value}|{horse_value} {row_text}") is not None:
+                                    frame_slot_rows.append((expected_center, frame_value))
+                                    horse_slot_rows.append((expected_center, horse_value))
+                                    frame_rows.append((expected_center, frame_value))
+                                    horse_rows.append((expected_center, horse_value))
+                                    identifier_row_diagnostics.append(
+                                        f"projected_trailing_identifier y={expected_center:.1f} "
+                                        f"frame={frame_value} horse={horse_value} text={row_text!r}"
+                                    )
                 if len(frame_slot_rows) >= 2:
                     slot_centers = [center for center, _ in frame_slot_rows]
                     slot_gaps = [
