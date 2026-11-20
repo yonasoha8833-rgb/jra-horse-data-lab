@@ -41,6 +41,29 @@ class ImportJraHtmlResultsTests(unittest.TestCase):
         self.assertEqual(accepted, [])
         self.assertEqual(len(rejected), 1)
 
+    def test_rejects_entire_race_with_impossible_finish_time(self):
+        rows = [
+            runner(horse_number=1, field_size=2, finish=1,
+                   finish_time="23:39.0", finish_time_seconds=1419.0),
+            runner(horse_number=2, field_size=2, finish=2,
+                   finish_time="1:40.0", finish_time_seconds=100.0),
+        ]
+        accepted, rejected = validate_complete_races(rows)
+        self.assertEqual(accepted, [])
+        self.assertEqual(len(rejected), 1)
+
+    def test_allows_non_finish_status_without_a_finish_time(self):
+        rows = [
+            runner(horse_number=1, field_size=2, finish=1,
+                   finish_time="1:40.0", finish_time_seconds=100.0),
+            runner(horse_number=2, field_size=2, finish=None,
+                   result_status="競走中止", finish_time=None,
+                   finish_time_seconds=None),
+        ]
+        accepted, rejected = validate_complete_races(rows)
+        self.assertEqual(accepted, rows)
+        self.assertEqual(rejected, [])
+
     def test_matches_only_exact_race_and_horse_identity(self):
         html = [runner()]
         pdf = [runner()]
