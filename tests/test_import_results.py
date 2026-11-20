@@ -109,15 +109,16 @@ class ImportResultsTests(unittest.TestCase):
             output = root / "race_results.json"
             catalog.write_text(json.dumps({"items": [
                 {"url": "https://example.test/fail.pdf"},
-                {"url": "https://example.test/good.pdf"},
+                {"url": "https://example.test/good.pdf", "expected_race_numbers": [1]},
             ]}), encoding="utf-8")
 
             extracted = [{
                 "source_url": "https://example.test/good.pdf",
                 "race_number": 1,
-                "horse_number": 3,
+                "horse_number": 1,
                 "horse_name": "テストホース",
                 "finish": 1,
+                "declared_field_size": 1,
             }]
             with patch.object(import_results, "CATALOG", catalog), \
                  patch.object(import_results, "OUTPUT", output), \
@@ -150,7 +151,7 @@ class ImportResultsTests(unittest.TestCase):
             saved = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(saved["processed_sources"], [])
             self.assertEqual(saved["import_failures"][0]["attempts"], 1)
-            self.assertIn("No runner rows recognized", saved["import_failures"][0]["error"])
+            self.assertIn("no_runner_records", saved["import_failures"][0]["error"])
 
 
     def test_new_sources_are_imported_before_retrying_old_failures(self):
@@ -161,7 +162,7 @@ class ImportResultsTests(unittest.TestCase):
             failed_url = "https://example.test/previously-failed.pdf"
             new_url = "https://example.test/new.pdf"
             catalog.write_text(json.dumps({"items": [
-                {"url": failed_url}, {"url": new_url},
+                {"url": failed_url}, {"url": new_url, "expected_race_numbers": [1]},
             ]}), encoding="utf-8")
             output.write_text(json.dumps({
                 "records": [],
@@ -179,6 +180,7 @@ class ImportResultsTests(unittest.TestCase):
                 "horse_number": 1,
                 "horse_name": "新規取込馬",
                 "finish": 1,
+                "declared_field_size": 1,
             }]
             with patch.object(import_results, "CATALOG", catalog), \
                  patch.object(import_results, "OUTPUT", output), \
@@ -213,6 +215,76 @@ class ImportResultsTests(unittest.TestCase):
         self.assertEqual(report["race_count"], 1)
         self.assertEqual(report["warning_race_count"], 0)
         self.assertEqual(report["records_with_invalid_finish_time"], 0)
+
+
+class SourceCompletenessTests(unittest.TestCase):
+
+    def _rows(self, race_number=1, horse_numbers=(1, 2), declared=2):
+        return [
+            {"source_url": "https://example.test/results.pdf",
+             "date": "2026-11-14", "track": "東京",
+             "race_number": race_number, "horse_number": number,
+             "declared_field_size": declared, "horse_name": f"horse-{number}"}
+            for number in horse_numbers
+        ]
+
+    def test_complete_requires_official_race_inventory(self):
+        rows = self._rows(1) + self._rows(2)
+        self.assertEqual(
+            import_results.assess_source_completeness(rows, [1, 2])["status"],
+            "complete",
+        )
+
+    def test_missing_race_is_incomplete(self):
+        result = import_results.assess_source_completeness(self._rows(1), [1, 2])
+        self.assertEqual(result["status"], "incomplete")
+        self.assertIn("race_inventory_mismatch", result["reasons"])
+
+    def test_missing_runner_is_incomplete(self):
+        result = import_results.assess_source_completeness(
+            self._rows(horse_numbers=(1,), declared=2), [1]
+        )
+        self.assertEqual(result["status"], "incomplete")
+        self.assertIn("race_1_field_size_or_number_mismatch", result["reasons"])
+
+    def test_duplicate_runner_number_is_incomplete(self):
+        result = import_results.assess_source_completeness(
+            self._rows(horse_numbers=(1, 1), declared=2), [1]
+        )
+        self.assertEqual(result["status"], "incomplete")
+        self.assertIn("race_1_duplicate_horse_number", result["reasons"])
+
+    def test_missing_inventory_is_unverified(self):
+        result = import_results.assess_source_completeness(self._rows(), None)
+        self.assertEqual(result["status"], "unverified")
+
+    def test_better_duplicate_is_retained(self):
+        good = {"source_url": "u", "race_number": 1, "horse_number": 1,
+                "horse_name": "A", "finish": 1, "runner_validation_warnings": []}
+        partial = {"source_url": "u", "race_number": 1, "horse_number": 1,
+                   "horse_name": "A", "runner_validation_warnings": ["bad"]}
+        self.assertEqual(import_results.deduplicate_records([good, partial]), [good])
+
+    def test_duplicate_catalog_urls_are_processed_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            catalog = root / "catalog.json"
+            output = root / "race_results.json"
+            url = "https://example.test/duplicate.pdf"
+            catalog.write_text(json.dumps({"items": [
+                {"url": url, "expected_race_numbers": [1]},
+                {"url": url, "expected_race_numbers": [1]},
+            ]}), encoding="utf-8")
+            extracted = self._rows()
+            with patch.object(import_results, "CATALOG", catalog), \
+                 patch.object(import_results, "OUTPUT", output), \
+                 patch.object(import_results, "download_and_extract", return_value=extracted) as download, \
+                 patch("sys.argv", ["import_results.py", "--limit", "2"]):
+                import_results.main()
+            download.assert_called_once_with(url)
+            saved = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(saved["processed_sources"], [url])
+
 
 
 if __name__ == "__main__":
