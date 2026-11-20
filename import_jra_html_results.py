@@ -35,6 +35,17 @@ def validate_complete_races(records: list[dict]) -> tuple[list[dict], list[dict]
                             if isinstance(row.get("race_validation_warnings"), list) else [])
             if isinstance(warning, str)
         ]
+        # A placed runner must have a plausible, independently parsed time.
+        # Non-finish statuses may legitimately have no finish time.
+        invalid_times = any(
+            row.get("finish") is not None
+            and (
+                row.get("finish_time") is None
+                or row.get("finish_time_seconds") is None
+                or row.get("finish_time_seconds") > 15 * 60
+            )
+            for row in rows
+        )
         valid = (
             all(value not in (None, "") for value in key)
             and all(bool(str(row.get("horse_name") or "").strip()) for row in rows)
@@ -42,6 +53,7 @@ def validate_complete_races(records: list[dict]) -> tuple[list[dict], list[dict]
             and len(numbers) == len(set(numbers))
             and all(row.get("field_size") == len(rows) for row in rows)
             and not warnings
+            and not invalid_times
         )
         if valid:
             accepted.extend(rows)
