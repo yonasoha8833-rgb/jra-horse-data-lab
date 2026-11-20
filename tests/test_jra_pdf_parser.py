@@ -351,6 +351,7 @@ class JraPdfParserTests(unittest.TestCase):
             {
                 "source_url": "official.pdf",
                 "date": "2026-11-14",
+                "track": "東京",
                 "race_number": 1,
                 "horse_number": number,
                 "frame": frame_by_number[number],
@@ -416,6 +417,7 @@ class JraPdfParserTests(unittest.TestCase):
             {
                 "source_url": "official.pdf",
                 "date": "2026-11-14",
+                "track": "東京",
                 "race_number": 1,
                 "horse_number": number,
                 "frame": frame_by_number[number],
