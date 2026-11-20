@@ -476,14 +476,34 @@ function renderStylePacePerformance(records){
  const styles=['逃げ','先行','差し','追込'];
  races.forEach(rows=>{
   const first=rows[0];
-  const lapValue=rows.find(r=>r.race_lap_times!=null)?.race_lap_times;
-  const laps=Array.isArray(lapValue)?lapValue.map(Number):typeof lapValue==='string'?lapValue.trim().split(/[\\s,、/|‐-‒–—-]+/).map(Number):[];
-  const distance=Number(rows.find(r=>Number(r.distance)>0)?.distance||first.distance);
-  if(!Number.isInteger(distance)||distance<1000||distance>5000||distance%200!==0||laps.length!==distance/200||laps.some(v=>!Number.isFinite(v)||v<8||v>40))return;
+  const distance=Number(first.distance);
+  const field=Number(first.field_size);
+  if(!Number.isInteger(distance)||distance<1000||distance>5000||distance%200!==0
+    ||!Number.isInteger(field)||field<2||rows.length!==field)return;
+  const horseNumbers=rows.map(r=>Number(r.horse_number));
+  if(horseNumbers.some(n=>!Number.isInteger(n)||n<1||n>field)
+    ||new Set(horseNumbers).size!==field)return;
+  const lapArrays=rows.map(r=>{
+   const value=r.race_lap_times;
+   return Array.isArray(value)?value.map(Number):typeof value==='string'?value.trim().split(/[\\s,、/|‐-‒–—-]+/).map(Number):null;
+  });
+  if(lapArrays.some(laps=>!laps||laps.length!==distance/200
+    ||laps.some(v=>!Number.isFinite(v)||v<8||v>40)))return;
+  const laps=lapArrays[0];
+  const signature=laps.join(',');
+  if(lapArrays.some(candidate=>candidate.join(',')!==signature))return;
+  const positionsByRunner=rows.map(row=>{
+   const value=row.corner_positions;
+   const positions=Array.isArray(value)?value.map(Number):typeof value==='string'?value.trim().split(/[\\s,、/|‐-‒–—-]+/).map(Number):[];
+   const finish=Number(row.finish);
+   if(!positions.length||positions.some(v=>!Number.isInteger(v)||v<1||v>field)
+     ||!Number.isInteger(finish)||finish<1||finish>field)return null;
+   return positions;
+  });
+  if(positionsByRunner.some(value=>value===null))return;
   const half=Math.floor(laps.length/2),firstHalf=laps.slice(0,half),secondHalf=laps.slice(half),balance=secondHalf.reduce((a,b)=>a+b,0)/secondHalf.length-firstHalf.reduce((a,b)=>a+b,0)/firstHalf.length;
   const pace=balance>=0.3?'前半速い':balance<=-0.3?'後半速い':'ほぼ均等';
   validRaces++;
-  const field=Number(first.field_size)>1?Number(first.field_size):rows.length;
   rows.forEach(row=>{
    let positions=row.corner_positions;
    if(typeof positions==='string')positions=positions.trim().split(/[\\s,、/|‐-‒–—-]+/).map(Number);
