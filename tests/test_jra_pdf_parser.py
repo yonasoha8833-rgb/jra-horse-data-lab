@@ -41,6 +41,19 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["runner_validation_warnings"], ["invalid_finish_time_seconds"])
         self.assertEqual(rows[1]["finish"], 1)
 
+    def test_rejects_implausibly_long_ocr_finish_time(self):
+        text = SAMPLE.replace("1：39．0", "23：39．0")
+        rows = parse_race_text(text)
+        self.assertEqual(len(rows), 2)
+        self.assertIsNone(rows[0]["finish_time"])
+        self.assertIsNone(rows[0]["finish_time_seconds"])
+        self.assertIsNone(rows[0]["finish"])
+        self.assertEqual(
+            rows[0]["runner_validation_warnings"],
+            ["invalid_finish_time_minutes"],
+        )
+        self.assertEqual(rows[1]["finish"], 1)
+
     def test_accepts_ocr_pipe_delimited_jra_runner_row(self):
         ocr_row = "6|7| ウォータージェード|牡2和|56 | 松若風馬 1:08.5"
         text = SAMPLE.replace(
