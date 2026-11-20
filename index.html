@@ -337,7 +337,17 @@ function renderObservedBlinkerChanges(records){
  const changes=window.JraHorseScoring.summarizeObservedBlinkerChanges(records);
  if(!changes.length){
   const empty=document.createElement('p');empty.className='muted small';
-  const history=new Map();\n  verified.forEach(row=>{const profile=String(row.horse_profile_id||'').trim();const registration=String(row.horse_registration_number||'').trim();const key=/^[A-Za-z0-9]+\\/[A-Za-z0-9]+$/.test(profile)?'jra-profile:'+profile:'registration:'+registration;const date=String(row.date||'');if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date))return;if(!history.has(key))history.set(key,new Set());history.get(key).add(date);});\n  const repeated=[...history.values()].some(dates=>dates.size>=2);\n  empty.textContent=repeated?'識別できる複数開催日の連続記録では、非着用から着用への変化は確認できませんでした。':'JRA公式プロフィール識別子で馬を識別できていますが、同一馬の複数開催日にわたる履歴が不足しているため、着用変化の判定は保留中です。';
+  const history=new Map();
+  verified.forEach(row=>{
+   const profile=String(row.horse_profile_id||'').trim();
+   const registration=String(row.horse_registration_number||'').trim();
+   const key=/^[A-Za-z0-9]+\/[A-Za-z0-9]+$/.test(profile)?'jra-profile:'+profile:'registration:'+registration;
+   const date=String(row.date||'');
+   if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date))return;
+   if(!history.has(key))history.set(key,new Set());
+   history.get(key).add(date);
+  });
+  const repeated=[...history.values()].some(dates=>dates.size>=2);\n  empty.textContent=repeated?'識別できる複数開催日の連続記録では、非着用から着用への変化は確認できませんでした。':'JRA公式プロフィール識別子で馬を識別できていますが、同一馬の複数開催日にわたる履歴が不足しているため、着用変化の判定は保留中です。';
   target.append(empty);return;
  }
  changes.forEach(item=>{
