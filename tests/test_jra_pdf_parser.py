@@ -1,6 +1,6 @@
 import unittest
 
-from jra_pdf_parser import _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers
+from jra_pdf_parser import _propagate_pdf_identity, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers
 
 
 SAMPLE = """
@@ -16,6 +16,32 @@ SAMPLE = """
 
 
 class JraPdfParserTests(unittest.TestCase):
+
+    def test_propagates_only_one_verified_pdf_wide_date_and_track(self):
+        rows = [
+            {"date": "2026-01-10", "track": "京都"},
+            {"date": None, "track": ""},
+            {"date": "2026-01-10", "track": "京都"},
+        ]
+        self.assertIs(_propagate_pdf_identity(rows), rows)
+        self.assertEqual(
+            [(row["date"], row["track"]) for row in rows],
+            [("2026-01-10", "京都")] * 3,
+        )
+
+    def test_does_not_propagate_conflicting_or_unobserved_pdf_identity(self):
+        rows = [
+            {"date": "2026-01-10", "track": "京都"},
+            {"date": "2026-01-11", "track": "京都"},
+            {"date": None, "track": None},
+        ]
+        _propagate_pdf_identity(rows)
+        self.assertIsNone(rows[2]["date"])
+        self.assertEqual(rows[2]["track"], "京都")
+        unknown = [{"date": None, "track": None}]
+        _propagate_pdf_identity(unknown)
+        self.assertIsNone(unknown[0]["date"])
+        self.assertIsNone(unknown[0]["track"])
 
     def test_ocr_heading_removal_preserves_metadata_on_same_line(self):
         line = "9月6日雨 (ダート)重 (2026年中山) 第1競走 3歳未勝利 1,200m"
