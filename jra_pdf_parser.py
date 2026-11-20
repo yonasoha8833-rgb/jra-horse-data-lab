@@ -26,6 +26,10 @@ RUNNER_RE = re.compile(
     r"^\s*([1-8])\s*[|/\\\\{}()\[\].,:;<>_-]*\s*(\d{1,2})\s*[|/\\\\{}()\[\].,:;<>_-]?\s*(.+?)\s*[|/\\\\{}()\[\].,:;<>_-]?\s*(牡|牝|セ)\s*([0-9０-９]+)",
 )
 RACE_RE = re.compile(r"第\s*(\d+)\s*競走")
+
+def _strip_race_heading(line: str) -> str:
+    """Remove only the synthetic race heading, preserving metadata on the same OCR line."""
+    return RACE_RE.sub("", line).strip()
 DATE_RE = re.compile(r"(\d{1,2})月\s*(\d{1,2})日")
 FIELD_SIZE_RE = re.compile(r"[（(]\s*([0-9０-９]{1,2})\s*頭\s*[）)]")
 DISTANCE_RE = re.compile(r"([0-9０-９]{1,2}[,，][0-9０-９]{3}|[0-9０-９]{3,4})\s*(?:ｍ|m|メートル|\x02)")
@@ -753,9 +757,13 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     ["tesseract", str(crop_path), "stdout", "-l", "jpn+eng", "--psm", "6"],
                     check=True, timeout=30, capture_output=True, text=True,
                 )
+                # A single OCR line can contain both the race heading and
+                # date/track/distance metadata. Remove only the heading token;
+                # dropping the entire line silently loses those race fields.
                 clean_lines = [
-                    line for line in result.stdout.splitlines()
-                    if not RACE_RE.search(line)
+                    metadata_line
+                    for line in result.stdout.splitlines()
+                    if (metadata_line := _strip_race_heading(line))
                 ]
 
                 # The runner table has fixed columns. OCR the narrow frame/horse
