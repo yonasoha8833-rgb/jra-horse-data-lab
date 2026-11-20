@@ -604,10 +604,14 @@
     const horses = new Map();
     for (const row of records || []) {
       const registration = registrationNumber(row.horse_registration_number);
+      const profileId = String(row.horse_profile_id || "").trim();
+      const verifiedProfileId = /^[A-Za-z0-9]+\/[A-Za-z0-9]+$/.test(profileId) ? profileId : null;
+      const identity = verifiedProfileId ? "jra-profile:" + verifiedProfileId
+        : registration ? "registration:" + registration : null;
       const date = String(row.date || "").trim();
-      if (!registration || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)) continue;
-      if (!horses.has(registration)) horses.set(registration, []);
-      horses.get(registration).push(row);
+      if (!identity || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)) continue;
+      if (!horses.has(identity)) horses.set(identity, []);
+      horses.get(identity).push(row);
     }
     const events = [];
     for (const [registration, rows] of horses.entries()) {
@@ -628,7 +632,8 @@
         if (!previous.row || !current.row
             || previous.row.blinkers !== false || current.row.blinkers !== true) continue;
         events.push({
-          horse_registration_number: registration,
+          horse_registration_number: registrationNumber(current.row.horse_registration_number) || null,
+          horse_profile_id: String(current.row.horse_profile_id || "").trim() || null,
           horse_name: String(current.row.horse_name || previous.row.horse_name || ""),
           previous_date: previous.date,
           observed_change_date: current.date,
