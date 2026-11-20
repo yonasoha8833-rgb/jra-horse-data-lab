@@ -347,7 +347,8 @@ function renderObservedBlinkerChanges(records){
    if(!history.has(key))history.set(key,new Set());
    history.get(key).add(date);
   });
-  const repeated=[...history.values()].some(dates=>dates.size>=2);\n  empty.textContent=repeated?'識別できる複数開催日の連続記録では、非着用から着用への変化は確認できませんでした。':'JRA公式プロフィール識別子で馬を識別できていますが、同一馬の複数開催日にわたる履歴が不足しているため、着用変化の判定は保留中です。';
+  const repeated=[...history.values()].some(dates=>dates.size>=2);
+  empty.textContent=repeated?'識別できる複数開催日の連続記録では、非着用から着用への変化は確認できませんでした。':'JRA公式プロフィール識別子で馬を識別できていますが、同一馬の複数開催日にわたる履歴が不足しているため、着用変化の判定は保留中です。';
   target.append(empty);return;
  }
  changes.forEach(item=>{
