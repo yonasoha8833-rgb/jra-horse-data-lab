@@ -546,7 +546,7 @@ class JraPdfParserTests(unittest.TestCase):
         ]
         frame_rows = [(100.0 + index * 40, frame) for index, (frame, _) in enumerate(entries)]
         horse_rows = [
-            (100.0 + index * 40, (3 if index == 14 else 9 if index == 5 else horse))
+            (100.0 + index * 40, (3 if index == 14 else 8 if index == 5 else horse))
             for index, (_, horse) in enumerate(entries)
         ]
         self.assertEqual(
