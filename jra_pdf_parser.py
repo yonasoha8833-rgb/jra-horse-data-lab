@@ -364,13 +364,17 @@ def _repair_ocr_horse_numbers(rows: list[dict[str, Any]]) -> bool:
 
 
 def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Keep only OCR races with a verified declared or uniquely inferred full field."""
+    """Keep only complete OCR fields with verified date and track identity."""
     races: dict[tuple, list[dict[str, Any]]] = {}
     for row in records:
         key = (row.get("source_url"), row.get("date"), row.get("race_number"))
         races.setdefault(key, []).append(row)
     accepted = []
     for rows in races.values():
+        # Horse rows without a verified race date and track cannot be safely
+        # associated with a historical race or used for condition analysis.
+        if not rows[0].get("date") or not rows[0].get("track"):
+            continue
         # Legacy OCR rows may predate finish-time validation. Reject the whole
         # race when any recognized runner carries an impossible time: keeping
         # the other placings could silently shift the official finish order.
