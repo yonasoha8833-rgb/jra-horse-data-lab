@@ -8,6 +8,24 @@
   ],
   "import_failures": [
     {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1chukyo1.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-20T13:56:19.781901+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1chukyo2.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-20T13:58:33.989176+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1chukyo3.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-20T14:00:46.484916+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1fukushima1.pdf",
       "attempts": 1,
       "last_attempt_utc": "2026-11-14T11:17:05.821867+00:00",
