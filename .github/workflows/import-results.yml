@@ -59,4 +59,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/race_results.json
           git diff --cached --quiet || git commit -m "Import JRA race results"
-          git push
+          # Catalog and other independent data updates can land while OCR runs.
+          # Rebase the completed data commit onto the latest main before pushing.
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
