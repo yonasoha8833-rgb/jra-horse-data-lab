@@ -371,6 +371,25 @@ def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]
         races.setdefault(key, []).append(row)
     accepted = []
     for rows in races.values():
+        # Legacy OCR rows may predate finish-time validation. Reject the whole
+        # race when any recognized runner carries an impossible time: keeping
+        # the other placings could silently shift the official finish order.
+        invalid_time = any(
+            (
+                isinstance(row.get("finish_time_seconds"), (int, float))
+                and row["finish_time_seconds"] > 15 * 60
+            )
+            or (
+                isinstance(row.get("runner_validation_warnings"), list)
+                and any(
+                    warning in {"invalid_finish_time_seconds", "invalid_finish_time_minutes"}
+                    for warning in row["runner_validation_warnings"]
+                )
+            )
+            for row in rows
+        )
+        if invalid_time:
+            continue
         declared = rows[0].get("declared_field_size")
         if declared is not None:
             complete = len(rows) == declared
