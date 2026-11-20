@@ -174,9 +174,12 @@ test("omits condition components when sample sizes are insufficient", () => {
   assert.equal(result.relative_last3f_score, null);
 });
 
-test("does not count complete duplicate runner rows twice", () => {
+test("does not count the same runner twice across different source PDFs", () => {
   const { horseRows, raceRows } = buildFourFactorFixture();
-  const duplicated = horseRows.concat({ ...horseRows[0] });
+  const duplicated = horseRows.concat({
+    ...horseRows[0],
+    source_url: "graded-replay-copy.pdf"
+  });
   const result = integratedHorsePerformanceScore(
     duplicated,
     raceRows,
@@ -201,6 +204,38 @@ test("averages tied last-3F ranks and rejects invalid weights", () => {
 });
 
 
+
+test("deduplicates the same race across sources and merges missing runner times", () => {
+  const rows = [];
+  for (let raceNumber = 1; raceNumber <= 3; raceNumber += 1) {
+    const runners = [
+      { horse_name: "対象馬", horse_registration_number: "2020-12345",
+        date: "2026-11-01", track: "東京", race_number: raceNumber,
+        horse_number: 1, finish: 1, field_size: 3, surface: "芝",
+        distance: 1600, going: "良", individual_last3f: 33 },
+      { horse_name: "相手馬A", horse_registration_number: "2021-12345",
+        date: "2026-11-01", track: "東京", race_number: raceNumber,
+        horse_number: 2, finish: 2, field_size: 3, surface: "芝",
+        distance: 1600, going: "良", individual_last3f: 34 },
+      { horse_name: "相手馬B", horse_registration_number: "2022-12345",
+        date: "2026-11-01", track: "東京", race_number: raceNumber,
+        horse_number: 3, finish: 3, field_size: 3, surface: "芝",
+        distance: 1600, going: "良", individual_last3f: 35 }
+    ];
+    rows.push(...runners.map(row => ({
+      ...row, source_url: "annual-results.pdf", individual_last3f: null
+    })));
+    rows.push(...runners.map(row => ({
+      ...row, source_url: "graded-replay.pdf"
+    })));
+  }
+
+  const summaries = summarizeRelativeLast3f(rows, { minConditionStarts: 1 });
+  const target = summaries.find(item => item.horse_registration_number === "2020-12345");
+  assert.equal(target.comparable_starts, 3);
+  assert.equal(target.conditions.track[0].sample_count, 3);
+  assert.equal(target.conditions.track[0].average_relative_score, 100);
+});
 
 test("does not rank a race when a finisher's individual last-3F is missing", () => {
   const rows = [
