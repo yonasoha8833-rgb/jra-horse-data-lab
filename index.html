@@ -49,6 +49,7 @@ ul{padding-left:22px}
 <h4>JRA公式HTML成績（PDFデータとは別管理）</h4><p id="htmlRaceStatus" class="muted small">公式HTML成績を読み込んでいます…</p><div id="htmlRaceResults" class="small"></div>
 <h4>公式HTML成績から見た前方位置スコア</h4><p class="muted small">JRA公式のコーナー通過順位を出走頭数で補正した参考値です。全頭分の馬番と頭数が確認できるレースのみ採用します。</p><div id="htmlForwardPositionResults" class="small"></div>
 <h4>JRA公式ラップ分析</h4><p class="muted small">同一レースの全馬で公式ラップが一致して確認できた場合のみ、前半3F・前半5F・後半3Fを表示します。速い・遅いの判定は、条件別の比較データが蓄積するまで行いません。</p><div id="htmlLapSplitResults" class="small"></div>
+<h4>初ブリンカー着用候補（公式記録の連続比較）</h4><p class="muted small">馬の登録番号で同一馬を確認でき、連続する記録で「非着用→着用」が確認できた場合のみ候補表示します。全履歴を保証できないため初着用の確定判定ではありません。</p><div id="htmlBlinkerChangeResults" class="small"></div>
 <div id="horseResults"></div>
 <p class="muted small">能力指数は出走頭数で着順を0〜100点に換算し、直近5走を重み付けした参考値です。速度指数や勝率予測ではありません。</p>
 </section>
@@ -62,8 +63,9 @@ ul{padding-left:22px}
 <li>重賞PDFの個別上がり3F・通過順位：抽出器・自動取り込み・画面連携を追加（実データ検証中）</li>
 <li>脚質×ペース別の実績集計：画面表示を追加（有効データ蓄積中）</li>
 <li>前方位置スコア：公式HTML成績の第3コーナー位置から算出する初期版を追加（対象レース蓄積中）。テン速度そのものの評価は未実装</li>
+<li>初ブリンカー着用候補：登録番号と連続する公式記録による慎重な変化検出を追加（登録番号を含む履歴データの蓄積待ち）</li>
 <li>トラックバイアス・不利補正：未実装</li>
-<li>調教・初ブリンカー検出：未実装</li>
+<li>調教データ連携：未実装</li>
 </ul>
 <p class="muted small">現在は公式成績PDFへのリンク検索と、基本項目の試験的な抽出に対応しています。抽出精度の検証と馬別分析の接続は開発中です。</p>
 </section>
@@ -321,6 +323,29 @@ function renderForwardPositionSummary(records){
  target.append(note);
 }
 
+
+function renderObservedBlinkerChanges(records){
+ const target=document.getElementById('htmlBlinkerChangeResults');
+ if(!target)return;
+ target.replaceChildren();
+ const verified=records.filter(row=>/^[0-9]{4}-[0-9]{5}$/.test(String(row.horse_registration_number||'')));
+ if(!verified.length){
+  const empty=document.createElement('p');empty.className='muted small';
+  empty.textContent='公式成績に馬の登録番号が含まれていないため、同一馬の履歴を照合できません。馬名だけで推測せず、判定を保留しています。';
+  target.append(empty);return;
+ }
+ const changes=window.JraHorseScoring.summarizeObservedBlinkerChanges(records);
+ if(!changes.length){
+  const empty=document.createElement('p');empty.className='muted small';
+  empty.textContent='登録番号で照合できる連続記録に、非着用から着用への変化は確認できませんでした。';
+  target.append(empty);return;
+ }
+ changes.forEach(item=>{
+  const line=document.createElement('p');line.className='item small';
+  line.textContent=item.horse_name+'：'+item.previous_date+'（非着用）→ '+item.observed_change_date+'（着用）／ '+item.status+'。'+item.warning;
+  target.append(line);
+ });
+}
 
 function renderOfficialLapSplitSummary(records){
  const target=document.getElementById('htmlLapSplitResults');
@@ -717,6 +742,7 @@ Promise.all([
  renderOfficialHtmlSummaries(Array.isArray(htmlData.records)?htmlData.records:[]);
  renderForwardPositionSummary(Array.isArray(htmlData.records)?htmlData.records:[]);
  renderOfficialLapSplitSummary(Array.isArray(htmlData.records)?htmlData.records:[]);
+  renderObservedBlinkerChanges(Array.isArray(htmlData.records)?htmlData.records:[]);
  horseRecords=Array.isArray(d.records)?d.records.map(row=>({...row})):[];
  const replayRecords=Array.isArray(replayData.records)?replayData.records:[];
  let replayMatched=0,replayAdded=0,replayAmbiguous=0;
