@@ -600,12 +600,55 @@
       || Number(a.race_number) - Number(b.race_number));
   }
 
+  function summarizeObservedBlinkerChanges(records) {
+    const horses = new Map();
+    for (const row of records || []) {
+      const registration = registrationNumber(row.horse_registration_number);
+      const date = String(row.date || "").trim();
+      if (!registration || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)
+          || typeof row.blinkers !== "boolean") continue;
+      if (!horses.has(registration)) horses.set(registration, []);
+      horses.get(registration).push(row);
+    }
+    const events = [];
+    for (const [registration, rows] of horses.entries()) {
+      const byDate = new Map();
+      rows.forEach(row => {
+        const date = String(row.date);
+        if (!byDate.has(date)) byDate.set(date, []);
+        byDate.get(date).push(row);
+      });
+      const ordered = Array.from(byDate.entries())
+        .filter(([, sameDay]) => sameDay.length === 1)
+        .map(([date, sameDay]) => ({ date, row: sameDay[0] }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+      for (let index = 1; index < ordered.length; index += 1) {
+        const previous = ordered[index - 1];
+        const current = ordered[index];
+        if (previous.row.blinkers !== false || current.row.blinkers !== true) continue;
+        events.push({
+          horse_registration_number: registration,
+          horse_name: String(current.row.horse_name || previous.row.horse_name || ""),
+          previous_date: previous.date,
+          observed_change_date: current.date,
+          previous_race: previous.row.race_number ?? null,
+          observed_race: current.row.race_number ?? null,
+          status: "初着用候補（連続して確認できた記録上の変化）",
+          warning: "全出走履歴を確認できた保証はないため、初着用の確定判定ではありません。"
+        });
+      }
+    }
+    return events.sort((a, b) => b.observed_change_date.localeCompare(a.observed_change_date)
+      || a.horse_name.localeCompare(b.horse_name, "ja"));
+  }
+
   return {
     distanceBand,
     performanceScore,
     summarizeRelativeLast3f,
     summarizeForwardPosition,
     summarizeOfficialRaceLapSplits,
+    summarizeObservedBlinkerChanges,
     integratedHorsePerformanceScore
   };
 });
