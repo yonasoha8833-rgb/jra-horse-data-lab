@@ -605,7 +605,7 @@
     for (const row of records || []) {
       const registration = registrationNumber(row.horse_registration_number);
       const date = String(row.date || "").trim();
-      if (!registration || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)
+      if (!registration || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)
           || typeof row.blinkers !== "boolean") continue;
       if (!horses.has(registration)) horses.set(registration, []);
       horses.get(registration).push(row);
