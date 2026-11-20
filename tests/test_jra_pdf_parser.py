@@ -1,6 +1,6 @@
 import unittest
 
-from jra_pdf_parser import _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center
+from jra_pdf_parser import _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center
 
 
 SAMPLE = """
@@ -16,6 +16,16 @@ SAMPLE = """
 
 
 class JraPdfParserTests(unittest.TestCase):
+
+    def test_ocr_heading_removal_preserves_metadata_on_same_line(self):
+        line = "9月6日雨 (ダート)重 (2026年中山) 第1競走 3歳未勝利 1,200m"
+        self.assertEqual(
+            _strip_race_heading(line),
+            "9月6日雨 (ダート)重 (2026年中山)  3歳未勝利 1,200m",
+        )
+
+    def test_ocr_heading_only_line_becomes_empty(self):
+        self.assertEqual(_strip_race_heading("第1競走"), "")
 
     def test_rejects_race_number_outside_official_range(self):
         text = SAMPLE.replace("第1競走", "第13競走")
