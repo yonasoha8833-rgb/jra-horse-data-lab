@@ -605,8 +605,7 @@
     for (const row of records || []) {
       const registration = registrationNumber(row.horse_registration_number);
       const date = String(row.date || "").trim();
-      if (!registration || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)
-          || typeof row.blinkers !== "boolean") continue;
+      if (!registration || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)) continue;
       if (!horses.has(registration)) horses.set(registration, []);
       horses.get(registration).push(row);
     }
@@ -619,13 +618,15 @@
         byDate.get(date).push(row);
       });
       const ordered = Array.from(byDate.entries())
-        .filter(([, sameDay]) => sameDay.length === 1)
-        .map(([date, sameDay]) => ({ date, row: sameDay[0] }))
+        .map(([date, sameDay]) => ({ date, row: sameDay.length === 1 ? sameDay[0] : null }))
         .sort((a, b) => a.date.localeCompare(b.date));
       for (let index = 1; index < ordered.length; index += 1) {
         const previous = ordered[index - 1];
         const current = ordered[index];
-        if (previous.row.blinkers !== false || current.row.blinkers !== true) continue;
+        // Unknown or ambiguous dates remain in sequence as barriers; never
+        // infer a change by skipping an incomplete historical record.
+        if (!previous.row || !current.row
+            || previous.row.blinkers !== false || current.row.blinkers !== true) continue;
         events.push({
           horse_registration_number: registration,
           horse_name: String(current.row.horse_name || previous.row.horse_name || ""),
