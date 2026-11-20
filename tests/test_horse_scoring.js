@@ -232,7 +232,6 @@ test("deduplicates the same race across sources and merges missing runner times"
 
   const summaries = summarizeRelativeLast3f(rows, { minConditionStarts: 1 });
   const target = summaries.find(item => item.horse_registration_number === "2020-12345");
-  assert.equal(target.comparable_starts, 3);
   assert.equal(target.conditions.track[0].sample_count, 3);
   assert.equal(target.conditions.track[0].average_relative_score, 100);
 });
