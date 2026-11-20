@@ -574,6 +574,30 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(_identifier_column_inner_bounds(129, column="frame"), (30, 105))
         self.assertEqual(_identifier_column_inner_bounds(111, column="horse"), (15, 91))
 
+    def test_detects_one_internal_ocr_row_gap_from_stable_spacing(self):
+        rows = [
+            (100.0, 1), (125.0, 2), (175.0, 4), (200.0, 5),
+            (225.0, 6), (250.0, 7),
+        ]
+        self.assertEqual(
+            _internal_identifier_slot_centers(rows),
+            [(150.0, 25.0)],
+        )
+
+    def test_does_not_project_large_or_irregular_internal_ocr_gaps(self):
+        self.assertEqual(
+            _internal_identifier_slot_centers([
+                (100.0, 1), (125.0, 2), (200.0, 5), (225.0, 6),
+            ]),
+            [],
+        )
+        self.assertEqual(
+            _internal_identifier_slot_centers([
+                (100.0, 1), (125.0, 2), (180.0, 4), (205.0, 5),
+            ]),
+            [],
+        )
+
     def test_projects_one_trailing_identifier_slot_only_with_stable_spacing(self):
         rows = [(100.0 + index * 21.0, index + 1) for index in range(15)]
         self.assertAlmostEqual(
