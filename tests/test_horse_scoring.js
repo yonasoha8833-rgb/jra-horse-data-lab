@@ -267,6 +267,42 @@ test("does not rank a race when a runner row is missing from the official field"
   assert.deepEqual(summarizeRelativeLast3f(rows, { minConditionStarts: 1 }), []);
 });
 
+
+test("summarizes forward position only from complete verified race fields", () => {
+  const rows = [];
+  for (let raceNumber = 1; raceNumber <= 2; raceNumber += 1) {
+    rows.push(
+      { horse_name: "先行馬", horse_registration_number: "2020-12345",
+        date: "2026-11-0" + raceNumber, track: "東京", race_number: raceNumber,
+        horse_number: 1, field_size: 3, corner_3: 1 },
+      { horse_name: "中団馬", horse_registration_number: "2021-12345",
+        date: "2026-11-0" + raceNumber, track: "東京", race_number: raceNumber,
+        horse_number: 2, field_size: 3, corner_3: 2 },
+      { horse_name: "後方馬", horse_registration_number: "2022-12345",
+        date: "2026-11-0" + raceNumber, track: "東京", race_number: raceNumber,
+        horse_number: 3, field_size: 3, corner_3: 3 }
+    );
+  }
+  const summaries = summarizeForwardPosition(rows, { minStarts: 2 });
+  assert.equal(summaries.length, 3);
+  assert.equal(summaries[0].horse_name, "先行馬");
+  assert.equal(summaries[0].average_early_position, 1);
+  assert.equal(summaries[0].average_forward_position_score, 100);
+  assert.equal(summaries[2].average_forward_position_score, 0);
+});
+
+test("does not infer forward position from incomplete or duplicated race fields", () => {
+  const rows = [
+    { horse_name: "対象馬", date: "2026-11-01", track: "東京", race_number: 1,
+      horse_number: 1, field_size: 3, corner_3: 1 },
+    { horse_name: "相手馬", date: "2026-11-01", track: "東京", race_number: 1,
+      horse_number: 2, field_size: 3, corner_3: 2 },
+    { horse_name: "重複馬", date: "2026-11-01", track: "東京", race_number: 1,
+      horse_number: 2, field_size: 3, corner_3: 3 }
+  ];
+  assert.deepEqual(summarizeForwardPosition(rows), []);
+});
+
 test("browser page inline JavaScript has valid syntax", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   const start = html.indexOf("<script>");
