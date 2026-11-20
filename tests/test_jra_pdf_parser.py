@@ -559,8 +559,12 @@ class JraPdfParserTests(unittest.TestCase):
             _trailing_identifier_slot_center(rows, typical_gap=21.0, max_center=800.0),
             415.0,
         )
+        self.assertAlmostEqual(
+            _trailing_identifier_slot_center(rows, typical_gap=21.0, max_center=415.0),
+            415.0,
+        )
         self.assertIsNone(
-            _trailing_identifier_slot_center(rows, typical_gap=21.0, max_center=420.0)
+            _trailing_identifier_slot_center(rows, typical_gap=21.0, max_center=414.0)
         )
         irregular = rows[:-1] + [(rows[-1][0] + 50.0, 15)]
         self.assertIsNone(
