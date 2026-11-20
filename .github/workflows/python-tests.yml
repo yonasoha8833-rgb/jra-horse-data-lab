@@ -26,4 +26,4 @@ jobs:
         with:
           node-version: "22"
       - name: Run browser scoring tests
-        run: node --test tests/test_horse_scoring.js
+        run: node --test tests/test_horse_scoring.js tests/test_index_scripts.js
