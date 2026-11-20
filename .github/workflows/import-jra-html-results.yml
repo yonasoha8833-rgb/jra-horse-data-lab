@@ -1,0 +1,41 @@
+name: Import JRA official HTML results
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "jra_html_parser.py"
+      - "import_jra_html_results.py"
+      - "data/jra_html_catalog.json"
+      - ".github/workflows/import-jra-html-results.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Import separate JRA HTML sidecar
+        run: python import_jra_html_results.py --limit 2
+      - name: Commit sidecar only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/jra_html_results.json data/jra_html_pdf_comparison.json
+          if git diff --cached --quiet; then
+            echo "No HTML sidecar changes to commit"
+          else
+            git commit -m "Update separate JRA HTML result sidecar"
+            git push
+          fi
