@@ -553,6 +553,20 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(_identifier_column_inner_bounds(129, column="frame"), (30, 105))
         self.assertEqual(_identifier_column_inner_bounds(111, column="horse"), (15, 91))
 
+    def test_projects_one_trailing_identifier_slot_only_with_stable_spacing(self):
+        rows = [(100.0 + index * 21.0, index + 1) for index in range(15)]
+        self.assertAlmostEqual(
+            _trailing_identifier_slot_center(rows, typical_gap=21.0, max_center=800.0),
+            415.0,
+        )
+        self.assertIsNone(
+            _trailing_identifier_slot_center(rows, typical_gap=21.0, max_center=420.0)
+        )
+        irregular = rows[:-1] + [(rows[-1][0] + 50.0, 15)]
+        self.assertIsNone(
+            _trailing_identifier_slot_center(irregular, typical_gap=21.0, max_center=800.0)
+        )
+
     def test_alternate_ocr_adds_only_unmatched_trailing_identifier_slots(self):
         existing = [(100.0, 9), (120.0, 8), (140.0, 7)]
         alternate = [(100.5, 9), (120.5, 8), (140.5, 7), (160.0, 13), (200.0, 4)]
