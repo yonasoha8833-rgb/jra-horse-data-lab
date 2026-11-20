@@ -480,6 +480,29 @@ def _ocr_identifier_column_slots(
     return values
 
 
+def _unmatched_trailing_identifier_slots(
+    existing_rows: list[tuple[float, int | None]],
+    alternate_rows: list[tuple[float, int | None]],
+    *,
+    typical_gap: float,
+) -> list[tuple[float, int]]:
+    """Return only clearly separated trailing identifiers found by alternate OCR."""
+    if not existing_rows or typical_gap <= 0:
+        return []
+    last_center = max(center for center, _ in existing_rows)
+    tolerance = typical_gap * 0.40
+    candidates = []
+    for center, value in alternate_rows:
+        if value is None or center <= last_center + tolerance:
+            continue
+        if center > last_center + typical_gap * 1.60:
+            continue
+        if any(abs(center - known_center) <= tolerance for known_center, _ in existing_rows):
+            continue
+        candidates.append((center, value))
+    return sorted(candidates)
+
+
 def _infer_identifier_pairs_from_complete_frame_column(
     frame_rows: list[tuple[float, int]],
     horse_rows: list[tuple[float, int | None]],
@@ -771,6 +794,60 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     horse_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"(?:[1-9]|1[0-8])"
                 )
                 identifier_row_diagnostics = []
+                # Sparse-text OCR can find a trailing horse number that the
+                # normal single-column pass misses. Accept it only beyond the
+                # last known slot, then independently read its frame digit.
+                if len(frame_slot_rows) >= 2 and horse_slot_rows:
+                    slot_centers = [center for center, _ in frame_slot_rows]
+                    slot_gaps = [
+                        later - earlier
+                        for earlier, later in zip(slot_centers, slot_centers[1:])
+                        if later > earlier
+                    ]
+                    typical_slot_gap = sorted(slot_gaps)[len(slot_gaps) // 2] if slot_gaps else 0
+                    if typical_slot_gap > 0:
+                        alternate_horse_tsv = subprocess.run(
+                            ["tesseract", str(horse_path), "stdout", "-l", "eng", "--psm", "11", "tsv"],
+                            check=True, timeout=30, capture_output=True, text=True,
+                        ).stdout
+                        alternate_horse_rows = _ocr_identifier_column_slots(
+                            alternate_horse_tsv, scale=5,
+                            y_offset=float(number_box[1]),
+                            allowed=r"(?:[1-9]|1[0-8])",
+                        )
+                        trailing_rows = _unmatched_trailing_identifier_slots(
+                            horse_slot_rows, alternate_horse_rows,
+                            typical_gap=typical_slot_gap,
+                        )
+                        with Image.open(frame_path) as frame_column_image:
+                            frame_left, frame_right = _identifier_column_inner_bounds(
+                                frame_column_image.width, column="frame"
+                            )
+                            for center, horse_value in trailing_rows:
+                                local_center = int((center - number_box[1]) * 5)
+                                half_height = max(2, int(typical_slot_gap * 5 * 0.38))
+                                top = max(0, local_center - half_height)
+                                bottom = min(frame_column_image.height, local_center + half_height + 1)
+                                retry_path = temp_dir / f"{page.stem}-{side}-frame-trailing.png"
+                                frame_crop = frame_column_image.crop((
+                                    frame_left, top, frame_right, bottom
+                                ))
+                                ImageOps.expand(frame_crop, border=15, fill="white").save(retry_path)
+                                frame_retry_text = subprocess.run(
+                                    ["tesseract", str(retry_path), "stdout", "-l", "eng", "--psm", "10",
+                                     "-c", "tessedit_char_whitelist=12345678"],
+                                    check=True, timeout=15, capture_output=True, text=True,
+                                ).stdout.strip()
+                                frame_value = _ocr_single_frame_number(frame_retry_text)
+                                if frame_value is not None:
+                                    frame_slot_rows.append((center, frame_value))
+                                    horse_slot_rows.append((center, horse_value))
+                                    identifier_row_diagnostics.append(
+                                        f"alternate_trailing_identifier y={center:.1f} "
+                                        f"frame={frame_value} frame_retry={frame_retry_text!r} horse={horse_value}"
+                                    )
+                        frame_slot_rows.sort(key=lambda item: item[0])
+                        horse_slot_rows.sort(key=lambda item: item[0])
                 if len(frame_slot_rows) >= 2:
                     slot_centers = [center for center, _ in frame_slot_rows]
                     slot_gaps = [
