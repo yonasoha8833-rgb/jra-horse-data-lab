@@ -530,6 +530,30 @@ def _trailing_identifier_slot_center(
     return expected
 
 
+def _internal_identifier_slot_centers(
+    rows: list[tuple[float, int | None]],
+) -> list[tuple[float, float]]:
+    """Locate one omitted internal row only when neighboring row spacing proves its position."""
+    centers = sorted(center for center, _ in rows)
+    if len(centers) < 4:
+        return []
+    gaps = [later - earlier for earlier, later in zip(centers, centers[1:])]
+    ordinary_gaps = [gap for gap in gaps if gap > 0]
+    if len(ordinary_gaps) < 3:
+        return []
+    typical_gap = sorted(ordinary_gaps)[len(ordinary_gaps) // 2]
+    if typical_gap <= 0:
+        return []
+    projected = []
+    for earlier, later in zip(centers, centers[1:]):
+        gap = later - earlier
+        # A gap near exactly two normal row intervals indicates one omitted row.
+        # Larger gaps remain ambiguous and are deliberately not reconstructed.
+        if 1.70 * typical_gap <= gap <= 2.30 * typical_gap:
+            projected.append(((earlier + later) / 2, typical_gap))
+    return projected
+
+
 def _infer_identifier_pairs_from_complete_frame_column(
     frame_rows: list[tuple[float, int]],
     horse_rows: list[tuple[float, int | None]],
@@ -1020,6 +1044,81 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                             frame_rows = [(y, value) for y, value in refined_frames if value is not None]
                             horse_slot_rows = refined_horses
                             horse_rows = [(y, value) for y, value in refined_horses if value is not None]
+                # Recover an internal row omitted by the number-column OCR only when
+                # the surrounding rows establish a single missing slot. Both identifiers
+                # and the Japanese runner row are then re-read independently; no number
+                # is inferred from neighboring values or field order.
+                internal_slots = _internal_identifier_slot_centers(frame_slot_rows)
+                if internal_slots:
+                    with Image.open(frame_path) as frame_column_image, Image.open(horse_path) as horse_column_image, Image.open(crop_path) as panel_image:
+                        frame_left, frame_right = _identifier_column_inner_bounds(
+                            frame_column_image.width, column="frame"
+                        )
+                        horse_left, horse_right = _identifier_column_inner_bounds(
+                            horse_column_image.width, column="horse"
+                        )
+                        scale = 5 / 3
+                        for slot_index, (center, typical_gap) in enumerate(internal_slots):
+                            local_center = int((center - number_box[1]) * 5)
+                            half_height = max(2, int(typical_gap * 5 * 0.38))
+                            top = max(0, local_center - half_height)
+                            bottom = min(frame_column_image.height, local_center + half_height + 1)
+                            retry_values = {}
+                            for column, column_image, x_left, x_right, whitelist in (
+                                ("frame", frame_column_image, frame_left, frame_right, "12345678"),
+                                ("horse", horse_column_image, horse_left, horse_right, "1234567890"),
+                            ):
+                                retry_path = temp_dir / f"{page.stem}-{side}-{column}-internal-{slot_index}.png"
+                                row_crop = column_image.crop((x_left, top, x_right, bottom))
+                                ImageOps.expand(row_crop, border=15, fill="white").save(retry_path)
+                                retry_text = subprocess.run(
+                                    ["tesseract", str(retry_path), "stdout", "-l", "eng", "--psm", "10",
+                                     "-c", f"tessedit_char_whitelist={whitelist}"],
+                                    check=True, timeout=15, capture_output=True, text=True,
+                                ).stdout.strip()
+                                retry_values[column] = (
+                                    _ocr_single_frame_number(retry_text)
+                                    if column == "frame" else _ocr_single_horse_number(retry_text)
+                                )
+                            frame_value, horse_value = retry_values["frame"], retry_values["horse"]
+                            if frame_value is None or horse_value is None:
+                                identifier_row_diagnostics.append(
+                                    f"internal_identifier_slot y={center:.1f} "
+                                    f"frame={frame_value} horse={horse_value} rejected=identifier_ocr"
+                                )
+                                continue
+                            row_top = max(0, int((center - typical_gap * 0.50) * scale))
+                            row_bottom = min(
+                                panel_image.height,
+                                int((center + typical_gap * 0.50) * scale),
+                            )
+                            x_left = int(panel_width * 0.115 * scale)
+                            x_right = int(panel_width * 0.82 * scale)
+                            row_path = temp_dir / f"{page.stem}-{side}-internal-row-{slot_index}.png"
+                            panel_image.crop((x_left, row_top, x_right, row_bottom)).save(row_path)
+                            row_text = subprocess.run(
+                                ["tesseract", str(row_path), "stdout", "-l", "jpn+eng", "--psm", "7"],
+                                check=True, timeout=20, capture_output=True, text=True,
+                            ).stdout.strip()
+                            if _runner(f"{frame_value}|{horse_value} {row_text}") is None:
+                                identifier_row_diagnostics.append(
+                                    f"internal_identifier_slot y={center:.1f} "
+                                    f"frame={frame_value} horse={horse_value} "
+                                    f"text={row_text!r} rejected=runner_row_validation"
+                                )
+                                continue
+                            frame_slot_rows.append((center, frame_value))
+                            horse_slot_rows.append((center, horse_value))
+                            frame_rows.append((center, frame_value))
+                            horse_rows.append((center, horse_value))
+                            identifier_row_diagnostics.append(
+                                f"internal_identifier_slot y={center:.1f} "
+                                f"frame={frame_value} horse={horse_value} text={row_text!r} accepted"
+                            )
+                    frame_slot_rows.sort(key=lambda item: item[0])
+                    horse_slot_rows.sort(key=lambda item: item[0])
+                    frame_rows.sort(key=lambda item: item[0])
+                    horse_rows.sort(key=lambda item: item[0])
                 # Preserve the ordinary aligned-column result when no inference is needed.
                 identifier_rows = _pair_identifier_columns(frame_rows, horse_rows)
                 # If a complete frame column is available, fill unreadable horse
