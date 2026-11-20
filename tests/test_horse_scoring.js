@@ -270,6 +270,32 @@ test("does not rank a race when a runner row is missing from the official field"
 });
 
 
+test("flags only an observed false-to-true blinker change with verified registration identity", () => {
+  const { summarizeObservedBlinkerChanges } = require("../horse_scoring.js");
+  const rows = [
+    { horse_registration_number: "2020-12345", horse_name: "ブリンカー候補馬", date: "2026-10-01", race_number: 3, blinkers: false },
+    { horse_registration_number: "2020-12345", horse_name: "ブリンカー候補馬", date: "2026-11-01", race_number: 5, blinkers: true },
+    { horse_name: "識別番号なし", date: "2026-10-01", blinkers: false },
+    { horse_name: "識別番号なし", date: "2026-11-01", blinkers: true }
+  ];
+  const result = summarizeObservedBlinkerChanges(rows);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].horse_registration_number, "2020-12345");
+  assert.equal(result[0].status, "初着用候補（連続して確認できた記録上の変化）");
+});
+
+test("does not infer a blinker change across unknown or ambiguous history", () => {
+  const { summarizeObservedBlinkerChanges } = require("../horse_scoring.js");
+  const rows = [
+    { horse_registration_number: "2020-23456", date: "2026-09-01", blinkers: false },
+    { horse_registration_number: "2020-23456", date: "2026-10-01", blinkers: null },
+    { horse_registration_number: "2020-23456", date: "2026-11-01", blinkers: true },
+    { horse_registration_number: "2021-23456", date: "2026-09-01", blinkers: false },
+    { horse_registration_number: "2021-23456", date: "2026-09-01", blinkers: true }
+  ];
+  assert.deepEqual(summarizeObservedBlinkerChanges(rows), []);
+});
+
 test("summarizes forward position only from complete verified race fields", () => {
   const rows = [];
   for (let raceNumber = 1; raceNumber <= 2; raceNumber += 1) {
