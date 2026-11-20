@@ -7,7 +7,8 @@ const path = require("node:path");
 const {
   integratedHorsePerformanceScore,
   summarizeRelativeLast3f,
-  summarizeForwardPosition
+  summarizeForwardPosition,
+  summarizeOfficialRaceLapSplits
 } = require("../horse_scoring.js");
 
 function buildFourFactorFixture() {
@@ -311,4 +312,31 @@ test("browser page inline JavaScript has valid syntax", () => {
   assert.ok(start >= 0 && end > start);
   const inlineScript = html.slice(start + "<script>".length, end);
   assert.doesNotThrow(() => new Function(inlineScript));
+});
+
+test("summarizes official first-3F, first-5F and final-3F lap splits", () => {
+  const laps = [12.5, 11.2, 11.7, 12.3, 12.2, 11.8, 11.1, 11.6];
+  const rows = [
+    { date: "2026-11-15", track: "京都", race_number: 7, surface: "芝",
+      distance: 1600, going: "重", race_lap_times: laps, horse_number: 1 },
+    { date: "2026-11-15", track: "京都", race_number: 7, surface: "芝",
+      distance: 1600, going: "重", race_lap_times: laps.slice(), horse_number: 2 }
+  ];
+  const result = summarizeOfficialRaceLapSplits(rows);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].first3f, 35.4);
+  assert.equal(result[0].first5f, 59.9);
+  assert.equal(result[0].final3f, 34.5);
+  assert.equal(result[0].runner_record_count, 2);
+});
+
+test("rejects inconsistent or incomplete official lap arrays", () => {
+  const base = { date: "2026-11-15", track: "京都", race_number: 7 };
+  assert.deepEqual(summarizeOfficialRaceLapSplits([
+    { ...base, race_lap_times: [12, 11, 12, 12, 12] },
+    { ...base, race_lap_times: [12, 11, 12, 12, 13] }
+  ]), []);
+  assert.deepEqual(summarizeOfficialRaceLapSplits([
+    { ...base, race_lap_times: [12, 11, 12, 12] }
+  ]), []);
 });
