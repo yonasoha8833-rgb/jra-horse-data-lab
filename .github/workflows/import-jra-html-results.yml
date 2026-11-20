@@ -11,7 +11,8 @@ on:
       - ".github/workflows/import-jra-html-results.yml"
 
 concurrency:
-  group: jra-html-sidecar-import
+  # Share one lock with the PDF importer: both commit to main.
+  group: jra-official-data-imports
   cancel-in-progress: false
 
 permissions:
