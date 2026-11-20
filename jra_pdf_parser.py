@@ -599,7 +599,7 @@ def _infer_identifier_pairs_from_complete_frame_column(
     frame_rows: list[tuple[float, int]],
     horse_rows: list[tuple[float, int | None]],
 ) -> list[tuple[float, tuple[int, int]]]:
-    """Recover unreadable horse numbers only when every aligned row is accounted for."""
+    """Recover missing or one misread horse number only from a complete aligned field."""
     field_size = len(frame_rows)
     if not 2 <= field_size <= 18 or not horse_rows:
         return []
@@ -616,6 +616,7 @@ def _infer_identifier_pairs_from_complete_frame_column(
     observed: set[int] = set()
     used_rows: set[int] = set()
     missing_slots: list[tuple[float, int]] = []
+    mismatched_slots: list[tuple[float, int]] = []
     row_numbers: dict[float, int] = {}
     for center, frame in frame_rows:
         if not isinstance(frame, int) or not 1 <= frame <= 8:
@@ -637,21 +638,29 @@ def _infer_identifier_pairs_from_complete_frame_column(
         if horse is None:
             missing_slots.append((center, frame))
             continue
-        if not 1 <= horse <= field_size:
-            return []
-        if horse in observed or _expected_frame(field_size, horse) != frame:
-            return []
+        # A recognized digit that conflicts with the official frame allocation,
+        # or duplicates an already observed number, is treated as one OCR error.
+        # It is never trusted; the replacement must be uniquely proven below.
+        if (
+            not isinstance(horse, int)
+            or not 1 <= horse <= field_size
+            or horse in observed
+            or _expected_frame(field_size, horse) != frame
+        ):
+            mismatched_slots.append((center, frame))
+            continue
         observed.add(horse)
         row_numbers[center] = horse
 
-    if len(used_rows) != len(horse_rows):
+    if len(used_rows) != len(horse_rows) or len(mismatched_slots) > 1:
         return []
     missing_numbers = set(range(1, field_size + 1)) - observed
-    if len(missing_numbers) != len(missing_slots):
+    unresolved_slots = missing_slots + mismatched_slots
+    if len(missing_numbers) != len(unresolved_slots):
         return []
 
     assigned: set[int] = set()
-    for center, frame in missing_slots:
+    for center, frame in unresolved_slots:
         candidates = [
             horse for horse in missing_numbers
             if horse not in assigned and _expected_frame(field_size, horse) == frame
