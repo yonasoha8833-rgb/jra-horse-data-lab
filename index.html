@@ -48,6 +48,7 @@ ul{padding-left:22px}
 <h4>脚質×ペース別の実績</h4><p class="muted small">公式ラップとコーナー通過順位がそろうレースのみ集計します。各組み合わせ3走以上を表示します。</p><div id="stylePaceStatus" class="muted small"></div><div id="stylePaceResults" class="small"></div><h4>条件別レース傾向</h4><label class="small">集計条件 <select id="raceConditionDimension"><option value="track">競馬場</option><option value="surface">芝・ダート</option><option value="distance_band">距離帯</option><option value="going">馬場状態</option></select></label><div id="raceConditionResults" class="small"></div></div>
 <h4>JRA公式HTML成績（PDFデータとは別管理）</h4><p id="htmlRaceStatus" class="muted small">公式HTML成績を読み込んでいます…</p><div id="htmlRaceResults" class="small"></div>
 <h4>公式HTML成績から見た前方位置スコア</h4><p class="muted small">JRA公式のコーナー通過順位を出走頭数で補正した参考値です。全頭分の馬番と頭数が確認できるレースのみ採用します。</p><div id="htmlForwardPositionResults" class="small"></div>
+<h4>JRA公式ラップ分析</h4><p class="muted small">同一レースの全馬で公式ラップが一致して確認できた場合のみ、前半3F・前半5F・後半3Fを表示します。速い・遅いの判定は、条件別の比較データが蓄積するまで行いません。</p><div id="htmlLapSplitResults" class="small"></div>
 <div id="horseResults"></div>
 <p class="muted small">能力指数は出走頭数で着順を0〜100点に換算し、直近5走を重み付けした参考値です。速度指数や勝率予測ではありません。</p>
 </section>
@@ -317,6 +318,35 @@ function renderForwardPositionSummary(records){
  target.append(table);
  const note=document.createElement('p');note.className='muted small';
  note.textContent='100点に近いほど前方の位置を取れている傾向です。これはテンの速さそのものではありません。現在の対象データは公式HTML成績のみで、蓄積レース数が少ないため参考値として扱ってください。';
+ target.append(note);
+}
+
+
+function renderOfficialLapSplitSummary(records){
+ const target=document.getElementById('htmlLapSplitResults');
+ if(!target)return;
+ target.replaceChildren();
+ const summaries=window.JraHorseScoring.summarizeOfficialRaceLapSplits(records);
+ if(!summaries.length){
+  const empty=document.createElement('p');empty.className='muted small';
+  empty.textContent='全馬で一致する公式ラップを確認できるレースがまだありません。';
+  target.append(empty);return;
+ }
+ const table=document.createElement('table');table.style.width='100%';table.style.borderCollapse='collapse';
+ const header=document.createElement('tr');
+ ['開催日・競馬場・R','前半3F','前半5F','後半3F','ラップ数'].forEach(label=>{
+  const th=document.createElement('th');th.textContent=label;th.style.textAlign='left';th.style.padding='6px';th.style.borderBottom='1px solid #40516a';header.append(th);
+ });
+ table.append(header);
+ summaries.forEach(item=>{
+  const tr=document.createElement('tr');
+  const values=[item.date+'・'+item.track+'・'+item.race_number+'R',item.first3f.toFixed(1)+'秒',item.first5f.toFixed(1)+'秒',item.final3f.toFixed(1)+'秒',String(item.lap_count)];
+  values.forEach(value=>{const td=document.createElement('td');td.textContent=value;td.style.padding='6px';td.style.borderTop='1px solid #40516a';tr.append(td);});
+  table.append(tr);
+ });
+ target.append(table);
+ const note=document.createElement('p');note.className='muted small';
+ note.textContent='ラップ値はレース全体の区間合計です。馬個別の上がり3Fとは別指標です。現時点では対象レース数が少ないため、時計の優劣やペース分類には使用していません。';
  target.append(note);
 }
 
@@ -666,6 +696,7 @@ Promise.all([
 ]).then(([d,replayData,htmlData])=>{
  renderOfficialHtmlSummaries(Array.isArray(htmlData.records)?htmlData.records:[]);
  renderForwardPositionSummary(Array.isArray(htmlData.records)?htmlData.records:[]);
+ renderOfficialLapSplitSummary(Array.isArray(htmlData.records)?htmlData.records:[]);
  horseRecords=Array.isArray(d.records)?d.records.map(row=>({...row})):[];
  const replayRecords=Array.isArray(replayData.records)?replayData.records:[];
  let replayMatched=0,replayAdded=0,replayAmbiguous=0;
