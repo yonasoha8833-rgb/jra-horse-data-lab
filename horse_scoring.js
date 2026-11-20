@@ -35,6 +35,61 @@
     return 100 * (fieldSize - finish) / (fieldSize - 1);
   }
 
+  function raceRunnerIdentity(row) {
+    const date = String(row.date || "").trim();
+    const track = String(row.track || "").trim();
+    const raceNumber = String(row.race_number || "").trim();
+    if (!date || !track || !raceNumber) return null;
+
+    const horseNumber = numeric(row.horse_number);
+    let runner;
+    if (horseNumber !== null && Number.isInteger(horseNumber) && horseNumber > 0) {
+      runner = "number:" + String(horseNumber);
+    } else {
+      const registration = registrationNumber(row.horse_registration_number);
+      const name = String(row.horse_name || "").trim();
+      runner = registration ? "registration:" + registration
+        : name ? "name:" + name : "";
+    }
+    return runner ? [date, track, raceNumber, runner].join("|") : null;
+  }
+
+  function mergeRunnerRecords(existing, incoming) {
+    const merged = { ...existing };
+    for (const [field, value] of Object.entries(incoming)) {
+      if ((merged[field] === null || merged[field] === undefined || merged[field] === "")
+          && value !== null && value !== undefined && value !== "") {
+        merged[field] = value;
+      }
+    }
+
+    if (normalizedFinishScore(merged) === null
+        && normalizedFinishScore(incoming) !== null) {
+      merged.finish = incoming.finish;
+      merged.field_size = incoming.field_size;
+    }
+
+    let currentTime = numeric(merged.individual_last3f);
+    if (currentTime === null || currentTime <= 0) {
+      const fallbackTime = numeric(merged.last3f);
+      if (fallbackTime !== null && fallbackTime > 0) {
+        currentTime = fallbackTime;
+        merged.individual_last3f = merged.last3f;
+      }
+    }
+    let incomingTime = numeric(incoming.individual_last3f);
+    let incomingValue = incoming.individual_last3f;
+    if (incomingTime === null || incomingTime <= 0) {
+      incomingTime = numeric(incoming.last3f);
+      incomingValue = incoming.last3f;
+    }
+    if ((currentTime === null || currentTime <= 0)
+        && incomingTime !== null && incomingTime > 0) {
+      merged.individual_last3f = incomingValue;
+    }
+    return merged;
+  }
+
   function performanceScore(records) {
     const valid = [];
     for (const row of records || []) {
@@ -55,21 +110,16 @@
   }
 
   function deduplicateHorseRows(records) {
-    const seen = new Set();
+    const seen = new Map();
     const rows = [];
     for (const row of records || []) {
-      const parts = [
-        String(row.source_url || "").trim(),
-        String(row.date || "").trim(),
-        String(row.track || "").trim(),
-        String(row.race_number || "").trim(),
-        String(row.horse_number || "").trim()
-      ];
-      if (parts.every(Boolean)) {
-        const key = parts.join("|");
-        if (seen.has(key)) continue;
-        seen.add(key);
+      const key = raceRunnerIdentity(row);
+      if (key !== null && seen.has(key)) {
+        const index = seen.get(key);
+        rows[index] = mergeRunnerRecords(rows[index], row);
+        continue;
       }
+      if (key !== null) seen.set(key, rows.length);
       rows.push(row);
     }
     return rows;
@@ -92,9 +142,8 @@
       const track = String(row.track || "").trim();
       const raceNumber = String(row.race_number || "").trim();
       if (!date || !track || !raceNumber) continue;
-      const key = [
-        String(row.source_url || "").trim(), date, track, raceNumber
-      ].join("|");
+      // Multiple official PDFs may contain the same race; count it once.
+      const key = [date, track, raceNumber].join("|");
       if (!races.has(key)) races.set(key, []);
       races.get(key).push(row);
     }
@@ -103,13 +152,12 @@
     for (const raceRows of races.values()) {
       const unique = new Map();
       raceRows.forEach((row, index) => {
-        const registration = registrationNumber(row.horse_registration_number);
-        const number = String(row.horse_number || "").trim();
-        const name = String(row.horse_name || "").trim();
-        const identity = registration ? "reg:" + registration
-          : number ? "number:" + number
-          : name ? "name:" + name : "row:" + index;
-        if (!unique.has(identity)) unique.set(identity, row);
+        const identity = raceRunnerIdentity(row) || ("row:" + index);
+        if (unique.has(identity)) {
+          unique.set(identity, mergeRunnerRecords(unique.get(identity), row));
+        } else {
+          unique.set(identity, row);
+        }
       });
       const runners = Array.from(unique.values());
       const fieldSizes = runners.map(row => numeric(row.field_size));
@@ -157,13 +205,8 @@
     const horses = new Map();
     const seen = new Set();
     for (const row of scored) {
-      const source = String(row.source_url || "").trim();
-      const date = String(row.date || "").trim();
-      const track = String(row.track || "").trim();
-      const raceNumber = String(row.race_number || "").trim();
-      const horseNumber = String(row.horse_number || "").trim();
-      if (source && date && track && raceNumber && horseNumber) {
-        const runnerKey = [source, date, track, raceNumber, horseNumber].join("|");
+      const runnerKey = raceRunnerIdentity(row);
+      if (runnerKey !== null) {
         if (seen.has(runnerKey)) continue;
         seen.add(runnerKey);
       }
