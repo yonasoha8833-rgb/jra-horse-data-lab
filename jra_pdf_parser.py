@@ -110,11 +110,16 @@ def _runner(line: str) -> dict[str, Any] | None:
     result_status = status_match.group(1) if status_match else None
     if time_match:
         minutes, seconds, tenth = map(int, (_ascii_digits(v) for v in time_match.groups()))
-        if seconds < 60:
+        if seconds >= 60:
+            runner_warnings.append("invalid_finish_time_seconds")
+        elif minutes > 15:
+            # JRA race finish times are far below this conservative ceiling.
+            # Larger OCR matches usually come from nearby lap/odds text and
+            # must not be accepted as a runner's official finish time.
+            runner_warnings.append("invalid_finish_time_minutes")
+        else:
             finish_time = f"{minutes}:{seconds:02d}.{tenth}"
             finish_time_seconds = minutes * 60 + seconds + tenth / 10
-        else:
-            runner_warnings.append("invalid_finish_time_seconds")
     name = re.sub(r"\s+", "", name).strip()
     if not name or name in {"枠", "番", "馬番"}:
         return None
