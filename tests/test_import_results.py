@@ -39,6 +39,7 @@ class ImportResultsTests(unittest.TestCase):
                 "source_url": "valid.pdf", "date": "2026-09-26",
                 "race_number": 1, "horse_number": number, "frame": number,
                 "declared_field_size": 2,
+                "track": "東京",
                 "extraction_status": "ocr_fallback_basic_fields",
             }
             for number in (1, 2)
@@ -50,6 +51,23 @@ class ImportResultsTests(unittest.TestCase):
         self.assertEqual(cleaned[0], ordinary)
         self.assertEqual({row["horse_number"] for row in cleaned[1:]}, {1, 2})
         self.assertTrue(all(row["source_url"] == "valid.pdf" for row in cleaned[1:]))
+
+
+    def test_sanitize_existing_ocr_rejects_missing_race_identity(self):
+        incomplete = [
+            {
+                "source_url": "missing-identity.pdf",
+                "date": None,
+                "track": None,
+                "race_number": 1,
+                "horse_number": number,
+                "frame": number,
+                "declared_field_size": 2,
+                "extraction_status": "ocr_fallback_basic_fields",
+            }
+            for number in (1, 2)
+        ]
+        self.assertEqual(import_results.sanitize_existing_records(incomplete), [])
 
     def test_quality_report_counts_race_warnings_and_missing_fields(self):
         records = [
