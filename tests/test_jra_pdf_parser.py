@@ -362,6 +362,14 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(len(accepted), 10)
         self.assertTrue(all(row["declared_field_size"] == 10 for row in accepted))
 
+    def test_ocr_fallback_rejects_entire_race_with_legacy_impossible_finish_time(self):
+        rows = parse_race_text(SAMPLE.replace("1：39．0", "23：39．0"))
+        rows[0]["horse_number"], rows[0]["frame"] = 1, 1
+        rows[1]["horse_number"], rows[1]["frame"] = 2, 2
+        self.assertEqual(rows[0]["finish_time_seconds"], None)
+        self.assertIn("invalid_finish_time_minutes", rows[0]["runner_validation_warnings"])
+        self.assertEqual(_complete_ocr_records(rows), [])
+
     def test_ocr_fallback_rejects_ambiguous_or_incomplete_inferred_field(self):
         frame_by_number = {
             **{number: number for number in range(1, 7)},
