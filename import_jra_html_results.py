@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import json
+import re
 from pathlib import Path
 from typing import Any
 from jra_html_parser import fetch_and_parse_result
@@ -116,10 +117,23 @@ def main() -> None:
         raise SystemExit("--limit must be at least 1")
     catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
     previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
-    processed = set(previous.get("processed_sources", []))
+    old_records = [r for r in previous.get("records", []) if isinstance(r, dict)]
+    old_by_source: dict[str, list[dict]] = {}
+    for row in old_records:
+        source = row.get("source_url")
+        if source:
+            old_by_source.setdefault(source, []).append(row)
+    # Re-fetch previously imported pages once when the parser gains a verified
+    # official horse-profile identity field; retain only fully refreshed sources.
+    profile_complete_sources = {
+        source for source, rows in old_by_source.items()
+        if rows and all(re.fullmatch(r"[A-Za-z0-9]+/[A-Za-z0-9]+",
+                                     str(row.get("horse_profile_id") or "")) for row in rows)
+    }
+    processed = set(previous.get("processed_sources", [])) & profile_complete_sources
     failures = {x["url"]: x for x in previous.get("import_failures", [])
                 if isinstance(x, dict) and x.get("url")}
-    records = [r for r in previous.get("records", []) if r.get("source_url") in processed]
+    records = [r for r in old_records if r.get("source_url") in processed]
     attempted = 0
     for item in catalog.get("items", []):
         url = item.get("url")
