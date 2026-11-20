@@ -1,0 +1,13 @@
+{
+  "source": "JRA official accessS result pages validated by the live HTML smoke test",
+  "items": [
+    {
+      "label": "2026-11-15 京都 7R",
+      "url": "https://www.jra.go.jp/JRADB/accessS.html?CNAME=pw01sde1008202605040720261115%2FD3"
+    },
+    {
+      "label": "2026-11-15 東京 7R",
+      "url": "https://www.jra.go.jp/JRADB/accessS.html?CNAME=pw01sde0105202605040720261115%2F16"
+    }
+  ]
+}
