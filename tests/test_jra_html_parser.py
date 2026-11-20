@@ -22,7 +22,7 @@ SAMPLE_HTML = """
 <th>負担重量</th><th>騎手名</th><th>タイム</th><th>着差</th>
 <th>コーナー通過順位</th><th>推定上り</th><th>馬体重（増減）</th>
 <th>調教師名</th><th>単勝人気</th></tr>
-<tr><td>1</td><td>3</td><td>6</td><td><a>ミラキュラスアース</a></td>
+<tr><td>1</td><td>3</td><td>6</td><td><a href="/JRADB/accessU.html?CNAME=pw01dud102023107074%2F0E">ミラキュラスアース</a></td>
 <td>牝3</td><td>55.0</td><td>西村 淳也</td><td>1:34.4</td><td></td>
 <td><ul><li>6</li><li>6</li></ul></td><td>34.2</td><td>474(+2)</td><td>奥村 豊</td><td>10</td></tr>
 <tr><td>2</td><td>8</td><td>17</td><td><a>ルーチェブリラーレ</a></td>
@@ -64,6 +64,7 @@ class JraHtmlParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["distance"], 1600)
         self.assertEqual(rows[0]["going"], "重")
         self.assertEqual(rows[0]["horse_name"], "ミラキュラスアース")
+        self.assertEqual(rows[0]["horse_profile_id"], "pw01dud102023107074/0E")
         self.assertEqual(rows[0]["individual_last3f"], 34.2)
         self.assertEqual(rows[0]["race_last3f"], 34.5)
         self.assertEqual(rows[0]["race_last4f"], 46.7)
@@ -73,6 +74,11 @@ class JraHtmlParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["corner_4"], 6)
         self.assertEqual(rows[0]["finish_time_seconds"], 94.4)
         self.assertEqual(rows[0]["field_size"], 3)
+
+    def test_rejects_non_jra_horse_profile_link(self):
+        html = SAMPLE_HTML.replace("/JRADB/accessU.html?CNAME=pw01dud102023107074%2F0E", "https://example.com/JRADB/accessU.html?CNAME=pw01dud102023107074%2F0E")
+        rows = parse_result_html(html, source_url="https://www.jra.go.jp/JRADB/accessS.html?CNAME=test")
+        self.assertIsNone(rows[0]["horse_profile_id"])
 
     def test_reads_blinker_marker_without_adding_it_to_horse_name(self):
         rows = parse_result_html(SAMPLE_HTML)
