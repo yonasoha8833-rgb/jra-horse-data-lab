@@ -284,6 +284,17 @@ test("flags only an observed false-to-true blinker change with verified registra
   assert.equal(result[0].status, "初着用候補（連続して確認できた記録上の変化）");
 });
 
+test("uses exact JRA horse profile identity when registration number is absent", () => {
+  const records = [
+    { horse_profile_id: "pw01dud102023107074/0E", date: "2026-08-15", blinkers: false, horse_name: "ミラキュラスアース" },
+    { horse_profile_id: "pw01dud102023107074/0E", date: "2026-11-15", blinkers: true, horse_name: "ミラキュラスアース" }
+  ];
+  const result = summarizeObservedBlinkerChanges(records);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].horse_profile_id, "pw01dud102023107074/0E");
+  assert.equal(result[0].horse_registration_number, null);
+});
+
 test("does not infer a blinker change across unknown or ambiguous history", () => {
   const { summarizeObservedBlinkerChanges } = require("../horse_scoring.js");
   const rows = [
