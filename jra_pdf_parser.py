@@ -109,7 +109,20 @@ def _runner(line: str) -> dict[str, Any] | None:
         status_match = re.search(r"(競走中止|失格|中止|取消|除外)\s*$", tail)
     result_status = status_match.group(1) if status_match else None
     if time_match:
-        minutes, seconds, tenth = map(int, (_ascii_digits(v) for v in time_match.groups()))
+        minute_text, seconds_text, tenth_text = (
+            _ascii_digits(value) for value in time_match.groups()
+        )
+        # In compact JRA PDF text, the body-weight change and finish time can
+        # touch (for example, "484±01:39.0" or "452＋21:39.2").
+        # When the time token begins immediately after a weight sign, its first
+        # digit belongs to the weight change; the final digit is the minute.
+        if (
+            len(minute_text) == 2
+            and time_match.start() > 0
+            and tail[time_match.start() - 1] in "±＋+-"
+        ):
+            minute_text = minute_text[-1]
+        minutes, seconds, tenth = int(minute_text), int(seconds_text), int(tenth_text)
         if seconds >= 60:
             runner_warnings.append("invalid_finish_time_seconds")
         elif minutes > 15:
