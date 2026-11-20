@@ -175,7 +175,7 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
         distance_match = DISTANCE_RE.search(header_window)
         distance = _distance(distance_match.group(1)) if distance_match else None
         surface = None
-        for line in block[:8]:
+        for line in header_lines:
             if "芝" in line:
                 surface = "芝"
                 break
