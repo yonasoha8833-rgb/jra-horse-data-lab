@@ -6,7 +6,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const {
   integratedHorsePerformanceScore,
-  summarizeRelativeLast3f
+  summarizeRelativeLast3f,
+  summarizeForwardPosition
 } = require("../horse_scoring.js");
 
 function buildFourFactorFixture() {
