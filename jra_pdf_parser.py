@@ -517,7 +517,11 @@ def _trailing_identifier_slot_center(
     if any(gap <= 0 or not 0.60 * typical_gap <= gap <= 1.40 * typical_gap for gap in gaps):
         return None
     expected = centers[-1] + typical_gap
-    if expected + typical_gap * 0.40 > max_center:
+    # The projected row center must remain inside the OCR crop. Requiring an
+    # additional 40% row-gap margin rejects genuine final rows near the crop
+    # edge; the later frame, horse-number, and runner-text OCR checks remain
+    # mandatory before the row can be accepted.
+    if expected > max_center:
         return None
     return expected
 
