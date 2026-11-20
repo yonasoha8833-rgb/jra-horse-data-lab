@@ -8,7 +8,8 @@ const {
   integratedHorsePerformanceScore,
   summarizeRelativeLast3f,
   summarizeForwardPosition,
-  summarizeOfficialRaceLapSplits
+  summarizeOfficialRaceLapSplits,
+  summarizeObservedBlinkerChanges
 } = require("../horse_scoring.js");
 
 function buildFourFactorFixture() {
