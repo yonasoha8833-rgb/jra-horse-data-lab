@@ -556,11 +556,56 @@
         || a.horse_name.localeCompare(b.horse_name, "ja"));
   }
 
+  function summarizeOfficialRaceLapSplits(records) {
+    const races = new Map();
+    for (const row of records || []) {
+      const date = String(row.date || "").trim();
+      const track = String(row.track || "").trim();
+      const raceNumber = String(row.race_number || "").trim();
+      if (!date || !track || !raceNumber) continue;
+      const key = [date, track, raceNumber].join("|");
+      if (!races.has(key)) races.set(key, []);
+      races.get(key).push(row);
+    }
+
+    const summaries = [];
+    for (const [key, rows] of races.entries()) {
+      const candidates = rows.map(row => Array.isArray(row.race_lap_times)
+        ? row.race_lap_times.map(numeric) : null);
+      if (!candidates.length || candidates.some(laps =>
+        !laps || laps.length < 5 || laps.some(value => value === null || value <= 0)
+      )) continue;
+      const signature = candidates[0].join(",");
+      if (candidates.some(laps => laps.join(",") !== signature)) continue;
+      const laps = candidates[0];
+      const sum = values => Number(values.reduce((total, value) => total + value, 0).toFixed(1));
+      summaries.push({
+        race_key: key,
+        date: String(rows[0].date),
+        track: String(rows[0].track),
+        race_number: rows[0].race_number,
+        surface: rows[0].surface || null,
+        distance: numeric(rows[0].distance),
+        going: rows[0].going || null,
+        runner_record_count: rows.length,
+        lap_count: laps.length,
+        first3f: sum(laps.slice(0, 3)),
+        first5f: sum(laps.slice(0, 5)),
+        final3f: sum(laps.slice(-3)),
+        lap_times: laps
+      });
+    }
+    return summaries.sort((a, b) => b.date.localeCompare(a.date)
+      || String(a.track).localeCompare(String(b.track), "ja")
+      || Number(a.race_number) - Number(b.race_number));
+  }
+
   return {
     distanceBand,
     performanceScore,
     summarizeRelativeLast3f,
     summarizeForwardPosition,
+    summarizeOfficialRaceLapSplits,
     integratedHorsePerformanceScore
   };
 });
