@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import date
 from html.parser import HTMLParser
 import re
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
 from urllib.request import Request, urlopen
 from typing import Any
 
@@ -45,6 +45,7 @@ class _Cell:
     def __init__(self) -> None:
         self.text: list[str] = []
         self.alt: list[str] = []
+        self.hrefs: list[str] = []
 
 
 class _TableParser(HTMLParser):
@@ -69,6 +70,10 @@ class _TableParser(HTMLParser):
             self._row = []
         elif tag in {"td", "th"} and self._row is not None:
             self._cell = _Cell()
+        elif tag == "a" and self._cell is not None:
+            href = (attrs.get("href") or "").strip()
+            if href:
+                self._cell.hrefs.append(href)
         elif tag == "img" and self._cell is not None:
             alt = (attrs.get("alt") or "").strip()
             if alt:
@@ -112,6 +117,22 @@ def _cell_text(row: list[_Cell], index: int | None) -> str:
     if index is None or index >= len(row):
         return ""
     return " ".join(" ".join(row[index].text).split())
+
+
+def _cell_horse_profile_id(row: list[_Cell], index: int | None, source_url: str) -> str | None:
+    if index is None or index >= len(row):
+        return None
+    for href in row[index].hrefs:
+        absolute = urljoin(source_url, href)
+        parsed = urlparse(absolute)
+        if parsed.scheme != "https" or parsed.hostname not in JRA_RESULT_HOSTS:
+            continue
+        if parsed.path != "/JRADB/accessU.html":
+            continue
+        cname = parse_qs(parsed.query).get("CNAME", [])
+        if len(cname) == 1 and re.fullmatch(r"[A-Za-z0-9]+/[A-Za-z0-9]+", cname[0]):
+            return cname[0]
+    return None
 
 
 def _cell_alt(row: list[_Cell], index: int | None) -> list[str]:
@@ -320,6 +341,7 @@ def parse_result_html(html: str, *, source_url: str = "") -> list[dict[str, Any]
                 "frame": int(_ascii_digits(_cell_text(row, columns["frame"]))) if _cell_text(row, columns["frame"]).isdigit() else None,
                 "horse_number": horse_number,
                 "horse_name": horse_name,
+                "horse_profile_id": _cell_horse_profile_id(row, columns["horse_name"], source_url),
                 "sex": sex_match.group(1) if sex_match else None,
                 "age": int(_ascii_digits(age_match.group())) if age_match else None,
                 "weight_carried": float(_ascii_digits(weight_match.group()).replace("．", ".")) if weight_match else None,
