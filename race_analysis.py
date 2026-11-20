@@ -755,29 +755,28 @@ def summarize_relative_last3f(
     if min_condition_starts < 1:
         raise ValueError("min_condition_starts must be at least 1")
 
-    races: dict[tuple[str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    races: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
     for row in records:
         date = str(row.get("date") or "").strip()
         track = str(row.get("track") or "").strip()
         race_number = str(row.get("race_number") or "").strip()
         if not (date and track and race_number):
             continue
-        key = (str(row.get("source_url") or "").strip(), date, track, race_number)
-        races[key].append(row)
+        # Different official PDFs can describe the same race. Group by the
+        # official race identity, not by source URL, to avoid duplicate starts.
+        races[(date, track, race_number)].append(row)
 
     scored: list[dict[str, Any]] = []
     for race_rows in races.values():
-        unique: dict[str, dict[str, Any]] = {}
+        unique: dict[Any, dict[str, Any]] = {}
         for index, row in enumerate(race_rows):
-            registration = _registration_number(row.get("horse_registration_number"))
-            number = str(row.get("horse_number") or "").strip()
-            name = str(row.get("horse_name") or "").strip()
-            identity = (
-                "reg:" + registration if registration else
-                "number:" + number if number else
-                "name:" + name if name else "row:" + str(index)
-            )
-            unique.setdefault(identity, row)
+            identity = _race_runner_identity(row)
+            if identity is None:
+                identity = ("row", str(index))
+            if identity in unique:
+                unique[identity] = _merge_runner_records(unique[identity], row)
+            else:
+                unique[identity] = row
         runners = list(unique.values())
         if len(runners) < min_race_runners:
             continue
@@ -828,15 +827,10 @@ def summarize_relative_last3f(
             scored.append({**row, "relative_last3f_score": score})
 
     horses: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
-    seen: set[tuple[str, str, str, str, str]] = set()
+    seen: set[tuple[str, str, str, str]] = set()
     for row in scored:
-        source = str(row.get("source_url") or "").strip()
-        date = str(row.get("date") or "").strip()
-        track = str(row.get("track") or "").strip()
-        race_number = str(row.get("race_number") or "").strip()
-        horse_number = str(row.get("horse_number") or "").strip()
-        if all((source, date, track, race_number, horse_number)):
-            runner_key = (source, date, track, race_number, horse_number)
+        runner_key = _race_runner_identity(row)
+        if runner_key is not None:
             if runner_key in seen:
                 continue
             seen.add(runner_key)
@@ -1050,6 +1044,64 @@ def _normalized_finish_score(row: dict[str, Any]) -> float | None:
     return 100.0 * (field_size - finish) / (field_size - 1)
 
 
+def _race_runner_identity(row: dict[str, Any]) -> tuple[str, str, str, str] | None:
+    """Identify a runner within an official race, independent of source PDF."""
+    date = str(row.get("date") or "").strip()
+    track = str(row.get("track") or "").strip()
+    race_number = str(row.get("race_number") or "").strip()
+    if not (date and track and race_number):
+        return None
+
+    horse_number = _number(row.get("horse_number"))
+    if horse_number is not None and horse_number.is_integer() and horse_number > 0:
+        runner = "number:" + str(int(horse_number))
+    else:
+        registration = _registration_number(row.get("horse_registration_number"))
+        name = str(row.get("horse_name") or "").strip()
+        runner = (
+            "registration:" + registration if registration else
+            "name:" + name if name else ""
+        )
+    return (date, track, race_number, runner) if runner else None
+
+
+def _merge_runner_records(
+    existing: dict[str, Any],
+    incoming: dict[str, Any],
+) -> dict[str, Any]:
+    """Fill missing runner fields from a duplicate official-source row."""
+    merged = dict(existing)
+    for field, value in incoming.items():
+        current = merged.get(field)
+        if (current is None or current == "") and value is not None and value != "":
+            merged[field] = value
+
+    # Prefer a valid placing pair when the first source has incomplete values.
+    if (_normalized_finish_score(merged) is None
+            and _normalized_finish_score(incoming) is not None):
+        merged["finish"] = incoming.get("finish")
+        merged["field_size"] = incoming.get("field_size")
+
+    # Preserve a usable individual time if one source supplies it and the
+    # other source leaves it blank or contains a non-positive placeholder.
+    current_time = _number(merged.get("individual_last3f"))
+    if current_time is None or current_time <= 0:
+        fallback_time = _number(merged.get("last3f"))
+        if fallback_time is not None and fallback_time > 0:
+            current_time = fallback_time
+            merged["individual_last3f"] = merged.get("last3f")
+    incoming_time = _number(incoming.get("individual_last3f"))
+    incoming_value = incoming.get("individual_last3f")
+    if incoming_time is None or incoming_time <= 0:
+        incoming_time = _number(incoming.get("last3f"))
+        incoming_value = incoming.get("last3f")
+    if ((current_time is None or current_time <= 0)
+            and incoming_time is not None and incoming_time > 0):
+        merged["individual_last3f"] = incoming_value
+
+    return merged
+
+
 def _score_condition_component(
     rows: list[dict[str, Any]],
     candidates: list[tuple[str, Any]],
@@ -1127,20 +1179,17 @@ def integrated_horse_performance_score(
     if placing_weight <= 0:
         raise ValueError("placing_weight must be greater than zero")
 
-    # Suppress duplicate imports only when the complete runner identity exists.
-    rows = []
-    seen: set[tuple[str, str, str, str, str]] = set()
+    # Deduplicate the same runner across annual and graded-race PDFs.
+    rows: list[dict[str, Any]] = []
+    seen: dict[tuple[str, str, str, str], int] = {}
     for row in horse_records:
-        source = str(row.get("source_url") or "").strip()
-        date = str(row.get("date") or "").strip()
-        track_value = str(row.get("track") or "").strip()
-        race_number = str(row.get("race_number") or "").strip()
-        horse_number = str(row.get("horse_number") or "").strip()
-        if all((source, date, track_value, race_number, horse_number)):
-            key = (source, date, track_value, race_number, horse_number)
-            if key in seen:
-                continue
-            seen.add(key)
+        key = _race_runner_identity(row)
+        if key is not None and key in seen:
+            index = seen[key]
+            rows[index] = _merge_runner_records(rows[index], row)
+            continue
+        if key is not None:
+            seen[key] = len(rows)
         rows.append(row)
 
     valid_rows = [row for row in rows if _normalized_finish_score(row) is not None]
