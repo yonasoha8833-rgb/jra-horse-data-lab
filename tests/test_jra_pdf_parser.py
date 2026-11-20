@@ -593,7 +593,7 @@ class JraPdfParserTests(unittest.TestCase):
         )
         self.assertEqual(
             _internal_identifier_slot_centers([
-                (100.0, 1), (125.0, 2), (180.0, 4), (205.0, 5),
+                (100.0, 1), (125.0, 2), (185.0, 4), (210.0, 5),
             ]),
             [],
         )
