@@ -1,8 +1,9 @@
 name: Import JRA race results
 
 concurrency:
-  group: jra-results-import
-  cancel-in-progress: false # Keep imports serialized so data commits cannot race.
+  # Share one lock with the HTML sidecar importer: both write to the same main branch.
+  group: jra-official-data-imports
+  cancel-in-progress: false
 on:
   push:
     branches: [main]
