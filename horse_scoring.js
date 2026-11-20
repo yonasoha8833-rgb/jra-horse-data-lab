@@ -468,10 +468,99 @@
     };
   }
 
+
+  function summarizeForwardPosition(records, options) {
+    const settings = options || {};
+    const minRaceRunners = settings.minRaceRunners === undefined ? 3 : settings.minRaceRunners;
+    const minStarts = settings.minStarts === undefined ? 1 : settings.minStarts;
+    if (!Number.isInteger(minRaceRunners) || minRaceRunners < 2) {
+      throw new RangeError("minRaceRunners must be an integer of at least 2");
+    }
+    if (!Number.isInteger(minStarts) || minStarts < 1) {
+      throw new RangeError("minStarts must be a positive integer");
+    }
+
+    const races = new Map();
+    for (const row of records || []) {
+      const date = String(row.date || "").trim();
+      const track = String(row.track || "").trim();
+      const raceNumber = String(row.race_number || "").trim();
+      if (!date || !track || !raceNumber) continue;
+      const key = [date, track, raceNumber].join("|");
+      if (!races.has(key)) races.set(key, []);
+      races.get(key).push(row);
+    }
+
+    const samples = new Map();
+    for (const rows of races.values()) {
+      const fieldSize = numeric(rows[0] && rows[0].field_size);
+      if (!Number.isInteger(fieldSize) || fieldSize < minRaceRunners
+          || rows.some(row => numeric(row.field_size) !== fieldSize)) continue;
+      const byNumber = new Map();
+      let invalid = false;
+      for (const row of rows) {
+        const number = numeric(row.horse_number);
+        if (!Number.isInteger(number) || number < 1 || number > fieldSize
+            || byNumber.has(number)) {
+          invalid = true;
+          break;
+        }
+        byNumber.set(number, row);
+      }
+      // A partial or duplicated field cannot establish a reliable position percentile.
+      if (invalid || byNumber.size !== fieldSize) continue;
+
+      for (const row of byNumber.values()) {
+        let position = numeric(row.corner_3);
+        if (position === null) {
+          const text = String(row.corner_positions || "").trim();
+          const first = text.match(/^\s*(\d{1,2})/);
+          position = first ? Number(first[1]) : null;
+        }
+        if (!Number.isInteger(position) || position < 1 || position > fieldSize) continue;
+        const registration = registrationNumber(row.horse_registration_number);
+        const name = String(row.horse_name || "").trim();
+        if (!registration && !name) continue;
+        const identity = registration ? "registration:" + registration : "name:" + name;
+        if (!samples.has(identity)) {
+          samples.set(identity, { horse_name: name, horse_registration_number: registration,
+            identity_basis: registration ? "official_registration_number" : "horse_name_only",
+            positions: [] });
+        }
+        samples.get(identity).positions.push({
+          date: String(row.date || ""),
+          position,
+          field_size: fieldSize,
+          score: 100 * (fieldSize - position) / (fieldSize - 1)
+        });
+      }
+    }
+
+    return Array.from(samples.values())
+      .filter(item => item.positions.length >= minStarts)
+      .map(item => {
+        const ordered = item.positions.slice().sort((a, b) => b.date.localeCompare(a.date));
+        const averagePosition = ordered.reduce((sum, sample) => sum + sample.position, 0) / ordered.length;
+        const averageScore = ordered.reduce((sum, sample) => sum + sample.score, 0) / ordered.length;
+        return {
+          horse_name: item.horse_name,
+          horse_registration_number: item.horse_registration_number,
+          identity_basis: item.identity_basis,
+          sample_count: ordered.length,
+          average_early_position: Number(averagePosition.toFixed(2)),
+          average_forward_position_score: Number(averageScore.toFixed(1)),
+          recent_samples: ordered
+        };
+      })
+      .sort((a, b) => b.average_forward_position_score - a.average_forward_position_score
+        || a.horse_name.localeCompare(b.horse_name, "ja"));
+  }
+
   return {
     distanceBand,
     performanceScore,
     summarizeRelativeLast3f,
+    summarizeForwardPosition,
     integratedHorsePerformanceScore
   };
 });
