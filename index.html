@@ -46,6 +46,7 @@ ul{padding-left:22px}
 <div id="horseCompare" class="small"></div>
 <div class="panel" style="margin:14px 0;padding:12px"><h3>レース別成績</h3><p id="raceSummaryStatus" class="muted small">レースデータを集計します…</p><div id="raceResults"></div>
 <h4>脚質×ペース別の実績</h4><p class="muted small">公式ラップとコーナー通過順位がそろうレースのみ集計します。各組み合わせ3走以上を表示します。</p><div id="stylePaceStatus" class="muted small"></div><div id="stylePaceResults" class="small"></div><h4>条件別レース傾向</h4><label class="small">集計条件 <select id="raceConditionDimension"><option value="track">競馬場</option><option value="surface">芝・ダート</option><option value="distance_band">距離帯</option><option value="going">馬場状態</option></select></label><div id="raceConditionResults" class="small"></div></div>
+<h4>JRA公式HTML成績（PDFデータとは別管理）</h4><p id="htmlRaceStatus" class="muted small">公式HTML成績を読み込んでいます…</p><div id="htmlRaceResults" class="small"></div>
 <div id="horseResults"></div>
 <p class="muted small">能力指数は出走頭数で着順を0〜100点に換算し、直近5走を重み付けした参考値です。速度指数や勝率予測ではありません。</p>
 </section>
@@ -288,6 +289,64 @@ function updateHorseComparison(){
  horseCompare.append(table);
  const note=document.createElement('p');note.className='muted small';note.textContent='総合指数は着順40％・距離20％・馬場状態20％・個別上がり3F相対20％を標準重みとし、利用できない要素は除外して再配分します。条件成績は各3走以上を採用し、5走分相当の基準値へ縮約します。個別上がり3Fは同一レース内で3頭以上を比較できた走のみ使用します。信頼度は有効着順件数と必須項目の充足率も併せて確認してください。指数は勝率や将来の着順予測ではありません。';horseCompare.append(note);
  const clear=document.createElement('button');clear.type='button';clear.textContent='比較を解除';clear.addEventListener('click',()=>{selectedHorses.clear();comparisonCondition='all';updateHorseComparison();renderHorses();});horseCompare.append(clear);
+}
+
+function renderOfficialHtmlSummaries(records){
+ const target=document.getElementById('htmlRaceResults');
+ const status=document.getElementById('htmlRaceStatus');
+ if(!target||!status)return;
+ target.replaceChildren();
+ const grouped=new Map();
+ records.forEach(row=>{
+  const key=[row.date||'',row.track||'',row.race_number||''].join('|');
+  if(!row.date||!row.track||!row.race_number)return;
+  if(!grouped.has(key))grouped.set(key,[]);
+  grouped.get(key).push(row);
+ });
+ const races=[...grouped.values()].sort((a,b)=>
+  String(b[0].date).localeCompare(String(a[0].date))||
+  String(b[0].track).localeCompare(String(a[0].track),'ja')||
+  Number(b[0].race_number)-Number(a[0].race_number)
+ );
+ status.textContent='公式HTML成績 '+races.length+'レース・'+records.length+'頭（PDFデータとは統合せず独立表示）';
+ if(!races.length){
+  const empty=document.createElement('p');empty.className='muted small';
+  empty.textContent='公式HTML成績はまだありません。';target.append(empty);return;
+ }
+ races.forEach(rows=>{
+  const first=rows[0];
+  const details=document.createElement('details');details.className='item small';
+  const summary=document.createElement('summary');
+  summary.textContent=[first.date,first.track,first.race_number+'R',first.race_class||'',first.surface||'',first.distance?first.distance+'m':'',first.going||''].filter(Boolean).join('・');
+  details.append(summary);
+  const meta=document.createElement('p');meta.className='muted';
+  meta.textContent='公式HTML出走記録 '+rows.length+'頭 ／ 完全照合済み頭数 '+(first.field_size||'未確定')+'頭'+(first.race_last3f?' ／ レース上がり3F '+first.race_last3f+'秒':'');
+  details.append(meta);
+  const table=document.createElement('table');table.style.width='100%';table.style.borderCollapse='collapse';
+  const head=document.createElement('tr');
+  ['着順','馬番','馬名','個別上がり3F','通過順位','ブリンカー'].forEach(label=>{
+   const th=document.createElement('th');th.textContent=label;th.style.textAlign='left';th.style.padding='5px';head.append(th);
+  });
+  table.append(head);
+  rows.slice().sort((a,b)=>(Number(a.finish)||99)-(Number(b.finish)||99)).forEach(row=>{
+   const tr=document.createElement('tr');
+   const values=[row.finish==null?(row.result_status||'—'):String(row.finish)+'着',
+    row.horse_number==null?'—':String(row.horse_number),row.horse_name||'馬名未取得',
+    row.individual_last3f==null?'—':Number(row.individual_last3f).toFixed(1)+'秒',
+    row.corner_positions||'—',row.blinkers?'着用':'—'];
+   values.forEach(value=>{
+    const td=document.createElement('td');td.textContent=value;td.style.padding='5px';td.style.borderTop='1px solid #40516a';tr.append(td);
+   });
+   table.append(tr);
+  });
+  details.append(table);
+  if(Array.isArray(first.race_lap_times)&&first.race_lap_times.length){
+   const laps=document.createElement('p');laps.className='muted small';
+   laps.textContent='公式ラップ（秒）：'+first.race_lap_times.join(' - ');
+   details.append(laps);
+  }
+  target.append(details);
+ });
 }
 
 function renderRaceSummaries(records){
@@ -563,8 +622,10 @@ function renderHorses(){
 }
 Promise.all([
  fetch('./data/race_results.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('not imported');return r.json();}),
- fetch('./data/replay_results.json',{cache:'no-store'}).then(r=>r.ok?r.json():{records:[]})
-]).then(([d,replayData])=>{
+ fetch('./data/replay_results.json',{cache:'no-store'}).then(r=>r.ok?r.json():{records:[]}),
+ fetch('./data/jra_html_results.json',{cache:'no-store'}).then(r=>r.ok?r.json():{records:[]})
+]).then(([d,replayData,htmlData])=>{
+ renderOfficialHtmlSummaries(Array.isArray(htmlData.records)?htmlData.records:[]);
  horseRecords=Array.isArray(d.records)?d.records.map(row=>({...row})):[];
  const replayRecords=Array.isArray(replayData.records)?replayData.records:[];
  let replayMatched=0,replayAdded=0,replayAmbiguous=0;
