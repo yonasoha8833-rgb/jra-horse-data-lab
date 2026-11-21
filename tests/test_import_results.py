@@ -19,9 +19,11 @@ class ImportResultsTests(unittest.TestCase):
             with patch.object(import_results, "CATALOG", catalog), \
                  patch.object(import_results, "OUTPUT", output), \
                  patch.object(import_results, "sanitize_existing_records", return_value=[]) as sanitize, \
+                 patch.object(import_results, "rejected_legacy_ocr_sources", return_value=set()) as rejected, \
                  patch("sys.argv", ["import_results.py", "--limit", "1"]):
                 import_results.main()
             sanitize.assert_called_once_with([])
+            rejected.assert_called_once_with([])
 
     def test_sanitize_existing_records_drops_invalid_legacy_ocr_race(self):
         ordinary = {"source_url": "manual", "horse_number": 1}
@@ -44,14 +46,41 @@ class ImportResultsTests(unittest.TestCase):
             }
             for number in (1, 2)
         ]
-        cleaned = import_results.sanitize_existing_records(
-            [ordinary, *invalid_ocr, *valid_ocr]
+        source_rows = [ordinary, *invalid_ocr, *valid_ocr]
+        cleaned = import_results.sanitize_existing_records(source_rows)
+        self.assertEqual(
+            import_results.rejected_legacy_ocr_sources(source_rows),
+            {"ocr.pdf"},
         )
         self.assertEqual(len(cleaned), 3)
         self.assertEqual(cleaned[0], ordinary)
         self.assertEqual({row["horse_number"] for row in cleaned[1:]}, {1, 2})
         self.assertTrue(all(row["source_url"] == "valid.pdf" for row in cleaned[1:]))
 
+
+    def test_main_retries_processed_sources_without_retained_validated_rows(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            catalog = root / "catalog.json"
+            output = root / "race_results.json"
+            url = "https://example.test/previously-accepted-but-now-rejected.pdf"
+            catalog.write_text(json.dumps({"items": [{"url": url}]}), encoding="utf-8")
+            output.write_text(json.dumps({
+                "records": [],
+                "processed_sources": [url],
+            }), encoding="utf-8")
+
+            with patch.object(import_results, "CATALOG", catalog), \
+                 patch.object(import_results, "OUTPUT", output), \
+                 patch.object(import_results, "download_and_extract", return_value=[]) as download, \
+                 patch("sys.argv", ["import_results.py", "--limit", "1"]):
+                import_results.main()
+
+            download.assert_called_once_with(url)
+            saved = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(saved["processed_sources"], [])
+            self.assertEqual(saved["import_failures"][0]["url"], url)
+            self.assertEqual(saved["import_failures"][0]["attempts"], 1)
 
     def test_sanitize_existing_ocr_rejects_missing_race_identity(self):
         incomplete = [
