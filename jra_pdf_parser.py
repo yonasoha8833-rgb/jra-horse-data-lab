@@ -538,6 +538,14 @@ def _ocr_single_horse_number(text: str) -> int | None:
         return None
     return int(token)
 
+def _consensus_horse_number(readings: list[str]) -> int | None:
+    """Accept a horse number only when two independent OCR segmentation modes agree."""
+    parsed = [_ocr_single_horse_number(value) for value in readings]
+    valid = [value for value in parsed if value is not None]
+    if len(valid) < 2 or len(set(valid)) != 1:
+        return None
+    return valid[0]
+
 
 def _ocr_identifier_column(tsv: str, *, scale: float, y_offset: float, allowed: str) -> list[tuple[float, int]]:
     """Read one isolated identifier column without merging adjacent digits."""
@@ -1267,6 +1275,18 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         check=True, timeout=15, capture_output=True, text=True,
                                     ).stdout.strip()
                                     retry_horse_value = _ocr_single_horse_number(horse_retry_text)
+                                    if retry_horse_value is None:
+                                        # PSM 10 can reject a clean, narrow "1" glyph.
+                                        # Retry with two alternate single-word segmentation
+                                        # modes and accept only matching digit-only readings.
+                                        alternate_readings = []
+                                        for psm in ("8", "13"):
+                                            alternate_readings.append(subprocess.run(
+                                                ["tesseract", str(horse_retry_path), "stdout", "-l", "eng",
+                                                 "--psm", psm, "-c", "tessedit_char_whitelist=0123456789"],
+                                                check=True, timeout=15, capture_output=True, text=True,
+                                            ).stdout.strip())
+                                        retry_horse_value = _consensus_horse_number(alternate_readings)
                                     # The full-column TSV pass can correctly read two-digit
                                     # horse numbers (for example 14), while PSM 10's
                                     # single-character row retry may drop the leading 1.
