@@ -871,9 +871,15 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 # number strip separately at 5x; this avoids names and odds
                 # confusing the two small identifier fields.
                 panel_width, panel_height = bounds[2] - bounds[0], bounds[3] - bounds[1]
+                # JRA two-panel result PDFs place the right-hand race table
+                # higher than the left-hand table. Use side-specific vertical
+                # bounds so the first/last runner rows are not clipped.
+                number_top, number_bottom = (
+                    (0.292, 0.57) if side == "left" else (0.19, 0.51)
+                )
                 number_box = (
-                    int(panel_width * 0.043), int(panel_height * 0.292),
-                    int(panel_width * 0.112), int(panel_height * 0.542),
+                    int(panel_width * 0.043), int(panel_height * number_top),
+                    int(panel_width * 0.112), int(panel_height * number_bottom),
                 )
                 number_crop = image.crop((
                     bounds[0] + number_box[0], bounds[1] + number_box[1],
