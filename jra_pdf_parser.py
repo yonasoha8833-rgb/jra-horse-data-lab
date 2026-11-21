@@ -1505,6 +1505,20 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         or retry_row.get("dead_heat")
                                     ):
                                         row_result = retry_result
+                                # Sparse table rows can split the horse name and
+                                # sex/age across separate OCR lines. A second
+                                # sparse-text pass reads the same row crop; join
+                                # its line fragments only when the strict runner
+                                # parser can then recognize the printed fields.
+                                if _runner(f"{frame_value}|{horse_value} {row_result}") is None:
+                                    sparse_result = subprocess.run(
+                                        ["tesseract", str(row_path), "stdout", "-l", "jpn+eng", "--psm", "11"],
+                                        check=True, timeout=20, capture_output=True, text=True,
+                                    ).stdout.strip()
+                                    sparse_result = " ".join(sparse_result.split())
+                                    sparse_row = _runner(f"{frame_value}|{horse_value} {sparse_result}")
+                                    if sparse_row is not None:
+                                        row_result = sparse_result
                                 row_texts.append(row_result)
                             row_lines = _build_ocr_runner_lines(identifier_rows, row_texts)
                             row_diagnostics = [
