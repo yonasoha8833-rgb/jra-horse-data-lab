@@ -5,7 +5,7 @@ try:
 except ImportError:
     Image = ImageDraw = None
 
-from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_declared_field_size, _propagate_pdf_identity, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, _ocr_runner_lines_are_complete, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _strict_ocr_finish_time, _remove_horizontal_identifier_rules
+from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_declared_field_size, _propagate_pdf_identity, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, _ocr_runner_lines_are_complete, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _identifier_column_retry_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _strict_ocr_finish_time, _remove_horizontal_identifier_rules
 
 
 SAMPLE = """
@@ -65,6 +65,10 @@ class JraPdfParserTests(unittest.TestCase):
     def test_horse_number_crop_excludes_vertical_rules_and_blank_margins(self):
         self.assertEqual(_identifier_column_inner_bounds(100, column="horse"), (15, 92))
         self.assertEqual(_identifier_column_inner_bounds(100, column="frame"), (23, 82))
+
+    def test_row_retry_keeps_full_isolated_horse_number_column(self):
+        self.assertEqual(_identifier_column_retry_bounds(100, column="horse"), (0, 100))
+        self.assertEqual(_identifier_column_retry_bounds(100, column="frame"), (23, 82))
 
     def test_reads_only_one_unambiguous_ocr_headcount_label(self):
         self.assertEqual(_ocr_declared_field_size("payout text (16頭) other text"), 16)
