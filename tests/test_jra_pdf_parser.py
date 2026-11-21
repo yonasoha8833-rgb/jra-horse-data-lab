@@ -95,6 +95,12 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["runner_validation_warnings"], ["invalid_finish_time_seconds"])
         self.assertEqual(rows[1]["finish"], 1)
 
+    def test_parses_ocr_finish_time_with_space_after_decimal(self):
+        text = SAMPLE.replace("1：39．0", "1:39. 0")
+        rows = parse_race_text(text)
+        self.assertEqual(rows[0]["finish_time"], "1:39.0")
+        self.assertAlmostEqual(rows[0]["finish_time_seconds"], 99.0)
+
     def test_rejects_implausibly_long_ocr_finish_time(self):
         text = SAMPLE.replace("1：39．0", "23：39．0")
         rows = parse_race_text(text)
