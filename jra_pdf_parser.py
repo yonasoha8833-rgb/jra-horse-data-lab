@@ -1001,14 +1001,21 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 # narrow crop and Tesseract can return only footer noise even when
                 # every printed frame digit is legible. Keep the original frame_path
                 # for row-local retries; this trimmed copy is only the TSV pass.
-                frame_inner_left, frame_inner_right = _identifier_column_inner_bounds(
-                    split_x, column="frame"
-                )
+                # The frame numerals are printed on a light strip with strong
+                # vertical rules. A tighter center crop plus inverted polarity
+                # gives Tesseract a clean glyph silhouette; retain the original
+                # frame_path for independent row-local retries.
+                frame_inner_left = int(split_x * 0.29)
+                frame_inner_right = int(split_x * 0.76)
                 frame_ocr_path = temp_dir / f"{page.stem}-{side}-frame-inner.png"
-                ImageOps.expand(
-                    Image.open(frame_path).crop((frame_inner_left, 0, frame_inner_right, number_crop.height)),
-                    border=8, fill="white",
-                ).save(frame_ocr_path)
+                frame_inner = ImageOps.invert(
+                    ImageOps.grayscale(
+                        Image.open(frame_path).crop(
+                            (frame_inner_left, 0, frame_inner_right, number_crop.height)
+                        )
+                    )
+                )
+                ImageOps.expand(frame_inner, border=25, fill="black").save(frame_ocr_path)
                 frame_tsv = subprocess.run(
                     ["tesseract", str(frame_ocr_path), "stdout", "-l", "eng", "--psm", "6", "tsv"],
                     check=True, timeout=30, capture_output=True, text=True,
