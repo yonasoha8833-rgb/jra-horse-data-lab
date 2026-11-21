@@ -97,6 +97,24 @@ def _track(text: str) -> str | None:
     return None
 
 
+
+def _strict_ocr_finish_time(text: str) -> str | None:
+    """Return one unambiguous, plausible finish-time token from an isolated OCR cell."""
+    matches = re.findall(
+        r"(?<![0-9])([0-9０-９]{1,2})\s*[:：]\s*([0-9０-９]{2})\s*[.．]\s*([0-9０-９])(?![0-9])",
+        text,
+    )
+    values = set()
+    for minute_text, second_text, tenth_text in matches:
+        minutes, seconds, tenth = (
+            int(_ascii_digits(value))
+            for value in (minute_text, second_text, tenth_text)
+        )
+        if 0 <= minutes <= 15 and 0 <= seconds < 60:
+            values.add(f"{minutes}:{seconds:02d}.{tenth}")
+    return next(iter(values)) if len(values) == 1 else None
+
+
 def _runner(line: str) -> dict[str, Any] | None:
     # OCR sometimes inserts a space inside a two-digit horse number (e.g. "2 1 2").
     # Japanese horse names do not begin with digits, so safely join that prefix.
@@ -1592,6 +1610,43 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         ):
                                             row_result = enhanced_text
                                             break
+                                # Independently OCR the official finish-time cell.
+                                # A clear isolated reading can recover a missed time, but a
+                                # disagreement with the full-row reading makes the row
+                                # incomplete instead of silently choosing either value.
+                                parsed_row = _runner(f"{frame_value}|{horse_value} {row_result}")
+                                time_left = int(panel_image.width * 0.785)
+                                time_right = int(panel_image.width * 0.845)
+                                time_crop_path = temp_dir / f"{page.stem}-{side}-time-{row_index}.png"
+                                with Image.open(row_path) as source_row_image:
+                                    row_height = source_row_image.height
+                                time_crop = panel_image.crop((time_left, y_top, time_right, y_bottom))
+                                time_crop = ImageOps.autocontrast(ImageOps.grayscale(time_crop))
+                                time_crop = time_crop.resize(
+                                    (time_crop.width * 3, time_crop.height * 3),
+                                    Image.Resampling.LANCZOS,
+                                )
+                                time_crop.save(time_crop_path)
+                                time_reads = []
+                                for time_psm in ("7", "8"):
+                                    time_text = subprocess.run(
+                                        ["tesseract", str(time_crop_path), "stdout", "-l", "eng",
+                                         "--psm", time_psm, "-c",
+                                         "tessedit_char_whitelist=0123456789:."],
+                                        check=True, timeout=15, capture_output=True, text=True,
+                                    ).stdout.strip()
+                                    time_reads.append(time_text)
+                                isolated_time = _strict_ocr_finish_time(" ".join(time_reads))
+                                row_time = parsed_row.get("finish_time") if parsed_row else None
+                                if isolated_time and row_time and isolated_time != row_time:
+                                    row_result = re.sub(
+                                        r"(?<![0-9])[0-9０-９]{1,2}[:：][0-9０-９]{2}[.．]\\s*[0-9０-９](?![0-9])",
+                                        "",
+                                        row_result,
+                                        count=1,
+                                    )
+                                elif isolated_time and not row_time and parsed_row is not None:
+                                    row_result = f"{row_result} | {isolated_time}"
                                 row_texts.append(row_result)
                             row_lines = _build_ocr_runner_lines(identifier_rows, row_texts)
                             row_diagnostics = [
