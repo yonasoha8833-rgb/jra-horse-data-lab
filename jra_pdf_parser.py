@@ -672,20 +672,35 @@ def _infer_identifier_pairs_from_complete_frame_column(
         return []
 
     assigned: set[int] = set()
+    corrected_frames: dict[float, int] = {}
     for center, frame in unresolved_slots:
         candidates = [
             horse for horse in missing_numbers
             if horse not in assigned and _expected_frame(field_size, horse) == frame
         ]
-        if len(candidates) != 1:
+        if len(candidates) == 1:
+            horse = candidates[0]
+            corrected_frames[center] = frame
+        elif (
+            # A single unreadable horse number can also coincide with one
+            # misread frame digit. Repair both only when every other row is
+            # independently valid and the sole missing horse has one official
+            # frame allocation. Never apply this across multiple unresolved rows.
+            len(unresolved_slots) == 1
+            and len(missing_numbers) == 1
+            and not mismatched_slots
+        ):
+            horse = next(iter(missing_numbers))
+            corrected_frames[center] = _expected_frame(field_size, horse)
+        else:
             return []
-        row_numbers[center] = candidates[0]
-        assigned.add(candidates[0])
+        row_numbers[center] = horse
+        assigned.add(horse)
 
     if assigned != missing_numbers:
         return []
     return [
-        (center, (frame, row_numbers[center]))
+        (center, (corrected_frames.get(center, frame), row_numbers[center]))
         for center, frame in frame_rows
     ]
 
