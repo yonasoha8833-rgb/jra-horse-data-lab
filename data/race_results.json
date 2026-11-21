@@ -1300,9 +1300,9 @@
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto2.pdf",
-      "attempts": 1,
-      "last_attempt_utc": "2026-11-14T08:43:46.159558+00:00",
-      "error": "No runner rows recognized; source remains eligible for retry"
+      "attempts": 2,
+      "last_attempt_utc": "2026-11-21T08:59:48.415785+00:00",
+      "error": "NameError: name 'ImageOps' is not defined"
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto3.pdf",
@@ -1444,9 +1444,9 @@
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo2.pdf",
-      "attempts": 1,
-      "last_attempt_utc": "2026-11-14T08:43:07.389237+00:00",
-      "error": "No runner rows recognized; source remains eligible for retry"
+      "attempts": 3,
+      "last_attempt_utc": "2026-11-21T08:59:40.716451+00:00",
+      "error": "NameError: name 'ImageOps' is not defined"
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo3.pdf",
