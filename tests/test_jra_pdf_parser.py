@@ -389,6 +389,19 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(len(accepted), 10)
         self.assertTrue(all(row["declared_field_size"] == 10 for row in accepted))
 
+    def test_ocr_fallback_rejects_missing_finish_time_without_explicit_status(self):
+        rows = parse_race_text(SAMPLE)
+        rows[0]["horse_number"], rows[0]["frame"] = 1, 1
+        rows[1]["horse_number"], rows[1]["frame"] = 2, 2
+        rows[0]["finish_time"] = None
+        rows[0]["finish_time_seconds"] = None
+        self.assertEqual(_complete_ocr_records(rows), [])
+
+        # An explicit JRA terminal status is a valid alternative to a time.
+        rows[0]["result_status"] = "競走中止"
+        accepted = _complete_ocr_records(rows)
+        self.assertEqual(len(accepted), 2)
+
     def test_ocr_fallback_rejects_entire_race_with_legacy_impossible_finish_time(self):
         rows = parse_race_text(SAMPLE.replace("1：39．0", "23：39．0"))
         rows[0]["horse_number"], rows[0]["frame"] = 1, 1
