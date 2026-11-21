@@ -450,10 +450,12 @@ def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]
             numbers = [row.get("horse_number") for row in rows]
             complete = sorted(numbers) == list(range(1, declared + 1))
             if complete:
-                complete = all(
-                    row.get("frame") == _expected_frame(declared, row["horse_number"])
-                    for row in rows
-                )
+                # The horse-number column is independently OCR-read and forms
+                # the exact official 1..N sequence. In that case the JRA frame
+                # assignment is deterministic from the verified field size;
+                # repair only the frame column, never a horse number.
+                for row in rows:
+                    row["frame"] = _expected_frame(declared, row["horse_number"])
         if complete:
             for row in rows:
                 row["extraction_status"] = "ocr_fallback_basic_fields"
