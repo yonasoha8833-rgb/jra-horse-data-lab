@@ -1170,7 +1170,10 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 int((center + typical_gap * 0.50) * scale),
                             )
                             x_left = int(panel_width * 0.115 * scale)
-                            x_right = int(panel_width * 0.82 * scale)
+                            # Include the official finish-time/result columns at the
+                            # far right of the runner table. The previous 82% crop
+                            # ended before those columns on some JRA layouts.
+                            x_right = int(panel_width * 0.99 * scale)
                             row_path = temp_dir / f"{page.stem}-{side}-internal-row-{slot_index}.png"
                             panel_image.crop((x_left, row_top, x_right, row_bottom)).save(row_path)
                             row_text = subprocess.run(
@@ -1241,15 +1244,30 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     check=True, timeout=20, capture_output=True, text=True,
                                 ).stdout.strip()
                                 frame_value, horse_value = identifier_rows[row_index][1]
-                                if _runner(f"{frame_value}|{horse_value} {row_result}") is None:
-                                    # Single-line mode can miss a faint sex/age glyph near a table rule.
-                                    # Retry only that row with block mode, and use it only if the
-                                    # normal runner validator can parse the complete row.
+                                parsed_row = _runner(f"{frame_value}|{horse_value} {row_result}")
+                                # Retry block mode not only when the runner identity
+                                # fails, but also when the finish/result cell is absent.
+                                # A valid name/sex/age alone is not enough for acceptance.
+                                needs_result_retry = (
+                                    parsed_row is None
+                                    or (
+                                        parsed_row.get("finish_time_seconds") is None
+                                        and not parsed_row.get("result_status")
+                                        and not parsed_row.get("dead_heat")
+                                    )
+                                )
+                                if needs_result_retry:
                                     retry_result = subprocess.run(
                                         ["tesseract", str(row_path), "stdout", "-l", "jpn+eng", "--psm", "6"],
                                         check=True, timeout=20, capture_output=True, text=True,
                                     ).stdout.strip()
-                                    if _runner(f"{frame_value}|{horse_value} {retry_result}") is not None:
+                                    retry_row = _runner(f"{frame_value}|{horse_value} {retry_result}")
+                                    if retry_row is not None and (
+                                        parsed_row is None
+                                        or retry_row.get("finish_time_seconds") is not None
+                                        or retry_row.get("result_status")
+                                        or retry_row.get("dead_heat")
+                                    ):
                                         row_result = retry_result
                                 row_texts.append(row_result)
                             row_lines = _build_ocr_runner_lines(identifier_rows, row_texts)
