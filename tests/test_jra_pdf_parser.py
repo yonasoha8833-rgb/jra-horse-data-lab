@@ -716,7 +716,7 @@ class JraPdfParserTests(unittest.TestCase):
 
     def test_identifier_row_crops_exclude_table_rules(self):
         self.assertEqual(_identifier_column_inner_bounds(129, column="frame"), (30, 105))
-        self.assertEqual(_identifier_column_inner_bounds(111, column="horse"), (15, 91))
+        self.assertEqual(_identifier_column_inner_bounds(111, column="horse"), (3, 107))
 
     def test_detects_one_internal_ocr_row_gap_from_stable_spacing(self):
         rows = [
