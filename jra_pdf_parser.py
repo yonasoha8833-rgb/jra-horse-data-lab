@@ -996,8 +996,21 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 horse_path = temp_dir / f"{page.stem}-{side}-horse.png"
                 number_crop.crop((0, 0, split_x, number_crop.height)).save(frame_path)
                 number_crop.crop((split_x, 0, horse_end, number_crop.height)).save(horse_path)
+                # Remove the left/right table rules and surrounding blank margin
+                # before OCR. In the full frame strip those borders dominate the
+                # narrow crop and Tesseract can return only footer noise even when
+                # every printed frame digit is legible. Keep the original frame_path
+                # for row-local retries; this trimmed copy is only the TSV pass.
+                frame_inner_left, frame_inner_right = _identifier_column_inner_bounds(
+                    split_x, column="frame"
+                )
+                frame_ocr_path = temp_dir / f"{page.stem}-{side}-frame-inner.png"
+                ImageOps.expand(
+                    Image.open(frame_path).crop((frame_inner_left, 0, frame_inner_right, number_crop.height)),
+                    border=8, fill="white",
+                ).save(frame_ocr_path)
                 frame_tsv = subprocess.run(
-                    ["tesseract", str(frame_path), "stdout", "-l", "eng", "--psm", "6", "tsv"],
+                    ["tesseract", str(frame_ocr_path), "stdout", "-l", "eng", "--psm", "6", "tsv"],
                     check=True, timeout=30, capture_output=True, text=True,
                 ).stdout
                 horse_tsv = subprocess.run(
