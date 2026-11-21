@@ -1615,7 +1615,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 # disagreement with the full-row reading makes the row
                                 # incomplete instead of silently choosing either value.
                                 parsed_row = _runner(f"{frame_value}|{horse_value} {row_result}")
-                                time_left = int(panel_image.width * 0.785)
+                                time_left = int(panel_image.width * 0.765)
                                 time_right = int(panel_image.width * 0.845)
                                 time_crop_path = temp_dir / f"{page.stem}-{side}-time-{row_index}.png"
                                 time_crop = panel_image.crop((time_left, y_top, time_right, y_bottom))
