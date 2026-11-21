@@ -917,6 +917,24 @@ def _build_ocr_runner_lines(
 
 
 
+def _ocr_runner_lines_are_complete(lines: list[str], expected_count: int) -> bool:
+    """Use row-local OCR only when every row independently has a valid JRA result."""
+    if expected_count < 1 or len(lines) != expected_count:
+        return False
+    for line in lines:
+        runner = _runner(line)
+        if runner is None:
+            return False
+        if (
+            runner.get("finish_time_seconds") is None
+            and not runner.get("result_status")
+            and not runner.get("dead_heat")
+        ):
+            return False
+    return True
+
+
+
 def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str | None:
     """OCR JRA panels, using a separate high-resolution pass for frame/horse columns."""
     if not shutil.which("pdftoppm") or not shutil.which("tesseract"):
@@ -1756,13 +1774,19 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                             )
                                     if declared_headcount is not None:
                                         clean_lines.append(f"({declared_headcount}頭)")
-                            if row_lines:
-                                # Keep race/date/track metadata from the panel OCR.
-                                # Replace only runner-like lines with the row-local OCR.
+                            if _ocr_runner_lines_are_complete(row_lines, len(identifier_rows)):
+                                # Row-local OCR is often noisier than the complete-panel pass.
+                                # Replace its runner lines only when every identified row has
+                                # a strict result-time or terminal-status parse; otherwise
+                                # preserve the original panel OCR for downstream validation.
                                 non_runner_lines = [
                                     line for line in clean_lines if not _runner(line.strip())
                                 ]
                                 clean_lines = non_runner_lines + row_lines
+                            else:
+                                row_diagnostics.append(
+                                    "row_local_ocr_not_used: incomplete_or_invalid_runner_rows"
+                                )
                         finally:
                             panel_image.close()
 
