@@ -733,6 +733,21 @@ class JraPdfParserTests(unittest.TestCase):
             [(100.0, 1), (170.0, 5)],
         ), [])
 
+    def test_pairs_columns_when_one_ocr_column_misses_a_row(self):
+        paired = _pair_identifier_columns(
+            [(100.0, 1), (140.0, 2), (180.0, 3), (220.0, 4)],
+            [(100.5, 1), (180.5, 3), (220.5, 4)],
+        )
+        self.assertEqual(paired, [
+            (100.25, (1, 1)), (180.25, (3, 3)), (220.25, (4, 4))
+        ])
+
+    def test_rejects_sparse_column_alignment_with_too_few_matches(self):
+        self.assertEqual(_pair_identifier_columns(
+            [(100.0, 1), (140.0, 2), (180.0, 3), (220.0, 4)],
+            [(100.0, 1), (220.0, 4)],
+        ), [])
+
     def test_single_frame_number_retry_accepts_only_one_frame_digit(self):
         self.assertEqual(_ocr_single_frame_number("7"), 7)
         self.assertIsNone(_ocr_single_frame_number("rf"))
