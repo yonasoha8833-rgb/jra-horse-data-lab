@@ -13,6 +13,16 @@
     return Number.isFinite(parsed) ? parsed : null;
   }
 
+  function individualLast3fValue(row) {
+    if (!row || typeof row !== "object") return null;
+    const explicit = numeric(row.individual_last3f);
+    if (explicit !== null && explicit > 0) return explicit;
+    const raceLevel = row.race_last3f;
+    if (raceLevel !== null && raceLevel !== undefined && raceLevel !== "") return null;
+    const legacy = numeric(row.last3f);
+    return legacy !== null && legacy > 0 ? legacy : null;
+  }
+
   function registrationNumber(value) {
     const candidate = String(value || "").trim();
     return /^[0-9]{4}-[0-9]{5}$/.test(candidate) ? candidate : null;
@@ -55,6 +65,9 @@
   }
 
   function mergeRunnerRecords(existing, incoming) {
+    // Capture legacy values before merging race-level fields from another source.
+    const currentTime = individualLast3fValue(existing);
+    const incomingTime = individualLast3fValue(incoming);
     const merged = { ...existing };
     for (const [field, value] of Object.entries(incoming)) {
       if ((merged[field] === null || merged[field] === undefined || merged[field] === "")
@@ -69,24 +82,8 @@
       merged.field_size = incoming.field_size;
     }
 
-    let currentTime = numeric(merged.individual_last3f);
-    if (currentTime === null || currentTime <= 0) {
-      const fallbackTime = numeric(merged.last3f);
-      if (fallbackTime !== null && fallbackTime > 0) {
-        currentTime = fallbackTime;
-        merged.individual_last3f = merged.last3f;
-      }
-    }
-    let incomingTime = numeric(incoming.individual_last3f);
-    let incomingValue = incoming.individual_last3f;
-    if (incomingTime === null || incomingTime <= 0) {
-      incomingTime = numeric(incoming.last3f);
-      incomingValue = incoming.last3f;
-    }
-    if ((currentTime === null || currentTime <= 0)
-        && incomingTime !== null && incomingTime > 0) {
-      merged.individual_last3f = incomingValue;
-    }
+    if (currentTime !== null) merged.individual_last3f = currentTime;
+    else if (incomingTime !== null) merged.individual_last3f = incomingTime;
     return merged;
   }
 
@@ -178,7 +175,7 @@
 
       const ranked = finishers.map((row, index) => ({
         index,
-        time: numeric(row.individual_last3f ?? row.last3f)
+        time: individualLast3fValue(row)
       })).sort((a, b) => a.time - b.time);
       if (ranked.some(item => item.time === null || item.time <= 0)) continue;
 
@@ -651,6 +648,7 @@
   return {
     distanceBand,
     performanceScore,
+    individualLast3fValue,
     summarizeRelativeLast3f,
     summarizeForwardPosition,
     summarizeOfficialRaceLapSplits,
