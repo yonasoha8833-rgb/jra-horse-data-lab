@@ -463,6 +463,28 @@ def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]
     return accepted
 
 
+def _deduplicate_identifier_slots(rows: list[tuple[float, int | None]], *, tolerance: float = 2.0) -> list[tuple[float, int | None]]:
+    """Collapse duplicate detections of the same printed digit at nearly identical y positions.
+
+    Conflicting values are deliberately preserved so downstream alignment rejects
+    ambiguous OCR rather than choosing one value.
+    """
+    ordered = sorted(rows, key=lambda item: item[0])
+    result: list[tuple[float, int | None]] = []
+    for center, value in ordered:
+        if result:
+            previous_center, previous_value = result[-1]
+            if (
+                abs(center - previous_center) <= tolerance
+                and value == previous_value
+            ):
+                # Keep the midpoint to avoid biasing later row alignment.
+                result[-1] = ((previous_center + center) / 2, value)
+                continue
+        result.append((center, value))
+    return result
+
+
 def _ocr_identifier_pairs(text: str) -> list[tuple[int, int] | None]:
     """Read frame/horse identifiers from the narrow, high-contrast number columns."""
     pairs: list[tuple[int, int] | None] = []
@@ -980,6 +1002,8 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     horse_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"(?:[1-9]|1[0-8])"
                 )
                 identifier_row_diagnostics = []
+                identifier_rows = []
+                row_diagnostics = []
                 # Sparse-text OCR can find a trailing horse number that the
                 # normal single-column pass misses. Accept it only beyond the
                 # last known slot, then independently read its frame digit.
@@ -1437,6 +1461,12 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 frame_rows.append((center, retry_value))
                         frame_slot_rows.sort(key=lambda item: item[0])
                         frame_rows.sort(key=lambda item: item[0])
+                # Remove only identical same-column detections that land on the
+                # same printed row. Conflicting nearby values remain ambiguous.
+                frame_slot_rows = _deduplicate_identifier_slots(frame_slot_rows)
+                horse_slot_rows = _deduplicate_identifier_slots(horse_slot_rows)
+                frame_rows = _deduplicate_identifier_slots(frame_rows)
+                horse_rows = _deduplicate_identifier_slots(horse_rows)
                 # Preserve the ordinary aligned-column result when no inference is needed.
                 identifier_rows = _pair_identifier_columns(frame_rows, horse_rows)
                 # If a complete frame column is available, fill unreadable horse
