@@ -1314,9 +1314,9 @@
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4kyoto9.pdf",
-      "attempts": 1,
-      "last_attempt_utc": "2026-11-14T08:21:04.852223+00:00",
-      "error": "No runner rows recognized; source remains eligible for retry"
+      "attempts": 3,
+      "last_attempt_utc": "2026-11-21T05:57:42.779142+00:00",
+      "error": "HTTPError: HTTP Error 403: Forbidden"
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4nakayama2.pdf",
@@ -1386,9 +1386,9 @@
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4niigata4.pdf",
-      "attempts": 1,
-      "last_attempt_utc": "2026-11-14T08:24:06.830660+00:00",
-      "error": "No runner rows recognized; source remains eligible for retry"
+      "attempts": 2,
+      "last_attempt_utc": "2026-11-21T05:57:42.830382+00:00",
+      "error": "HTTPError: HTTP Error 403: Forbidden"
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4tokyo1.pdf",
