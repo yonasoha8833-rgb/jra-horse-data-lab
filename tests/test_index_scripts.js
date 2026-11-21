@@ -13,3 +13,8 @@ test('index inline scripts parse without syntax errors', () => {
     assert.doesNotThrow(() => new Function(source), `inline script ${index + 1} should parse`);
   }
 });
+
+test('official HTML table distinguishes blinkers true, false, and unknown', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.match(html, /row\.blinkers===true\?'着用':row\.blinkers===false\?'非着用':'未取得'/);
+});
