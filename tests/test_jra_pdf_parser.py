@@ -34,6 +34,10 @@ class JraPdfParserTests(unittest.TestCase):
             20.0,
         )
 
+    def test_horse_number_crop_keeps_outer_digit_edges(self):
+        self.assertEqual(_identifier_column_inner_bounds(100, column="horse"), (3, 97))
+        self.assertEqual(_identifier_column_inner_bounds(100, column="frame"), (23, 82))
+
     def test_reads_only_one_unambiguous_ocr_headcount_label(self):
         self.assertEqual(_ocr_declared_field_size("payout text (16頭) other text"), 16)
         self.assertEqual(_ocr_declared_field_size("（１８頭）"), 18)
