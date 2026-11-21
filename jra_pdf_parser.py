@@ -1618,8 +1618,6 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 time_left = int(panel_image.width * 0.785)
                                 time_right = int(panel_image.width * 0.845)
                                 time_crop_path = temp_dir / f"{page.stem}-{side}-time-{row_index}.png"
-                                with Image.open(row_path) as source_row_image:
-                                    row_height = source_row_image.height
                                 time_crop = panel_image.crop((time_left, y_top, time_right, y_bottom))
                                 time_crop = ImageOps.autocontrast(ImageOps.grayscale(time_crop))
                                 time_crop = time_crop.resize(
