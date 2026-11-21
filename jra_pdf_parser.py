@@ -1521,6 +1521,47 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     sparse_row = _runner(f"{frame_value}|{horse_value} {sparse_result}")
                                     if sparse_row is not None:
                                         row_result = sparse_result
+                                # Small row crops can leave Japanese name/sex/age glyphs
+                                # undersampled. Retry an enlarged, contrast-normalized copy
+                                # with independent line/layout modes. A retry is usable only
+                                # when the strict parser reads an official result time,
+                                # terminal status, or dead-heat marker from that same row.
+                                parsed_after_retry = _runner(f"{frame_value}|{horse_value} {row_result}")
+                                if (
+                                    parsed_after_retry is None
+                                    or (
+                                        parsed_after_retry.get("finish_time_seconds") is None
+                                        and not parsed_after_retry.get("result_status")
+                                        and not parsed_after_retry.get("dead_heat")
+                                    )
+                                ):
+                                    with Image.open(row_path) as source_row_image:
+                                        enhanced_row = ImageOps.autocontrast(
+                                            ImageOps.grayscale(source_row_image)
+                                        )
+                                        enhanced_row = enhanced_row.resize(
+                                            (enhanced_row.width * 2, enhanced_row.height * 2),
+                                            Image.Resampling.LANCZOS,
+                                        )
+                                        enhanced_row_path = temp_dir / f"{page.stem}-{side}-row-{row_index}-enhanced.png"
+                                        enhanced_row.save(enhanced_row_path)
+                                    for retry_psm in ("7", "6", "11"):
+                                        enhanced_text = subprocess.run(
+                                            ["tesseract", str(enhanced_row_path), "stdout", "-l", "jpn+eng",
+                                             "--psm", retry_psm],
+                                            check=True, timeout=20, capture_output=True, text=True,
+                                        ).stdout.strip()
+                                        enhanced_text = " ".join(enhanced_text.split())
+                                        enhanced_runner = _runner(
+                                            f"{frame_value}|{horse_value} {enhanced_text}"
+                                        )
+                                        if enhanced_runner is not None and (
+                                            enhanced_runner.get("finish_time_seconds") is not None
+                                            or enhanced_runner.get("result_status")
+                                            or enhanced_runner.get("dead_heat")
+                                        ):
+                                            row_result = enhanced_text
+                                            break
                                 row_texts.append(row_result)
                             row_lines = _build_ocr_runner_lines(identifier_rows, row_texts)
                             row_diagnostics = [
