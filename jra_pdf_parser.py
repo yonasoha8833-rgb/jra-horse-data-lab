@@ -1640,7 +1640,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     # Use that independent cell reading to replace any
                                     # conflicting full-row OCR token, never to infer a value.
                                     row_result = re.sub(
-                                        r"(?<![0-9A-Za-z])[0-9０-９]{1,2}[:：][0-9０-９]{2}[.．]\\s*[0-9０-９](?![0-9A-Za-z])",
+                                        r"(?<![0-9A-Za-z])[0-9０-９]{1,2}[:：][0-9０-９]{2}[.．]\s*[0-9０-９](?![0-9A-Za-z])",
                                         "",
                                         row_result,
                                     )
