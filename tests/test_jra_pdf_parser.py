@@ -551,6 +551,31 @@ class JraPdfParserTests(unittest.TestCase):
         inferred = _infer_identifier_pairs_from_complete_frame_column(frame_rows, horse_rows)
         self.assertEqual([pair for _, pair in inferred], entries)
 
+    def test_repairs_one_missing_horse_and_its_frame_only_when_all_other_pairs_prove_it(self):
+        entries = [
+            (8, 9), (6, 6), (7, 8), (1, 1), (5, 5),
+            (2, 2), (7, 7), (8, 10), (3, 3), (4, 4),
+        ]
+        frame_rows = [(100.0 + index * 30, frame) for index, (frame, _) in enumerate(entries)]
+        # The fifth row's frame is misread as 3 and its horse number is unreadable.
+        frame_rows[4] = (frame_rows[4][0], 3)
+        horse_rows = [
+            (100.0 + index * 30, None if index == 4 else horse)
+            for index, (_, horse) in enumerate(entries)
+        ]
+        inferred = _infer_identifier_pairs_from_complete_frame_column(frame_rows, horse_rows)
+        self.assertEqual([pair for _, pair in inferred], entries)
+
+    def test_does_not_repair_missing_horse_when_another_row_is_also_unresolved(self):
+        entries = [(1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6)]
+        frame_rows = [(100.0 + index * 30, frame) for index, (frame, _) in enumerate(entries)]
+        frame_rows[4] = (frame_rows[4][0], 3)
+        horse_rows = [
+            (100.0 + index * 30, None if index in {3, 4} else horse)
+            for index, (_, horse) in enumerate(entries)
+        ]
+        self.assertEqual(_infer_identifier_pairs_from_complete_frame_column(frame_rows, horse_rows), [])
+
     def test_does_not_repair_multiple_misread_horse_numbers(self):
         entries = [
             (3, 6), (2, 3), (8, 16), (6, 11), (7, 13), (5, 9),
