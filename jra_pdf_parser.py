@@ -1624,6 +1624,41 @@ def _propagate_pdf_identity(records: list[dict[str, Any]]) -> list[dict[str, Any
     return records
 
 
+def _ocr_rejection_reasons(rows: list[dict[str, Any]]) -> list[str]:
+    """Explain why an OCR race fails strict acceptance without changing any row."""
+    if not rows:
+        return ["no_runner_rows"]
+    reasons = []
+    if not rows[0].get("date"):
+        reasons.append("missing_verified_date")
+    if not rows[0].get("track"):
+        reasons.append("missing_verified_track")
+    if any(
+        (isinstance(row.get("finish_time_seconds"), (int, float))
+         and row["finish_time_seconds"] > 15 * 60)
+        or (isinstance(row.get("runner_validation_warnings"), list)
+            and any(w in {"invalid_finish_time_seconds", "invalid_finish_time_minutes"}
+                    for w in row["runner_validation_warnings"]))
+        for row in rows
+    ):
+        reasons.append("invalid_finish_time")
+    if any("finish_time_seconds" in row and row.get("finish_time_seconds") is None
+           and not row.get("result_status") for row in rows):
+        reasons.append("missing_runner_result")
+    declared = rows[0].get("declared_field_size")
+    inferred = _inferred_complete_field_size(rows) if declared is None else None
+    expected = declared if declared is not None else inferred
+    if expected is None:
+        reasons.append("field_size_unverified")
+    elif len(rows) != expected:
+        reasons.append(f"runner_count_mismatch:{len(rows)}/{expected}")
+    if expected is not None:
+        numbers = [row.get("horse_number") for row in rows]
+        if sorted(numbers) != list(range(1, expected + 1)):
+            reasons.append("horse_numbers_not_exact_1_to_N")
+    return reasons or ["accepted"]
+
+
 def extract_pdf(pdf_bytes: bytes, *, source_url: str = "") -> list[dict[str, Any]]:
     """Parse PDF text first, then use bounded Japanese OCR if its text layer is unusable."""
     with tempfile.TemporaryDirectory(prefix="jra-pdf-") as temp_dir_name:
@@ -1677,6 +1712,7 @@ def extract_pdf(pdf_bytes: bytes, *, source_url: str = "") -> list[dict[str, Any
                     "parsed": len(rows),
                     "declared_field_size": rows[0].get("declared_field_size"),
                     "horse_numbers": sorted(row.get("horse_number") for row in rows),
+                    "rejection_reasons": _ocr_rejection_reasons(rows),
                 }
                 for key, rows in race_groups.items()
             ])
