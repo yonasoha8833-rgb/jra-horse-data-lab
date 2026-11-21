@@ -621,7 +621,7 @@ function uniqueRunnerRows(rows){
 function horseRelativeLast3fSummary(targetRows,allRows){
  const raceGroups=new Map();
  allRows.forEach(row=>{
-  const time=Number(row.individual_last3f??row.last3f);
+  const time=window.JraHorseScoring.individualLast3fValue(row);
   const key=[row.source_url,row.date,row.track,row.race_number].map(v=>String(v??'').trim());
   if(key.some(v=>!v)||!Number.isFinite(time)||time<=0)return;
   const raceKey=key.join('|');
@@ -631,7 +631,7 @@ function horseRelativeLast3fSummary(targetRows,allRows){
  const scores=[];
  const seenTarget=new Set();
  targetRows.forEach(target=>{
-  const time=Number(target.individual_last3f??target.last3f);
+  const time=window.JraHorseScoring.individualLast3fValue(target);
   const key=[target.source_url,target.date,target.track,target.race_number].map(v=>String(v??'').trim());
   if(key.some(v=>!v)||!Number.isFinite(time)||time<=0)return;
   const raceKey=key.join('|');
@@ -659,7 +659,7 @@ function horseRelativeLast3fSummary(targetRows,allRows){
   const uniqueStart=raceKey+'|'+targetIdentity;
   if(seenTarget.has(uniqueStart))return;
   seenTarget.add(uniqueStart);
-  const ranked=field.map((runner,index)=>({index,time:Number(runner.individual_last3f??runner.last3f)}))
+  const ranked=field.map((runner,index)=>({index,time:window.JraHorseScoring.individualLast3fValue(runner)}))
    .filter(item=>Number.isFinite(item.time)&&item.time>0)
    .sort((a,b)=>a.time-b.time);
   if(ranked.length<3)return;
