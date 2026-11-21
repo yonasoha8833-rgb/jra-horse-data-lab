@@ -1,6 +1,6 @@
 import unittest
 
-from jra_pdf_parser import _ocr_declared_field_size, _propagate_pdf_identity, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers
+from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_declared_field_size, _propagate_pdf_identity, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers
 
 
 SAMPLE = """
@@ -16,6 +16,23 @@ SAMPLE = """
 
 
 class JraPdfParserTests(unittest.TestCase):
+
+    def test_last_valid_ocr_runner_center_ignores_trailing_unreadable_slots(self):
+        centers = [10.0, 20.0, 30.0]
+        identifier_rows = [
+            (10.0, (4, 7)),
+            (20.0, (7, 14)),
+            (30.0, (None, 4)),
+        ]
+        row_texts = [
+            "サンプルホース|牡3鹿 57 1:20.0",
+            "別の馬|牡3鹿 57 1:20.2",
+            "判読できない余分な行",
+        ]
+        self.assertEqual(
+            _last_valid_ocr_runner_center(centers, identifier_rows, row_texts),
+            20.0,
+        )
 
     def test_reads_only_one_unambiguous_ocr_headcount_label(self):
         self.assertEqual(_ocr_declared_field_size("payout text (16頭) other text"), 16)
