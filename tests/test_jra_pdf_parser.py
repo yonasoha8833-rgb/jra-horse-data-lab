@@ -500,11 +500,16 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(sorted(row["horse_number"] for row in accepted), list(range(1, 13)))
         self.assertTrue(all(row["declared_field_size"] == 12 for row in accepted))
 
-    def test_ocr_fallback_rejects_wrong_frame_assignment(self):
+    def test_ocr_fallback_repairs_frame_only_from_complete_official_horse_sequence(self):
         rows = parse_race_text(SAMPLE)
         rows[0]["horse_number"], rows[0]["frame"] = 1, 2
         rows[1]["horse_number"], rows[1]["frame"] = 2, 2
-        self.assertEqual(_complete_ocr_records(rows), [])
+        accepted = _complete_ocr_records(rows)
+        self.assertEqual(len(accepted), 2)
+        self.assertEqual(
+            {row["horse_number"]: row["frame"] for row in accepted},
+            {1: 1, 2: 2},
+        )
 
 
 
