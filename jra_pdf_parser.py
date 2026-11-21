@@ -1227,6 +1227,53 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     horse_slot_rows.sort(key=lambda item: item[0])
                     frame_rows.sort(key=lambda item: item[0])
                     horse_rows.sort(key=lambda item: item[0])
+                # Retry unreadable horse-number cells at their own OCR row positions.
+                # This reads the printed digit again; it never derives a horse number
+                # from neighboring numbers, frame allocation, or runner order.
+                valid_horse_centers = sorted(
+                    center for center, value in horse_slot_rows if value is not None
+                )
+                horse_gaps = [
+                    later - earlier
+                    for earlier, later in zip(valid_horse_centers, valid_horse_centers[1:])
+                    if later > earlier
+                ]
+                typical_horse_gap = sorted(horse_gaps)[len(horse_gaps) // 2] if horse_gaps else 0
+                if typical_horse_gap > 0 and any(value is None for _, value in horse_slot_rows):
+                    with Image.open(horse_path) as horse_column_image:
+                        horse_left, horse_right = _identifier_column_inner_bounds(
+                            horse_column_image.width, column="horse"
+                        )
+                        retried_slots = []
+                        for slot_index, (center, value) in enumerate(horse_slot_rows):
+                            if value is not None:
+                                retried_slots.append((center, value))
+                                continue
+                            local_center = int((center - number_box[1]) * 5)
+                            half_height = max(2, int(typical_horse_gap * 5 * 0.38))
+                            top = max(0, local_center - half_height)
+                            bottom = min(horse_column_image.height, local_center + half_height + 1)
+                            retry_path = temp_dir / f"{page.stem}-{side}-horse-slot-{slot_index}.png"
+                            row_crop = horse_column_image.crop(
+                                (horse_left, top, horse_right, bottom)
+                            )
+                            ImageOps.expand(row_crop, border=15, fill="white").save(retry_path)
+                            retry_text = subprocess.run(
+                                ["tesseract", str(retry_path), "stdout", "-l", "eng", "--psm", "10",
+                                 "-c", "tessedit_char_whitelist=0123456789"],
+                                check=True, timeout=15, capture_output=True, text=True,
+                            ).stdout.strip()
+                            retry_value = _ocr_single_horse_number(retry_text)
+                            retried_slots.append((center, retry_value))
+                            identifier_row_diagnostics.append(
+                                f"horse_slot_retry y={center:.1f} original={value} "
+                                f"retry={retry_text!r} accepted={retry_value is not None}"
+                            )
+                        horse_slot_rows = retried_slots
+                        horse_rows = [
+                            (center, value) for center, value in horse_slot_rows
+                            if value is not None
+                        ]
                 # Preserve the ordinary aligned-column result when no inference is needed.
                 identifier_rows = _pair_identifier_columns(frame_rows, horse_rows)
                 # If a complete frame column is available, fill unreadable horse
