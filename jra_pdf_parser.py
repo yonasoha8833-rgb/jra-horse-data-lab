@@ -1335,12 +1335,9 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     horse_column_image.width, column="horse"
                                 )
                                 retried_slots = list(horse_slot_rows)
-                                for _, frame_value, slot_index, original in aligned:
+                                for center, frame_value, slot_index, original in aligned:
                                     if slot_index not in retry_indices:
                                         continue
-                                    center = frame_centers[
-                                        next(i for i, item in enumerate(aligned) if item[2] == slot_index)
-                                    ][0]
                                     local_center = int((center - number_box[1]) * 5)
                                     half_height = max(2, int(frame_gap * 5 * 0.38))
                                     top = max(0, local_center - half_height)
