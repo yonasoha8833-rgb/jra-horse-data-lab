@@ -1036,7 +1036,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                             if frame_value is not None and horse_value is not None:
                                 scale = 5 / 3
                                 x_left = int(panel_width * 0.115 * scale)
-                                x_right = int(panel_width * 0.82 * scale)
+                                x_right = int(panel_width * 0.99 * scale)
                                 previous_center = slot_centers[-1]
                                 y_top = max(0, int(((previous_center + expected_center) / 2) * scale))
                                 y_bottom = int(((expected_center + expected_center + typical_slot_gap) / 2) * scale)
@@ -1230,7 +1230,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                         try:
                             scale = 5 / 3
                             x_left = int(panel_width * 0.115 * scale)
-                            x_right = int(panel_width * 0.82 * scale)
+                            x_right = int(panel_width * 0.99 * scale)
                             row_texts = []
                             for row_index, center in enumerate(centers):
                                 previous = centers[row_index - 1] if row_index else center - typical_gap
