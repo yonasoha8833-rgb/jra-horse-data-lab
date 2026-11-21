@@ -43,6 +43,18 @@ def _ascii_digits(value: str) -> str:
     return value.translate(str.maketrans("０１２３４５６７８９", "0123456789"))
 
 
+def _ocr_declared_field_size(text: str) -> int | None:
+    """Return a headcount only when OCR reads one unambiguous official '(N頭)' label."""
+    matches = {
+        int(_ascii_digits(match.group(1)))
+        for match in FIELD_SIZE_RE.finditer(text)
+    }
+    if len(matches) != 1:
+        return None
+    value = next(iter(matches))
+    return value if 1 <= value <= 18 else None
+
+
 def _seconds(value: str | None) -> float | None:
     if not value:
         return None
@@ -1488,6 +1500,26 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 for index, (pair, row_text) in enumerate(zip(identifier_rows, row_texts))
                             ]
                             row_diagnostics.append(f"assembled_runner_lines={row_lines!r}")
+                            # The official runner-table footer prints the declared field size
+                            # (for example, '(16頭)') immediately below the final runner.
+                            # Whole-panel OCR often drops this small label, so read that
+                            # bounded footer crop independently and accept only an exact,
+                            # unambiguous FIELD_SIZE_RE match.
+                            headcount_top = max(0, int(centers[-1] * scale) + 20)
+                            headcount_bottom = min(panel_image.height, headcount_top + 180)
+                            if headcount_bottom > headcount_top:
+                                headcount_path = temp_dir / f"{page.stem}-{side}-headcount.png"
+                                panel_image.crop((0, headcount_top, panel_image.width, headcount_bottom)).save(headcount_path)
+                                headcount_text = subprocess.run(
+                                    ["tesseract", str(headcount_path), "stdout", "-l", "jpn+eng", "--psm", "11"],
+                                    check=True, timeout=15, capture_output=True, text=True,
+                                ).stdout.strip()
+                                declared_headcount = _ocr_declared_field_size(headcount_text)
+                                row_diagnostics.append(
+                                    f"headcount_retry text={headcount_text!r} accepted={declared_headcount}"
+                                )
+                                if declared_headcount is not None:
+                                    clean_lines.append(f"({declared_headcount}頭)")
                             if row_lines:
                                 # Keep race/date/track metadata from the panel OCR.
                                 # Replace only runner-like lines with the row-local OCR.
