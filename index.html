@@ -820,7 +820,7 @@ Promise.all([
  const quality=d.quality_report&&typeof d.quality_report==='object'?d.quality_report:{};
  quality.records_with_individual_last3f=horseRecords.filter(r=>r.individual_last3f!=null).length;
  quality.records_missing_individual_last3f=horseRecords.filter(r=>r.individual_last3f==null).length;
- importMeta.textContent='収録出走記録 '+horseRecords.length+'件 ／ 年度別PDF '+(Array.isArray(d.processed_sources)?d.processed_sources.length:0)+'件 ／ 重賞PDF '+(Array.isArray(replayData.processed_sources)?replayData.processed_sources.length:0)+'件 ／ 重賞PDFの個別上がり '+replayRecords.filter(r=>r.individual_last3f!=null).length+'件（既存記録へ反映 '+replayMatched+'件・重賞PDF単独 '+replayAdded+'件・照合候補複数 '+replayAmbiguous+'件）'+(window.__importFailures.length?' ／ 年度別PDF失敗 '+window.__importFailures.length+'件':'')+(Number(quality.warning_race_count)?' ／ 要確認レース '+Number(quality.warning_race_count)+'件':'');
+ importMeta.textContent='収録出走記録 '+horseRecords.length+'件 ／ JRA公式HTML追加 '+htmlAdded+'件・既存行への厳密照合 '+htmlEnriched+'件 ／ 年度別PDF '+(Array.isArray(d.processed_sources)?d.processed_sources.length:0)+'件 ／ 重賞PDF '+(Array.isArray(replayData.processed_sources)?replayData.processed_sources.length:0)+'件 ／ 重賞PDFの個別上がり '+replayRecords.filter(r=>r.individual_last3f!=null).length+'件（既存記録へ反映 '+replayMatched+'件・重賞PDF単独 '+replayAdded+'件・照合候補複数 '+replayAmbiguous+'件）'+(window.__importFailures.length?' ／ 年度別PDF失敗 '+window.__importFailures.length+'件':'')+(Number(quality.warning_race_count)?' ／ 要確認レース '+Number(quality.warning_race_count)+'件':'');
  horseStatus.after(importMeta);
  const qualityDetails=document.createElement('details');qualityDetails.className='small';
  const qualitySummary=document.createElement('summary');qualitySummary.textContent='データ品質の詳細を表示';qualityDetails.append(qualitySummary);
