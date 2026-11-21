@@ -1636,14 +1636,15 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     time_reads.append(time_text)
                                 isolated_time = _strict_ocr_finish_time(" ".join(time_reads))
                                 row_time = parsed_row.get("finish_time") if parsed_row else None
-                                if isolated_time and row_time and isolated_time != row_time:
+                                if isolated_time and parsed_row is not None:
+                                    # The isolated crop is aligned to the printed time column.
+                                    # Use that independent cell reading to replace any
+                                    # conflicting full-row OCR token, never to infer a value.
                                     row_result = re.sub(
-                                        r"(?<![0-9])[0-9０-９]{1,2}[:：][0-9０-９]{2}[.．]\\s*[0-9０-９](?![0-9])",
+                                        r"(?<![0-9A-Za-z])[0-9０-９]{1,2}[:：][0-9０-９]{2}[.．]\\s*[0-9０-９](?![0-9A-Za-z])",
                                         "",
                                         row_result,
-                                        count=1,
                                     )
-                                elif isolated_time and not row_time and parsed_row is not None:
                                     row_result = f"{row_result} | {isolated_time}"
                                 row_texts.append(row_result)
                             row_lines = _build_ocr_runner_lines(identifier_rows, row_texts)
