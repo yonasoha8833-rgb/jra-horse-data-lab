@@ -556,27 +556,35 @@ def _pair_identifier_columns(
     horse_rows: list[tuple[float, int]],
 ) -> list[tuple[float, tuple[int, int]]]:
     """Pair independently recognized frame and horse columns by row position."""
-    if not frame_rows or len(frame_rows) != len(horse_rows):
+    if not frame_rows or not horse_rows:
         return []
-    gaps = [b[0] - a[0] for a, b in zip(frame_rows, frame_rows[1:]) if b[0] > a[0]]
-    if len(gaps) != len(frame_rows) - 1:
+    frame_gaps = [b[0] - a[0] for a, b in zip(frame_rows, frame_rows[1:]) if b[0] > a[0]]
+    horse_gaps = [b[0] - a[0] for a, b in zip(horse_rows, horse_rows[1:]) if b[0] > a[0]]
+    if not frame_gaps or not horse_gaps:
         return []
-    typical_gap = sorted(gaps)[len(gaps) // 2] if gaps else 0
-    tolerance = typical_gap * 0.40
+    frame_pitch = sorted(frame_gaps)[len(frame_gaps) // 2]
+    horse_pitch = sorted(horse_gaps)[len(horse_gaps) // 2]
+    # Use the tighter observed row pitch as the alignment tolerance. When one
+    # OCR column drops a row, preserve the vertical sequence and skip only the
+    # unmatched detection; never shift all subsequent frame/horse identities.
+    tolerance = min(frame_pitch, horse_pitch) * 0.40
     paired = []
     used = set()
     for frame_y, frame in frame_rows:
         candidates = [
-            i for i, (horse_y, horse) in enumerate(horse_rows)
+            i for i, (horse_y, _) in enumerate(horse_rows)
             if i not in used and abs(frame_y - horse_y) <= tolerance
         ]
-        if len(candidates) != 1:
+        if len(candidates) > 1:
             return []
+        if not candidates:
+            continue
         index = candidates[0]
         used.add(index)
         horse_y, horse = horse_rows[index]
         paired.append(((frame_y + horse_y) / 2, (frame, horse)))
-    if len(used) != len(horse_rows):
+    # A sparse accidental match is not evidence of a reliable column alignment.
+    if len(paired) < 3 or len(paired) < 0.75 * min(len(frame_rows), len(horse_rows)):
         return []
     return paired
 
