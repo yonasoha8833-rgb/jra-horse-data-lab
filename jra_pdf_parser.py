@@ -1535,28 +1535,26 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         f"headcount_retry last_runner_y={last_runner_center:.1f} "
                                         f"text={headcount_text!r} accepted={declared_headcount}"
                                     )
-                                    # Retry the compact official field-size cell separately.
-                                    # A full-width footer crop is easily distracted by payout
-                                    # columns; a thresholded, enlarged crop preserves the printed
-                                    # '(N頭)' label. Only the exact official-label regex is accepted.
+                                    # Retry the complete footer band with a uniform text-line
+                                    # layout. The official '(N頭)' label sits at the left edge of
+                                    # the footer; narrow crops can clip its leading digit, while
+                                    # thresholding can turn '(16頭)' into '(1698)'.
                                     if declared_headcount is None:
-                                        cell_top = max(0, int(last_runner_center * scale) + 16)
-                                        cell_bottom = min(panel_image.height, cell_top + 90)
-                                        cell_right = min(panel_image.width, 700)
-                                        if cell_bottom > cell_top and cell_right > 200:
-                                            cell_path = temp_dir / f"{page.stem}-{side}-headcount-cell.png"
-                                            cell = panel_image.crop((200, cell_top, cell_right, cell_bottom))
-                                            cell = cell.convert("L").resize((cell.width * 5, cell.height * 5))
-                                            cell = cell.point(lambda value: 0 if value < 170 else 255)
-                                            cell.save(cell_path)
-                                            cell_text = subprocess.run(
-                                                ["tesseract", str(cell_path), "stdout", "-l", "jpn+eng", "--psm", "6"],
+                                        footer_top = max(0, int(last_runner_center * scale) + 20)
+                                        footer_bottom = min(panel_image.height, footer_top + 180)
+                                        if footer_bottom > footer_top:
+                                            footer_retry_path = temp_dir / f"{page.stem}-{side}-headcount-line.png"
+                                            panel_image.crop(
+                                                (0, footer_top, panel_image.width, footer_bottom)
+                                            ).save(footer_retry_path)
+                                            footer_retry_text = subprocess.run(
+                                                ["tesseract", str(footer_retry_path), "stdout", "-l", "jpn+eng", "--psm", "6"],
                                                 check=True, timeout=15, capture_output=True, text=True,
                                             ).stdout.strip()
-                                            declared_headcount = _ocr_declared_field_size(cell_text)
+                                            declared_headcount = _ocr_declared_field_size(footer_retry_text)
                                             row_diagnostics.append(
-                                                f"headcount_cell_retry last_runner_y={last_runner_center:.1f} "
-                                                f"text={cell_text!r} accepted={declared_headcount}"
+                                                f"headcount_line_retry last_runner_y={last_runner_center:.1f} "
+                                                f"text={footer_retry_text!r} accepted={declared_headcount}"
                                             )
                                     if declared_headcount is not None:
                                         clean_lines.append(f"({declared_headcount}頭)")
