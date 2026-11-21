@@ -758,14 +758,14 @@ Promise.all([
  // Add independently validated JRA official HTML rows to the browser analysis dataset.
  // Only exact race + horse number + horse name matches may enrich an existing PDF row.
  const htmlRecords=Array.isArray(htmlData.records)?htmlData.records:[];
- const normalizeHorseIdentity=value=>String(value||'').normalize('NFKC').replace(/\\s+/g,'');
+ const normalizeHorseIdentity=value=>String(value||'').normalize('NFKC').replace(/\s+/g,'');
  const htmlIdentityKey=row=>[row.date,row.track,row.race_number,row.horse_number,normalizeHorseIdentity(row.horse_name)].join('|');
  const existingHtmlKeys=new Set(horseRecords.map(htmlIdentityKey));
  let htmlAdded=0,htmlEnriched=0;
  htmlRecords.forEach(htmlRow=>{
   const key=htmlIdentityKey(htmlRow);
   if(!htmlRow.date||!htmlRow.track||!htmlRow.race_number||
-     !Number.isInteger(Number(htmlRow.horse_number))||
+     (!Number.isInteger(Number(htmlRow.horse_number))||Number(htmlRow.horse_number)<1||Number(htmlRow.horse_number)>18)||
      !normalizeHorseIdentity(htmlRow.horse_name))return;
   const exactMatches=horseRecords.filter(row=>htmlIdentityKey(row)===key);
   if(exactMatches.length===1){
