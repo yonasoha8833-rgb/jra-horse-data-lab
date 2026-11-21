@@ -22,6 +22,13 @@ SAMPLE = """
 
 class JraPdfParserTests(unittest.TestCase):
 
+    def test_consensus_horse_number_requires_two_matching_valid_reads(self):
+        self.assertEqual(_consensus_horse_number(["1", "1"]), 1)
+        self.assertEqual(_consensus_horse_number(["", "5", "5"]), 5)
+        self.assertIsNone(_consensus_horse_number(["1", "5"]))
+        self.assertIsNone(_consensus_horse_number(["1", ""]))
+        self.assertIsNone(_consensus_horse_number(["1]", "1"]))
+
     def test_strict_ocr_finish_time_accepts_one_plausible_isolated_time(self):
         self.assertEqual(_strict_ocr_finish_time("1:41.8"), "1:41.8")
         self.assertEqual(_strict_ocr_finish_time("１：４１．８"), "1:41.8")
