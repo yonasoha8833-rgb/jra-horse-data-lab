@@ -541,9 +541,9 @@ def _pair_identifier_columns(
 
 def _identifier_column_inner_bounds(width: int, *, column: str) -> tuple[int, int]:
     """Exclude vertical table rules while keeping the printed identifier glyph."""
-    left_ratio = 0.235 if column == "frame" else 0.14
+    left_ratio = 0.235 if column == "frame" else 0.03
     left = max(0, min(width - 1, int(width * left_ratio)))
-    right = max(left + 1, min(width, int(width * 0.82)))
+    right = max(left + 1, min(width, int(width * (0.82 if column == "frame" else 0.97))))
     return left, right
 
 
