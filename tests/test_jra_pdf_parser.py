@@ -5,7 +5,7 @@ try:
 except ImportError:
     Image = ImageDraw = None
 
-from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_declared_field_size, _propagate_pdf_identity, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _strict_ocr_finish_time, _remove_horizontal_identifier_rules
+from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_declared_field_size, _propagate_pdf_identity, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, _ocr_runner_lines_are_complete, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _strict_ocr_finish_time, _remove_horizontal_identifier_rules
 
 
 SAMPLE = """
@@ -98,6 +98,20 @@ class JraPdfParserTests(unittest.TestCase):
         _propagate_pdf_identity(unknown)
         self.assertIsNone(unknown[0]["date"])
         self.assertIsNone(unknown[0]["track"])
+
+    def test_row_local_ocr_replaces_panel_text_only_when_all_runner_results_are_valid(self):
+        valid_lines = [
+            "2|2 サノノファイター 牡2鹿 56 田辺 裕信 484±0 1:39.0",
+            "6|7 ブルーサンタ 牡2青鹿 56 戸崎 圭太 452+2 1:39.2",
+        ]
+        self.assertTrue(_ocr_runner_lines_are_complete(valid_lines, 2))
+        self.assertFalse(_ocr_runner_lines_are_complete(valid_lines[:1], 2))
+        self.assertFalse(
+            _ocr_runner_lines_are_complete(
+                [valid_lines[0], "6|7 ?????? OCR noise without a result"], 2
+            )
+        )
+        self.assertFalse(_ocr_runner_lines_are_complete([], 0))
 
     def test_ocr_heading_removal_preserves_metadata_on_same_line(self):
         line = "9月6日雨 (ダート)重 (2026年中山) 第1競走 3歳未勝利 1,200m"
