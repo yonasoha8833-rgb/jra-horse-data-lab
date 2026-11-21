@@ -1274,6 +1274,105 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                             (center, value) for center, value in horse_slot_rows
                             if value is not None
                         ]
+                # A digit can be confidently misread as another valid digit (for
+                # example, 5 as 3). When the complete frame column supplies every
+                # row, retry only horse cells that conflict with the official
+                # frame allocation or duplicate another horse number. The value
+                # is accepted only when the fresh image OCR independently reads
+                # a digit compatible with that row's printed frame.
+                if (
+                    2 <= len(frame_slot_rows) <= 18
+                    and all(value is not None for _, value in frame_slot_rows)
+                ):
+                    frame_centers = sorted(frame_slot_rows, key=lambda item: item[0])
+                    frame_gaps = [
+                        later[0] - earlier[0]
+                        for earlier, later in zip(frame_centers, frame_centers[1:])
+                        if later[0] > earlier[0]
+                    ]
+                    frame_gap = sorted(frame_gaps)[len(frame_gaps) // 2] if frame_gaps else 0
+                    tolerance = frame_gap * 0.40
+                    aligned = []
+                    used_horse_slots = set()
+                    if tolerance > 0:
+                        for frame_center, frame_value in frame_centers:
+                            candidates = [
+                                index for index, (horse_center, _) in enumerate(horse_slot_rows)
+                                if index not in used_horse_slots
+                                and abs(horse_center - frame_center) <= tolerance
+                            ]
+                            if len(candidates) != 1:
+                                aligned = []
+                                break
+                            index = candidates[0]
+                            used_horse_slots.add(index)
+                            aligned.append((frame_center, frame_value, index, horse_slot_rows[index][1]))
+                    if len(aligned) == len(frame_centers) and len(used_horse_slots) == len(horse_slot_rows):
+                        counts = {}
+                        for _, _, _, value in aligned:
+                            if value is not None:
+                                counts[value] = counts.get(value, 0) + 1
+                        retry_indices = [
+                            index for _, frame_value, index, horse_value in aligned
+                            if (
+                                horse_value is None
+                                or counts.get(horse_value, 0) > 1
+                                or _expected_frame(len(frame_centers), horse_value) != frame_value
+                            )
+                        ]
+                        reserved = {
+                            horse_value for _, frame_value, index, horse_value in aligned
+                            if (
+                                horse_value is not None
+                                and counts.get(horse_value, 0) == 1
+                                and _expected_frame(len(frame_centers), horse_value) == frame_value
+                                and index not in retry_indices
+                            )
+                        }
+                        if retry_indices:
+                            with Image.open(horse_path) as horse_column_image:
+                                horse_left, horse_right = _identifier_column_inner_bounds(
+                                    horse_column_image.width, column="horse"
+                                )
+                                retried_slots = list(horse_slot_rows)
+                                for _, frame_value, slot_index, original in aligned:
+                                    if slot_index not in retry_indices:
+                                        continue
+                                    center = frame_centers[
+                                        next(i for i, item in enumerate(aligned) if item[2] == slot_index)
+                                    ][0]
+                                    local_center = int((center - number_box[1]) * 5)
+                                    half_height = max(2, int(frame_gap * 5 * 0.38))
+                                    top = max(0, local_center - half_height)
+                                    bottom = min(horse_column_image.height, local_center + half_height + 1)
+                                    retry_path = temp_dir / f"{page.stem}-{side}-horse-mismatch-{slot_index}.png"
+                                    row_crop = horse_column_image.crop(
+                                        (horse_left, top, horse_right, bottom)
+                                    )
+                                    ImageOps.expand(row_crop, border=15, fill="white").save(retry_path)
+                                    retry_text = subprocess.run(
+                                        ["tesseract", str(retry_path), "stdout", "-l", "eng", "--psm", "10",
+                                         "-c", "tessedit_char_whitelist=0123456789"],
+                                        check=True, timeout=15, capture_output=True, text=True,
+                                    ).stdout.strip()
+                                    retry_value = _ocr_single_horse_number(retry_text)
+                                    accepted_retry = (
+                                        retry_value is not None
+                                        and _expected_frame(len(frame_centers), retry_value) == frame_value
+                                        and retry_value not in reserved
+                                    )
+                                    if accepted_retry:
+                                        retried_slots[slot_index] = (center, retry_value)
+                                        reserved.add(retry_value)
+                                    identifier_row_diagnostics.append(
+                                        f"horse_mismatch_retry y={center:.1f} original={original} "
+                                        f"retry={retry_text!r} accepted={accepted_retry}"
+                                    )
+                                horse_slot_rows = retried_slots
+                                horse_rows = [
+                                    (center, value) for center, value in horse_slot_rows
+                                    if value is not None
+                                ]
                 # Use independently recognized horse-number row centers to retry the frame digit.
                 # The frame and horse digits are printed side by side on the same official row;
                 # this is a fresh read of the frame cell, not a frame/horse-number inference.
