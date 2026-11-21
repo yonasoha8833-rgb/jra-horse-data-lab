@@ -428,7 +428,7 @@ function renderOfficialHtmlSummaries(records){
    const values=[row.finish==null?(row.result_status||'—'):String(row.finish)+'着',
     row.horse_number==null?'—':String(row.horse_number),row.horse_name||'馬名未取得',
     row.individual_last3f==null?'—':Number(row.individual_last3f).toFixed(1)+'秒',
-    row.corner_positions||'—',row.blinkers?'着用':'—'];
+    row.corner_positions||'—',row.blinkers===true?'着用':row.blinkers===false?'非着用':'未取得'];
    values.forEach(value=>{
     const td=document.createElement('td');td.textContent=value;td.style.padding='5px';td.style.borderTop='1px solid #40516a';tr.append(td);
    });
