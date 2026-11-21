@@ -394,6 +394,18 @@ def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]
         )
         if invalid_time:
             continue
+        # A recognized runner must have either a valid official finish time
+        # (including a resolved dead heat) or an explicit terminal result
+        # status. Do not accept a complete-looking field when OCR simply lost
+        # a runner's result cell; that can conceal a shifted/incomplete table.
+        missing_result = any(
+            "finish_time_seconds" in row
+            and row.get("finish_time_seconds") is None
+            and not row.get("result_status")
+            for row in rows
+        )
+        if missing_result:
+            continue
         declared = rows[0].get("declared_field_size")
         if declared is not None:
             complete = len(rows) == declared
