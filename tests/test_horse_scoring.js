@@ -6,6 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const {
   integratedHorsePerformanceScore,
+  individualLast3fValue,
   summarizeRelativeLast3f,
   summarizeForwardPosition,
   summarizeOfficialRaceLapSplits,
@@ -226,7 +227,8 @@ test("deduplicates the same race across sources and merges missing runner times"
         distance: 1600, going: "良", individual_last3f: 35 }
     ];
     rows.push(...runners.map(row => ({
-      ...row, source_url: "annual-results.pdf", individual_last3f: null
+      ...row, source_url: "annual-results.pdf", individual_last3f: null,
+      last3f: 35.1, race_last3f: 35.1
     })));
     rows.push(...runners.map(row => ({
       ...row, source_url: "graded-replay.pdf"
@@ -237,6 +239,26 @@ test("deduplicates the same race across sources and merges missing runner times"
   const target = summaries.find(item => item.horse_registration_number === "2020-12345");
   assert.equal(target.conditions.track[0].sample_count, 3);
   assert.equal(target.conditions.track[0].average_relative_score, 100);
+});
+
+test("does not treat an explicit race-level last-3F as an individual legacy value", () => {
+  assert.equal(individualLast3fValue({
+    individual_last3f: null, last3f: 33.0, race_last3f: 35.0
+  }), null);
+  assert.equal(individualLast3fValue({
+    individual_last3f: null, last3f: 33.0
+  }), 33.0);
+  assert.equal(individualLast3fValue({
+    individual_last3f: 32.8, last3f: 33.0, race_last3f: 35.0
+  }), 32.8);
+
+  const rows = [1, 2, 3].map((horseNumber, index) => ({
+    horse_name: "レース上がり誤認防止馬" + horseNumber,
+    date: "2026-11-01", track: "東京", race_number: 1,
+    horse_number: horseNumber, finish: horseNumber, field_size: 3,
+    individual_last3f: null, last3f: 33 + index, race_last3f: 35.0
+  }));
+  assert.deepEqual(summarizeRelativeLast3f(rows, { minConditionStarts: 1 }), []);
 });
 
 test("does not rank a race when a finisher's individual last-3F is missing", () => {
