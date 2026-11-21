@@ -117,7 +117,7 @@ def _runner(line: str) -> dict[str, Any] | None:
     if not (1 <= frame_number <= 8 and 1 <= horse_number <= 18 and 2 <= horse_age <= 20):
         return None
     tail = line[match.end():]
-    time_match = re.search(r"(?<![0-9])([0-9０-９]{1,2})[：:]([0-9０-９]{2})[.．]([0-9０-９])", tail)
+    time_match = re.search(r"(?<![0-9])([0-9０-９]{1,2})[：:]([0-9０-９]{2})[.．]\s*([0-9０-９])", tail)
     finish_time = None
     finish_time_seconds = None
     dead_heat = False
