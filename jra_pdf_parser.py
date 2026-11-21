@@ -101,7 +101,7 @@ def _track(text: str) -> str | None:
 def _strict_ocr_finish_time(text: str) -> str | None:
     """Return one unambiguous, plausible finish-time token from an isolated OCR cell."""
     matches = re.findall(
-        r"(?<![0-9])([0-9０-９]{1,2})\s*[:：]\s*([0-9０-９]{2})\s*[.．]\s*([0-9０-９])(?![0-9])",
+        r"(?<![0-9A-Za-z])([0-9０-９]{1,2})\s*[:：]\s*([0-9０-９]{2})\s*[.．]\s*([0-9０-９])(?![0-9A-Za-z])",
         text,
     )
     values = set()
@@ -1635,7 +1635,6 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     ).stdout.strip()
                                     time_reads.append(time_text)
                                 isolated_time = _strict_ocr_finish_time(" ".join(time_reads))
-                                row_time = parsed_row.get("finish_time") if parsed_row else None
                                 if isolated_time and parsed_row is not None:
                                     # The isolated crop is aligned to the printed time column.
                                     # Use that independent cell reading to replace any
