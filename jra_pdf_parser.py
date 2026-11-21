@@ -889,6 +889,28 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     (number_crop.width * 5, number_crop.height * 5),
                     Image.Resampling.LANCZOS,
                 )
+                # Horizontal table rules cross both identifier columns and can
+                # make Tesseract silently skip otherwise clear digits. Remove
+                # only rows that contain a near-full-width dark rule; do not
+                # alter digit pixels or infer any identifier values.
+                gray_numbers = ImageOps.grayscale(number_crop)
+                rule_rows = []
+                for y in range(gray_numbers.height):
+                    dark_pixels = sum(
+                        1 for value in gray_numbers.crop(
+                            (0, y, gray_numbers.width, y + 1)
+                        ).getdata() if value < 120
+                    )
+                    if dark_pixels >= int(gray_numbers.width * 0.70):
+                        rule_rows.append(y)
+                if rule_rows:
+                    from PIL import ImageDraw
+                    draw = ImageDraw.Draw(number_crop)
+                    for y in rule_rows:
+                        draw.line(
+                            (0, max(0, y - 1), number_crop.width - 1, min(number_crop.height - 1, y + 1)),
+                            fill="white", width=1,
+                        )
                 number_path = temp_dir / f"{page.stem}-{side}-numbers.png"
                 number_crop.save(number_path)
                 # Equal row counts are unsafe: independently OCR both columns
