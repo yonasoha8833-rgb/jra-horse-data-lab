@@ -755,6 +755,33 @@ Promise.all([
  renderOfficialLapSplitSummary(Array.isArray(htmlData.records)?htmlData.records:[]);
   renderObservedBlinkerChanges(Array.isArray(htmlData.records)?htmlData.records:[]);
  horseRecords=Array.isArray(d.records)?d.records.map(row=>({...row})):[];
+ // Add independently validated JRA official HTML rows to the browser analysis dataset.
+ // Only exact race + horse number + horse name matches may enrich an existing PDF row.
+ const htmlRecords=Array.isArray(htmlData.records)?htmlData.records:[];
+ const normalizeHorseIdentity=value=>String(value||'').normalize('NFKC').replace(/\\s+/g,'');
+ const htmlIdentityKey=row=>[row.date,row.track,row.race_number,row.horse_number,normalizeHorseIdentity(row.horse_name)].join('|');
+ const existingHtmlKeys=new Set(horseRecords.map(htmlIdentityKey));
+ let htmlAdded=0,htmlEnriched=0;
+ htmlRecords.forEach(htmlRow=>{
+  const key=htmlIdentityKey(htmlRow);
+  if(!htmlRow.date||!htmlRow.track||!htmlRow.race_number||
+     !Number.isInteger(Number(htmlRow.horse_number))||
+     !normalizeHorseIdentity(htmlRow.horse_name))return;
+  const exactMatches=horseRecords.filter(row=>htmlIdentityKey(row)===key);
+  if(exactMatches.length===1){
+   const target=exactMatches[0];
+   Object.entries(htmlRow).forEach(([field,value])=>{
+    if((target[field]===null||target[field]===undefined||target[field]==='')&&
+       value!==null&&value!==undefined&&value!=='')target[field]=value;
+   });
+   target.official_html_verified=true;
+   htmlEnriched++;
+  }else if(exactMatches.length===0&&!existingHtmlKeys.has(key)){
+   horseRecords.push({...htmlRow,extraction_status:'official_html_sidecar'});
+   existingHtmlKeys.add(key);
+   htmlAdded++;
+  }
+ });
  const replayRecords=Array.isArray(replayData.records)?replayData.records:[];
  let replayMatched=0,replayAdded=0,replayAmbiguous=0;
  const normalizeHorseName=value=>String(value||'').normalize('NFKC').replace(/\s+/g,'');
