@@ -25,6 +25,28 @@ def sanitize_existing_records(records: list[dict]) -> list[dict]:
     return ordinary + _complete_ocr_records(legacy_ocr)
 
 
+def rejected_legacy_ocr_sources(records: list[dict]) -> set[str]:
+    """Return sources whose saved OCR rows are not all retained by strict validation."""
+    legacy_ocr = [
+        row for row in records
+        if row.get("extraction_status") == "ocr_fallback_basic_fields"
+    ]
+    original_counts: dict[str, int] = {}
+    accepted_counts: dict[str, int] = {}
+    for row in legacy_ocr:
+        source = str(row.get("source_url") or "").strip()
+        if source:
+            original_counts[source] = original_counts.get(source, 0) + 1
+    for row in _complete_ocr_records(legacy_ocr):
+        source = str(row.get("source_url") or "").strip()
+        if source:
+            accepted_counts[source] = accepted_counts.get(source, 0) + 1
+    return {
+        source for source, count in original_counts.items()
+        if accepted_counts.get(source, 0) < count
+    }
+
+
 def build_quality_report(records: list[dict]) -> dict:
     """Summarize extraction completeness and race-level consistency warnings."""
     races: dict[tuple, list[dict]] = {}
@@ -93,8 +115,18 @@ def main() -> None:
 
     catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
     old = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {"records": []}
-    records = sanitize_existing_records(old.get("records", []))
+    saved_records = old.get("records", [])
+    records = sanitize_existing_records(saved_records)
     processed = set(old.get("processed_sources", []))
+    retained_sources = {
+        str(row.get("source_url") or "").strip()
+        for row in records
+        if str(row.get("source_url") or "").strip()
+    }
+    # A source is complete only while at least one of its validated rows remains.
+    # Requeue rejected OCR sources even when some rows from that PDF survived.
+    processed.intersection_update(retained_sources)
+    processed.difference_update(rejected_legacy_ocr_sources(saved_records))
     failures_by_url = {
         item["url"]: item for item in old.get("import_failures", [])
         if isinstance(item, dict) and item.get("url")
