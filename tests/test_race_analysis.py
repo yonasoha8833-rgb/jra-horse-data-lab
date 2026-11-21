@@ -172,11 +172,24 @@ class RaceAnalysisTests(unittest.TestCase):
     def test_official_import_time_field_is_aggregated(self):
         rows = [{"horse_name": "公式取込馬", "finish": 2,
                  "finish_time_seconds": 91.25, "race_last3f": 35.1,
-                 "individual_last3f": None}]
+                 "last3f": 35.1, "individual_last3f": None}]
         horse = summarize_horses(rows)[0]
         self.assertEqual(horse["average_time_seconds"], 91.25)
         # Race-level closing 3F must never be mislabeled as an individual figure.
         self.assertIsNone(horse["average_last3f"])
+
+    def test_condition_summary_does_not_relabel_race_last3f_as_individual(self):
+        rows = [
+            {"going": "良", "finish": 1, "individual_last3f": None,
+             "last3f": 35.1, "race_last3f": 35.1},
+            {"going": "良", "finish": 2, "individual_last3f": None,
+             "last3f": 35.1, "race_last3f": 35.1},
+            {"going": "良", "finish": 3, "individual_last3f": None,
+             "last3f": 35.1, "race_last3f": 35.1},
+        ]
+        result = summarize_conditions(rows, "going", min_starts=3)
+        self.assertEqual(result[0]["individual_last3f_sample_count"], 0)
+        self.assertIsNone(result[0]["average_individual_last3f"])
 
     def test_official_individual_last3f_is_aggregated(self):
         rows = [
@@ -527,6 +540,19 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(scores, {"最速馬": 100.0, "中間馬": 50.0, "最遅馬": 0.0})
         self.assertEqual(result[0]["conditions"]["surface"], [])
 
+    def test_relative_last3f_does_not_rank_using_race_level_legacy_last3f(self):
+        rows = [
+            {
+                "horse_name": f"レース上がり誤認防止馬{number}",
+                "date": "2026-11-01", "track": "東京", "race_number": 1,
+                "horse_number": number, "finish": number, "field_size": 3,
+                "individual_last3f": None, "last3f": 33.0 + number,
+                "race_last3f": 35.1,
+            }
+            for number in range(1, 4)
+        ]
+        self.assertEqual(summarize_relative_last3f(rows, min_condition_starts=1), [])
+
     def test_relative_last3f_excludes_incomplete_races_and_tolerates_ties(self):
         rows = [
             {"horse_name": "同着A", "date": "2026-11-01", "track": "東京", "race_number": 1,
@@ -605,7 +631,10 @@ class RaceAnalysisTests(unittest.TestCase):
                  "horse_number": 3, "finish": 3, "field_size": 3, "surface": "芝",
                  "distance": 1600, "going": "良", "individual_last3f": None},
             ]
-            rows.extend({**row, "source_url": "annual-results.pdf"} for row in runners)
+            rows.extend({
+                **row, "source_url": "annual-results.pdf",
+                "last3f": 35.1, "race_last3f": 35.1,
+            } for row in runners)
             rows.extend({
                 **row,
                 "source_url": "graded-replay.pdf",

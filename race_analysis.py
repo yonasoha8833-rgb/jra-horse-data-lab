@@ -21,6 +21,18 @@ def _number(value: Any) -> float | None:
         return None
 
 
+def _individual_last3f(row: dict[str, Any]) -> float | None:
+    """Read an individual time; never reinterpret an explicit race-level 3F as a runner time."""
+    explicit = _number(row.get("individual_last3f"))
+    if explicit is not None and explicit > 0:
+        return explicit
+    race_level = row.get("race_last3f")
+    if race_level is not None and race_level != "":
+        return None
+    legacy = _number(row.get("last3f"))
+    return legacy if legacy is not None and legacy > 0 else None
+
+
 BASELINE_RECENT_LIMIT = 5
 REGISTRATION_NUMBER_RE = re.compile(r"^[0-9]{4}-[0-9]{5}$")
 
@@ -189,7 +201,7 @@ def summarize_horses(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
         finishes = [v for v in finishes if v is not None and v > 0]
         times = [_number(r.get("finish_time_seconds", r.get("time_seconds"))) for r in rows]
         times = [v for v in times if v is not None and v > 0]
-        last3fs = [_number(r.get("individual_last3f", r.get("last3f"))) for r in rows]
+        last3fs = [_individual_last3f(r) for r in rows]
         last3fs = [v for v in last3fs if v is not None and v > 0]
         summaries.append({
             "horse_name": name,
@@ -306,7 +318,7 @@ def summarize_conditions(
         individual_last3fs = [
             value
             for row in rows
-            if (value := _number(row.get("individual_last3f", row.get("last3f")))) is not None
+            if (value := _individual_last3f(row)) is not None
             and value > 0
         ]
         summaries.append({
@@ -616,7 +628,7 @@ def summarize_running_style_pace_performance(
         individual_last3fs = [
             value
             for row, _, _ in outcomes
-            if (value := _number(row.get("individual_last3f", row.get("last3f")))) is not None
+            if (value := _individual_last3f(row)) is not None
             and value > 0
         ]
         results.append({
@@ -800,10 +812,7 @@ def summarize_relative_last3f(
         ranked = []
         invalid_finisher_time = False
         for index, row in enumerate(finishers):
-            last3f = row.get("individual_last3f")
-            if last3f is None:
-                last3f = row.get("last3f")
-            value = _number(last3f)
+            value = _individual_last3f(row)
             if value is None or value <= 0:
                 invalid_finisher_time = True
                 break
@@ -877,10 +886,7 @@ def summarize_relative_last3f(
                     continue
                 times = []
                 for item in items:
-                    value = item.get("individual_last3f")
-                    if value is None:
-                        value = item.get("last3f")
-                    numeric_value = _number(value)
+                    numeric_value = _individual_last3f(item)
                     if numeric_value is not None and numeric_value > 0:
                         times.append(numeric_value)
                 summaries.append({
@@ -1070,6 +1076,9 @@ def _merge_runner_records(
     incoming: dict[str, Any],
 ) -> dict[str, Any]:
     """Fill missing runner fields from a duplicate official-source row."""
+    # Capture legacy values before merging race-level fields from another source.
+    current_time = _individual_last3f(existing)
+    incoming_time = _individual_last3f(incoming)
     merged = dict(existing)
     for field, value in incoming.items():
         current = merged.get(field)
@@ -1082,22 +1091,10 @@ def _merge_runner_records(
         merged["finish"] = incoming.get("finish")
         merged["field_size"] = incoming.get("field_size")
 
-    # Preserve a usable individual time if one source supplies it and the
-    # other source leaves it blank or contains a non-positive placeholder.
-    current_time = _number(merged.get("individual_last3f"))
-    if current_time is None or current_time <= 0:
-        fallback_time = _number(merged.get("last3f"))
-        if fallback_time is not None and fallback_time > 0:
-            current_time = fallback_time
-            merged["individual_last3f"] = merged.get("last3f")
-    incoming_time = _number(incoming.get("individual_last3f"))
-    incoming_value = incoming.get("individual_last3f")
-    if incoming_time is None or incoming_time <= 0:
-        incoming_time = _number(incoming.get("last3f"))
-        incoming_value = incoming.get("last3f")
-    if ((current_time is None or current_time <= 0)
-            and incoming_time is not None and incoming_time > 0):
-        merged["individual_last3f"] = incoming_value
+    if current_time is not None:
+        merged["individual_last3f"] = current_time
+    elif incoming_time is not None:
+        merged["individual_last3f"] = incoming_time
 
     return merged
 
