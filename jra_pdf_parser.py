@@ -1274,6 +1274,47 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                             (center, value) for center, value in horse_slot_rows
                             if value is not None
                         ]
+                # Use independently recognized horse-number row centers to retry the frame digit.
+                # The frame and horse digits are printed side by side on the same official row;
+                # this is a fresh read of the frame cell, not a frame/horse-number inference.
+                if typical_horse_gap > 0 and horse_slot_rows:
+                    with Image.open(frame_path) as frame_column_image:
+                        frame_left, frame_right = _identifier_column_inner_bounds(
+                            frame_column_image.width, column="frame"
+                        )
+                        frame_tolerance = typical_horse_gap * 0.40
+                        for slot_index, (center, horse_value) in enumerate(horse_slot_rows):
+                            if horse_value is None:
+                                continue
+                            if any(
+                                frame_value is not None and abs(frame_center - center) <= frame_tolerance
+                                for frame_center, frame_value in frame_slot_rows
+                            ):
+                                continue
+                            local_center = int((center - number_box[1]) * 5)
+                            half_height = max(2, int(typical_horse_gap * 5 * 0.38))
+                            top = max(0, local_center - half_height)
+                            bottom = min(frame_column_image.height, local_center + half_height + 1)
+                            retry_path = temp_dir / f"{page.stem}-{side}-frame-at-horse-row-{slot_index}.png"
+                            row_crop = frame_column_image.crop(
+                                (frame_left, top, frame_right, bottom)
+                            )
+                            ImageOps.expand(row_crop, border=15, fill="white").save(retry_path)
+                            retry_text = subprocess.run(
+                                ["tesseract", str(retry_path), "stdout", "-l", "eng", "--psm", "10",
+                                 "-c", "tessedit_char_whitelist=12345678"],
+                                check=True, timeout=15, capture_output=True, text=True,
+                            ).stdout.strip()
+                            retry_value = _ocr_single_frame_number(retry_text)
+                            identifier_row_diagnostics.append(
+                                f"frame_slot_retry y={center:.1f} retry={retry_text!r} "
+                                f"accepted={retry_value is not None}"
+                            )
+                            if retry_value is not None:
+                                frame_slot_rows.append((center, retry_value))
+                                frame_rows.append((center, retry_value))
+                        frame_slot_rows.sort(key=lambda item: item[0])
+                        frame_rows.sort(key=lambda item: item[0])
                 # Preserve the ordinary aligned-column result when no inference is needed.
                 identifier_rows = _pair_identifier_columns(frame_rows, horse_rows)
                 # If a complete frame column is available, fill unreadable horse
