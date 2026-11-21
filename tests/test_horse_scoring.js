@@ -400,3 +400,34 @@ test("rejects inconsistent or incomplete official lap arrays", () => {
     { ...base, race_lap_times: [12, 11, 12, 12] }
   ]), []);
 });
+
+test("validates the current official HTML sidecar race groups end to end", () => {
+  const sidecarPath = path.join(__dirname, "..", "data", "jra_html_results.json");
+  const sidecar = JSON.parse(fs.readFileSync(sidecarPath, "utf8"));
+  const records = sidecar.records;
+  assert.equal(records.length, 32);
+  const raceGroups = new Map();
+  for (const row of records) {
+    const key = [row.date, row.track, row.race_number].join("|");
+    if (!raceGroups.has(key)) raceGroups.set(key, []);
+    raceGroups.get(key).push(row);
+    assert.ok(Number.isInteger(row.horse_number) && row.horse_number >= 1 && row.horse_number <= 18);
+    assert.ok(Number.isInteger(row.field_size) && row.field_size > 1);
+    assert.ok(Number.isInteger(row.corner_3) && row.corner_3 >= 1 && row.corner_3 <= row.field_size);
+  }
+  assert.equal(raceGroups.size, 2);
+  assert.deepEqual([...raceGroups.values()].map(group => group.length).sort((a, b) => a - b), [14, 18]);
+  for (const group of raceGroups.values()) {
+    const expectedSize = group[0].field_size;
+    assert.equal(group.length, expectedSize);
+    assert.equal(new Set(group.map(row => row.horse_number)).size, expectedSize);
+    assert.ok(group.every(row => row.field_size === expectedSize));
+    assert.ok(group.every(row => JSON.stringify(row.race_lap_times) === JSON.stringify(group[0].race_lap_times)));
+  }
+  const lapSummaries = summarizeOfficialRaceLapSplits(records);
+  assert.equal(lapSummaries.length, 2);
+  assert.deepEqual(lapSummaries.map(item => item.runner_record_count).sort((a, b) => a - b), [14, 18]);
+  const forwardSummaries = summarizeForwardPosition(records);
+  assert.equal(forwardSummaries.length, 32);
+  assert.ok(forwardSummaries.every(item => item.sample_count === 1));
+});
