@@ -625,6 +625,12 @@ def _identifier_column_inner_bounds(width: int, *, column: str) -> tuple[int, in
     right = max(left + 1, min(width, int(width * (0.82 if column == "frame" else 0.92))))
     return left, right
 
+def _identifier_column_retry_bounds(width: int, *, column: str) -> tuple[int, int]:
+    """Keep the full isolated horse-number strip for row retries; narrow crops clip glyphs."""
+    if column == "horse":
+        return 0, width
+    return _identifier_column_inner_bounds(width, column=column)
+
 
 def _ocr_identifier_column_slots(
     tsv: str, *, scale: float, y_offset: float, allowed: str,
@@ -1245,7 +1251,10 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         ).stdout.strip()
                                         frame_value = _ocr_single_frame_number(frame_retry_text)
                                     horse_retry_path = temp_dir / f"{page.stem}-{side}-horse-row-{row_index}.png"
-                                    horse_left, horse_right = _identifier_column_inner_bounds(
+                                    # Keep the complete isolated horse-number column on retry.
+                                    # Tight inner crops clipped narrow digits such as 1 and 5
+                                    # against nearby table rules in the JRA scan.
+                                    horse_left, horse_right = _identifier_column_retry_bounds(
                                         horse_column_image.width, column="horse"
                                     )
                                     horse_crop = horse_column_image.crop((
