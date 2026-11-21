@@ -589,6 +589,35 @@ def _pair_identifier_columns(
     return paired
 
 
+def _remove_horizontal_identifier_rules(image):
+    """Remove full-width table rules without drawing through identifier glyphs."""
+    from PIL import ImageDraw
+
+    gray = ImageOps.grayscale(image)
+    rule_rows = []
+    for y in range(gray.height):
+        dark_pixels = sum(
+            1 for value in gray.crop((0, y, gray.width, y + 1)).getdata()
+            if value < 120
+        )
+        if dark_pixels >= int(gray.width * 0.70):
+            rule_rows.append(y)
+
+    # Clear a narrow horizontal band on each detected rule row. Drawing one
+    # diagonal line from y-1 to y+1 leaves most of the printed rule intact and
+    # can cut through a nearby digit; erase each row across the full strip.
+    if rule_rows:
+        draw = ImageDraw.Draw(image)
+        rows_to_clear = {
+            row
+            for y in rule_rows
+            for row in range(max(0, y - 1), min(image.height, y + 2))
+        }
+        for y in rows_to_clear:
+            draw.line((0, y, image.width - 1, y), fill="white", width=1)
+    return image
+
+
 def _identifier_column_inner_bounds(width: int, *, column: str) -> tuple[int, int]:
     """Exclude vertical table rules while keeping the printed identifier glyph."""
     left_ratio = 0.235 if column == "frame" else 0.15
@@ -967,24 +996,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 # make Tesseract silently skip otherwise clear digits. Remove
                 # only rows that contain a near-full-width dark rule; do not
                 # alter digit pixels or infer any identifier values.
-                gray_numbers = ImageOps.grayscale(number_crop)
-                rule_rows = []
-                for y in range(gray_numbers.height):
-                    dark_pixels = sum(
-                        1 for value in gray_numbers.crop(
-                            (0, y, gray_numbers.width, y + 1)
-                        ).getdata() if value < 120
-                    )
-                    if dark_pixels >= int(gray_numbers.width * 0.70):
-                        rule_rows.append(y)
-                if rule_rows:
-                    from PIL import ImageDraw
-                    draw = ImageDraw.Draw(number_crop)
-                    for y in rule_rows:
-                        draw.line(
-                            (0, max(0, y - 1), number_crop.width - 1, min(number_crop.height - 1, y + 1)),
-                            fill="white", width=1,
-                        )
+                _remove_horizontal_identifier_rules(number_crop)
                 number_path = temp_dir / f"{page.stem}-{side}-numbers.png"
                 number_crop.save(number_path)
                 # Equal row counts are unsafe: independently OCR both columns
