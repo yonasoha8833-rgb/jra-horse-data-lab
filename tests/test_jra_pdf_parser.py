@@ -1,6 +1,6 @@
 import unittest
 
-from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_declared_field_size, _propagate_pdf_identity, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots
+from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_declared_field_size, _propagate_pdf_identity, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, parse_race_text, _ocr_single_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _strict_ocr_finish_time
 
 
 SAMPLE = """
@@ -16,6 +16,16 @@ SAMPLE = """
 
 
 class JraPdfParserTests(unittest.TestCase):
+
+    def test_strict_ocr_finish_time_accepts_one_plausible_isolated_time(self):
+        self.assertEqual(_strict_ocr_finish_time("1:41.8"), "1:41.8")
+        self.assertEqual(_strict_ocr_finish_time("１：４１．８"), "1:41.8")
+
+    def test_strict_ocr_finish_time_rejects_ambiguous_or_invalid_values(self):
+        self.assertIsNone(_strict_ocr_finish_time("1:41.8 1:42.0"))
+        self.assertIsNone(_strict_ocr_finish_time("1:61.8"))
+        self.assertIsNone(_strict_ocr_finish_time("O1:41.8"))
+        self.assertIsNone(_strict_ocr_finish_time(""))
 
     def test_last_valid_ocr_runner_center_ignores_trailing_unreadable_slots(self):
         centers = [10.0, 20.0, 30.0]
