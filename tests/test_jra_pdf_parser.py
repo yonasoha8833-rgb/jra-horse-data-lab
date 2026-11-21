@@ -540,6 +540,18 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertTrue(all(row["race_number"] == 3 for row in rows))
 
 
+    def test_deduplicates_identical_identifier_detection_on_same_row(self):
+        self.assertEqual(
+            _deduplicate_identifier_slots([(736.7, 5), (736.9, 5), (760.0, 6)]),
+            [(736.8, 5), (760.0, 6)],
+        )
+
+    def test_keeps_conflicting_identifier_detections_on_same_row(self):
+        self.assertEqual(
+            _deduplicate_identifier_slots([(100.0, 5), (101.0, 6)]),
+            [(100.0, 5), (101.0, 6)],
+        )
+
     def test_ocr_identifier_reader_handles_separators_and_compact_numbers(self):
         pairs = _ocr_identifier_pairs("4\\6\n6 }10\n3} 3\n711\n8 |14")
         self.assertEqual(pairs, [(4, 6), (6, 10), (3, 3), (7, 11), (8, 14)])
