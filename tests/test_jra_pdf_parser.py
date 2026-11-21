@@ -44,8 +44,8 @@ class JraPdfParserTests(unittest.TestCase):
             20.0,
         )
 
-    def test_horse_number_crop_keeps_outer_digit_edges(self):
-        self.assertEqual(_identifier_column_inner_bounds(100, column="horse"), (3, 97))
+    def test_horse_number_crop_excludes_vertical_rules_and_blank_margins(self):
+        self.assertEqual(_identifier_column_inner_bounds(100, column="horse"), (15, 92))
         self.assertEqual(_identifier_column_inner_bounds(100, column="frame"), (23, 82))
 
     def test_reads_only_one_unambiguous_ocr_headcount_label(self):
@@ -764,7 +764,7 @@ class JraPdfParserTests(unittest.TestCase):
 
     def test_identifier_row_crops_exclude_table_rules(self):
         self.assertEqual(_identifier_column_inner_bounds(129, column="frame"), (30, 105))
-        self.assertEqual(_identifier_column_inner_bounds(111, column="horse"), (3, 107))
+        self.assertEqual(_identifier_column_inner_bounds(111, column="horse"), (16, 102))
 
     def test_detects_one_internal_ocr_row_gap_from_stable_spacing(self):
         rows = [
