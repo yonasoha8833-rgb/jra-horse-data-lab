@@ -1572,9 +1572,19 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 y_top = max(0, int(((previous + center) / 2) * scale))
                                 y_bottom = min(panel_image.height, int(((center + following) / 2) * scale))
                                 row_path = temp_dir / f"{page.stem}-{side}-row-{row_index}.png"
-                                panel_image.crop((x_left, y_top, x_right, y_bottom)).save(row_path)
+                                row_image = panel_image.crop((x_left, y_top, x_right, y_bottom))
+                                # The runner row is short and densely printed. Normalize
+                                # contrast and enlarge it before OCR so small Japanese names
+                                # and the finish-time column survive the line segmentation.
+                                row_image = ImageOps.autocontrast(ImageOps.grayscale(row_image))
+                                row_image = row_image.resize(
+                                    (row_image.width * 2, row_image.height * 2),
+                                    Image.Resampling.LANCZOS,
+                                )
+                                row_image.save(row_path)
                                 row_result = subprocess.run(
-                                    ["tesseract", str(row_path), "stdout", "-l", "jpn+eng", "--psm", "7"],
+                                    ["tesseract", str(row_path), "stdout", "-l", "jpn+eng", "--psm", "7",
+                                     "-c", "preserve_interword_spaces=1"],
                                     check=True, timeout=20, capture_output=True, text=True,
                                 ).stdout.strip()
                                 frame_value, horse_value = identifier_rows[row_index][1]
