@@ -591,7 +591,7 @@ def _pair_identifier_columns(
 
 def _remove_horizontal_identifier_rules(image):
     """Remove full-width table rules without drawing through identifier glyphs."""
-    from PIL import ImageDraw
+    from PIL import ImageDraw, ImageOps
 
     gray = ImageOps.grayscale(image)
     rule_rows = []
