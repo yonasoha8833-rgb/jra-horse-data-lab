@@ -1227,14 +1227,22 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         ["tesseract", str(horse_retry_path), "stdout", "-l", "eng", "--psm", "10", "-c", "tessedit_char_whitelist=0123456789"],
                                         check=True, timeout=15, capture_output=True, text=True,
                                     ).stdout.strip()
-                                    horse_value = _ocr_single_horse_number(horse_retry_text)
-                                    if horse_value is None:
-                                        aligned = [
-                                            value for y, value in horse_slot_rows
-                                            if abs(y - center) <= typical_slot_gap * 0.40 and value is not None
-                                        ]
-                                        if len(aligned) == 1:
-                                            horse_value = aligned[0]
+                                    retry_horse_value = _ocr_single_horse_number(horse_retry_text)
+                                    # The full-column TSV pass can correctly read two-digit
+                                    # horse numbers (for example 14), while PSM 10's
+                                    # single-character row retry may drop the leading 1.
+                                    # Prefer one uniquely aligned full-column reading; use
+                                    # the row retry only when the full-column pass missed it.
+                                    aligned = [
+                                        value for y, value in horse_slot_rows
+                                        if abs(y - center) <= typical_slot_gap * 0.40 and value is not None
+                                    ]
+                                    if len(aligned) == 1:
+                                        horse_value = aligned[0]
+                                    elif len(aligned) == 0:
+                                        horse_value = retry_horse_value
+                                    else:
+                                        horse_value = None
                                     identifier_row_diagnostics.append(
                                         f"identifier_row={row_index + 1} y={center:.1f} "
                                         f"frame={frame_value} frame_retry={frame_retry_text!r} "
