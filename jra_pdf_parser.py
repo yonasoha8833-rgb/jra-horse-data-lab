@@ -1815,32 +1815,53 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     # normalize contrast, and enlarge it. Accept only agreement
                                     # between two independent layout modes; never infer N from rows.
                                     if declared_headcount is None:
-                                        # The official headcount label is near the left-center of
-                                        # the footer band. Exclude the horse rows and payout columns:
-                                        # a full 35% panel crop adds enough text/noise to confuse OCR.
-                                        label_left = max(0, int(panel_image.width * 0.08))
-                                        label_right = min(panel_image.width, int(panel_image.width * 0.28))
-                                        label_bottom = min(panel_image.height, headcount_top + 120)
-                                        label_crop = panel_image.crop(
-                                            (label_left, headcount_top, label_right, label_bottom)
-                                        )
-                                        label_crop = ImageOps.autocontrast(ImageOps.grayscale(label_crop))
-                                        label_crop = label_crop.resize(
-                                            (label_crop.width * 4, label_crop.height * 4),
-                                            Image.Resampling.LANCZOS,
-                                        )
-                                        label_path = temp_dir / f"{page.stem}-{side}-headcount-label.png"
-                                        label_crop.save(label_path)
-                                        label_reads = []
-                                        for label_psm in ("6", "4"):
-                                            label_reads.append(subprocess.run(
-                                                ["tesseract", str(label_path), "stdout", "-l", "jpn+eng",
-                                                 "--psm", label_psm],
-                                                check=True, timeout=15, capture_output=True, text=True,
-                                            ).stdout.strip())
-                                        declared_headcount = _consensus_declared_field_size(label_reads)
+                                        # The official label sits below the last runner, but its
+                                        # horizontal position varies slightly between page panels.
+                                        # Use a tight panel-specific window and test three nearby
+                                        # vertical offsets; accept only a PSM 6/PSM 4 agreement.
+                                        if side == "left":
+                                            label_left = max(0, int(panel_image.width * 0.078))
+                                            label_right = min(panel_image.width, int(panel_image.width * 0.268))
+                                        else:
+                                            label_left = max(0, int(panel_image.width * 0.084))
+                                            label_right = min(panel_image.width, int(panel_image.width * 0.28))
+                                        base_top = int(last_runner_center * scale)
+                                        matching_headcounts = []
+                                        offset_diagnostics = []
+                                        for y_offset in (0, 10, 20):
+                                            label_top = base_top + y_offset
+                                            label_bottom = min(panel_image.height, label_top + 110)
+                                            if label_bottom <= label_top:
+                                                continue
+                                            label_crop = panel_image.crop(
+                                                (label_left, label_top, label_right, label_bottom)
+                                            )
+                                            label_crop = ImageOps.autocontrast(ImageOps.grayscale(label_crop))
+                                            label_crop = label_crop.resize(
+                                                (label_crop.width * 4, label_crop.height * 4),
+                                                Image.Resampling.LANCZOS,
+                                            )
+                                            label_path = temp_dir / (
+                                                f"{page.stem}-{side}-headcount-label-{y_offset}.png"
+                                            )
+                                            label_crop.save(label_path)
+                                            label_reads = []
+                                            for label_psm in ("6", "4"):
+                                                label_reads.append(subprocess.run(
+                                                    ["tesseract", str(label_path), "stdout", "-l", "jpn+eng",
+                                                     "--psm", label_psm],
+                                                    check=True, timeout=15, capture_output=True, text=True,
+                                                ).stdout.strip())
+                                            candidate = _consensus_declared_field_size(label_reads)
+                                            offset_diagnostics.append(
+                                                {"offset": y_offset, "readings": label_reads, "accepted": candidate}
+                                            )
+                                            if candidate is not None:
+                                                matching_headcounts.append(candidate)
+                                        if matching_headcounts and len(set(matching_headcounts)) == 1:
+                                            declared_headcount = matching_headcounts[0]
                                         row_diagnostics.append(
-                                            f"headcount_label_consensus readings={label_reads!r} "
+                                            f"headcount_label_consensus offsets={offset_diagnostics!r} "
                                             f"accepted={declared_headcount}"
                                         )
                                     if declared_headcount is not None:
