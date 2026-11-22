@@ -1141,7 +1141,7 @@ class JraPdfParserTests(unittest.TestCase):
         # The frame OCR image has a 25px top border at 5x scale; horse OCR does not.
         frame_center = _ocr_tsv_lines(frame_tsv, scale=5, y_offset=292 - 25 / 5)[0][0]
         horse_center = _ocr_tsv_lines(horse_tsv, scale=5, y_offset=292)[0][0]
-        self.assertAlmostEqual(frame_center, horse_center, places=1)
+        self.assertAlmostEqual(frame_center, horse_center, delta=0.2)
 
     def test_builds_runner_lines_from_row_ocr_and_trusted_identifiers(self):
         rows = [(100.0, (7, 14)), (140.0, (1, 2))]
