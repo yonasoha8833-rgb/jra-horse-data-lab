@@ -5,7 +5,7 @@ try:
 except ImportError:
     Image = ImageDraw = None
 
-from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_declared_field_size, _propagate_pdf_identity, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, _ocr_runner_lines_are_complete, parse_race_text, _ocr_single_horse_number, _consensus_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _identifier_column_retry_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _strict_ocr_finish_time, _remove_horizontal_identifier_rules
+from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_declared_field_size, _propagate_pdf_identity, _track_from_official_pdf_url, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, _ocr_runner_lines_are_complete, parse_race_text, _ocr_single_horse_number, _consensus_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _identifier_column_retry_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _strict_ocr_finish_time, _remove_horizontal_identifier_rules
 
 
 SAMPLE = """
@@ -95,6 +95,39 @@ class JraPdfParserTests(unittest.TestCase):
             [(row["date"], row["track"]) for row in rows],
             [("2026-01-10", "京都")] * 3,
         )
+
+    def test_derives_track_only_from_canonical_jra_official_pdf_url(self):
+        self.assertEqual(
+            _track_from_official_pdf_url(
+                "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin5.pdf"
+            ),
+            "阪神",
+        )
+        self.assertEqual(
+            _track_from_official_pdf_url(
+                "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-5tokyo3.pdf"
+            ),
+            "東京",
+        )
+        self.assertIsNone(
+            _track_from_official_pdf_url(
+                "https://example.com/datafile/seiseki/report/2026/2026-4hanshin5.pdf"
+            )
+        )
+        self.assertIsNone(
+            _track_from_official_pdf_url(
+                "https://www.jra.go.jp/other/2026-4hanshin5.pdf"
+            )
+        )
+
+    def test_propagates_track_from_official_url_but_not_date(self):
+        rows = [{"date": None, "track": None}, {"date": None, "track": ""}]
+        _propagate_pdf_identity(
+            rows,
+            source_url="https://www.jra.go.jp/datafile/seiseki/report/2026/2026-4hanshin5.pdf",
+        )
+        self.assertEqual([row["track"] for row in rows], ["阪神", "阪神"])
+        self.assertEqual([row["date"] for row in rows], [None, None])
 
     def test_does_not_propagate_conflicting_or_unobserved_pdf_identity(self):
         rows = [
