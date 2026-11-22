@@ -1134,6 +1134,15 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(lines, [(35.0, "1")])
 
 
+    def test_frame_tsv_top_border_is_removed_for_cross_column_alignment(self):
+        header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        frame_tsv = header + "5\t1\t1\t1\t1\t1\t0\t70\t40\t52\t95\t8\n"
+        horse_tsv = header + "5\t1\t1\t1\t1\t1\t0\t45\t75\t51\t95\t16\n"
+        # The frame OCR image has a 25px top border at 5x scale; horse OCR does not.
+        frame_center = _ocr_tsv_lines(frame_tsv, scale=5, y_offset=292 - 25 / 5)[0][0]
+        horse_center = _ocr_tsv_lines(horse_tsv, scale=5, y_offset=292)[0][0]
+        self.assertAlmostEqual(frame_center, horse_center, delta=0.2)
+
     def test_builds_runner_lines_from_row_ocr_and_trusted_identifiers(self):
         rows = [(100.0, (7, 14)), (140.0, (1, 2))]
         lines = _build_ocr_runner_lines(
