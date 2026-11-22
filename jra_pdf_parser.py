@@ -1811,32 +1811,45 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                                 f"headcount_line_retry last_runner_y={last_runner_center:.1f} "
                                                 f"text={footer_retry_text!r} accepted={declared_headcount}"
                                             )
-                                    # Last-resort headcount pass: isolate the printed label area,
-                                    # normalize contrast, and enlarge it. Accept only agreement
-                                    # between two independent layout modes; never infer N from rows.
+                                    # Last-resort headcount pass: the footer label is in a
+                                    # narrow horizontal band, but its vertical position varies
+                                    # with the number of runner rows. Scan overlapping windows
+                                    # below the last detected runner. Keep only exact '(N頭)' OCR
+                                    # reads and require at least two windows to agree.
                                     if declared_headcount is None:
-                                        # Last-resort headcount pass: isolate the printed label area,
-                                        # normalize contrast, and enlarge it. Accept only agreement
-                                        # between two independent layout modes; never infer N from rows.
-                                        label_right = max(1, int(panel_image.width * 0.35))
-                                        label_crop = panel_image.crop((0, headcount_top, label_right, headcount_bottom))
-                                        label_crop = ImageOps.autocontrast(ImageOps.grayscale(label_crop))
-                                        label_crop = label_crop.resize(
-                                            (label_crop.width * 3, label_crop.height * 3),
-                                            Image.Resampling.LANCZOS,
-                                        )
-                                        label_path = temp_dir / f"{page.stem}-{side}-headcount-label.png"
-                                        label_crop.save(label_path)
+                                        label_left = max(0, int(panel_image.width * 0.10))
+                                        label_right = min(panel_image.width, int(panel_image.width * 0.365))
                                         label_reads = []
-                                        for label_psm in ("6", "4"):
-                                            label_reads.append(subprocess.run(
-                                                ["tesseract", str(label_path), "stdout", "-l", "jpn+eng",
-                                                 "--psm", label_psm],
+                                        offset_diagnostics = []
+                                        for y_offset in (0, 20, 40):
+                                            label_top = headcount_top + y_offset
+                                            label_bottom = min(panel_image.height, label_top + 180)
+                                            if label_bottom <= label_top:
+                                                continue
+                                            label_crop = panel_image.crop(
+                                                (label_left, label_top, label_right, label_bottom)
+                                            )
+                                            label_crop = ImageOps.autocontrast(ImageOps.grayscale(label_crop))
+                                            label_crop = label_crop.resize(
+                                                (label_crop.width * 4, label_crop.height * 4),
+                                                Image.Resampling.LANCZOS,
+                                            )
+                                            label_path = temp_dir / (
+                                                f"{page.stem}-{side}-headcount-label-{y_offset}.png"
+                                            )
+                                            label_crop.save(label_path)
+                                            label_text = subprocess.run(
+                                                ["tesseract", str(label_path), "stdout", "-l", "jpn+eng", "--psm", "6"],
                                                 check=True, timeout=15, capture_output=True, text=True,
-                                            ).stdout.strip())
+                                            ).stdout.strip()
+                                            label_reads.append(label_text)
+                                            offset_diagnostics.append(
+                                                {"offset": y_offset, "text": label_text,
+                                                 "accepted": _ocr_declared_field_size(label_text)}
+                                            )
                                         declared_headcount = _consensus_declared_field_size(label_reads)
                                         row_diagnostics.append(
-                                            f"headcount_label_consensus readings={label_reads!r} "
+                                            f"headcount_label_scan readings={offset_diagnostics!r} "
                                             f"accepted={declared_headcount}"
                                         )
                                     if declared_headcount is not None:
