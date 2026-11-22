@@ -604,6 +604,41 @@ class JraPdfParserTests(unittest.TestCase):
         rows[1]["horse_number"], rows[1]["frame"] = 1, 1
         self.assertEqual(_complete_ocr_records(rows), [])
 
+    def test_ocr_fallback_accepts_verified_field_with_scratch_gap_without_rebuilding_frames(self):
+        rows = parse_race_text(SAMPLE)
+        rows[0]["horse_number"], rows[0]["frame"] = 1, 1
+        rows[1]["horse_number"], rows[1]["frame"] = 3, 2
+        for row in rows:
+            row["headcount_verified"] = True
+            row["declared_field_size"] = 2
+
+        accepted = _complete_ocr_records(rows)
+        self.assertEqual(len(accepted), 2)
+        self.assertEqual(
+            [(row["horse_number"], row["frame"]) for row in accepted],
+            [(1, 1), (3, 2)],
+        )
+
+    def test_ocr_fallback_rejects_verified_field_with_duplicate_scratch_gap_number(self):
+        rows = parse_race_text(SAMPLE)
+        rows[0]["horse_number"], rows[0]["frame"] = 1, 1
+        rows[1]["horse_number"], rows[1]["frame"] = 1, 2
+        for row in rows:
+            row["headcount_verified"] = True
+            row["declared_field_size"] = 2
+
+        self.assertEqual(_complete_ocr_records(rows), [])
+
+    def test_ocr_fallback_does_not_accept_scratch_gap_without_verified_headcount(self):
+        rows = parse_race_text(SAMPLE)
+        rows[0]["horse_number"], rows[0]["frame"] = 1, 1
+        rows[1]["horse_number"], rows[1]["frame"] = 3, 2
+        for row in rows:
+            row["declared_field_size"] = 2
+            row.pop("headcount_verified", None)
+
+        self.assertEqual(_complete_ocr_records(rows), [])
+
     def test_ocr_fallback_repairs_leading_one_only_when_full_frame_layout_proves_it(self):
         frame_by_number = {
             1: 1, 2: 2, 3: 3, 4: 4,
