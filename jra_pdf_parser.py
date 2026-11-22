@@ -68,6 +68,15 @@ def _ocr_declared_field_size(text: str) -> int | None:
     return value if 1 <= value <= 18 else None
 
 
+def _consensus_declared_field_size(readings: list[str]) -> int | None:
+    """Accept a headcount only when two independent OCR layouts read the same exact label."""
+    parsed = [_ocr_declared_field_size(reading) for reading in readings]
+    valid = [value for value in parsed if value is not None]
+    if len(valid) < 2 or len(set(valid)) != 1:
+        return None
+    return valid[0]
+
+
 def _seconds(value: str | None) -> float | None:
     if not value:
         return None
@@ -1802,6 +1811,31 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                                 f"headcount_line_retry last_runner_y={last_runner_center:.1f} "
                                                 f"text={footer_retry_text!r} accepted={declared_headcount}"
                                             )
+                                    # Last-resort headcount pass: isolate the printed label area,
+                                    # normalize contrast, and enlarge it. Accept only agreement
+                                    # between two independent layout modes; never infer N from rows.
+                                    if declared_headcount is None:
+                                        label_right = max(1, int(panel_image.width * 0.35))
+                                        label_crop = panel_image.crop((0, headcount_top, label_right, headcount_bottom))
+                                        label_crop = ImageOps.autocontrast(ImageOps.grayscale(label_crop))
+                                        label_crop = label_crop.resize(
+                                            (label_crop.width * 3, label_crop.height * 3),
+                                            Image.Resampling.LANCZOS,
+                                        )
+                                        label_path = temp_dir / f"{page.stem}-{side}-headcount-label.png"
+                                        label_crop.save(label_path)
+                                        label_reads = []
+                                        for label_psm in ("6", "4"):
+                                            label_reads.append(subprocess.run(
+                                                ["tesseract", str(label_path), "stdout", "-l", "jpn+eng",
+                                                 "--psm", label_psm],
+                                                check=True, timeout=15, capture_output=True, text=True,
+                                            ).stdout.strip())
+                                        declared_headcount = _consensus_declared_field_size(label_reads)
+                                        row_diagnostics.append(
+                                            f"headcount_label_consensus readings={label_reads!r} "
+                                            f"accepted={declared_headcount}"
+                                        )
                                     if declared_headcount is not None:
                                         clean_lines.append(f"({declared_headcount}頭)")
                             if _ocr_runner_lines_are_complete(row_lines, len(identifier_rows)):
