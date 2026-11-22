@@ -1815,11 +1815,18 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     # normalize contrast, and enlarge it. Accept only agreement
                                     # between two independent layout modes; never infer N from rows.
                                     if declared_headcount is None:
-                                        label_right = max(1, int(panel_image.width * 0.35))
-                                        label_crop = panel_image.crop((0, headcount_top, label_right, headcount_bottom))
+                                        # The official headcount label is near the left-center of
+                                        # the footer band. Exclude the horse rows and payout columns:
+                                        # a full 35% panel crop adds enough text/noise to confuse OCR.
+                                        label_left = max(0, int(panel_image.width * 0.08))
+                                        label_right = min(panel_image.width, int(panel_image.width * 0.28))
+                                        label_bottom = min(panel_image.height, headcount_top + 120)
+                                        label_crop = panel_image.crop(
+                                            (label_left, headcount_top, label_right, label_bottom)
+                                        )
                                         label_crop = ImageOps.autocontrast(ImageOps.grayscale(label_crop))
                                         label_crop = label_crop.resize(
-                                            (label_crop.width * 3, label_crop.height * 3),
+                                            (label_crop.width * 4, label_crop.height * 4),
                                             Image.Resampling.LANCZOS,
                                         )
                                         label_path = temp_dir / f"{page.stem}-{side}-headcount-label.png"
