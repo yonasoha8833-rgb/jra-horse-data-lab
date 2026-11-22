@@ -1820,8 +1820,12 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 # contrast and enlarge it before OCR so small Japanese names
                                 # and the finish-time column survive the line segmentation.
                                 row_image = ImageOps.autocontrast(ImageOps.grayscale(row_image))
+                                # These identity columns contain compact Japanese glyphs.
+                                # Enlarge the bounded single-row crop more aggressively so
+                                # Tesseract receives enough pixels for the horse name and
+                                # sex/age without expanding into adjacent runner rows.
                                 row_image = row_image.resize(
-                                    (row_image.width * 2, row_image.height * 2),
+                                    (row_image.width * 4, row_image.height * 4),
                                     Image.Resampling.LANCZOS,
                                 )
                                 row_image.save(row_path)
