@@ -843,7 +843,20 @@ def _infer_identifier_pairs_from_complete_frame_column(
         observed.add(horse)
         row_numbers[center] = horse
 
-    if len(used_rows) != len(horse_rows) or len(mismatched_slots) > 1:
+    # OCR can pick up a digit-like token from the payout/footer area just
+    # below the final runner. Ignore an unmatched detection only when it is
+    # strictly outside the complete frame column's vertical span; an unmatched
+    # row inside the runner span remains ambiguous and rejects the whole field.
+    frame_min = min(centers)
+    frame_max = max(centers)
+    unmatched_rows = [
+        horse_rows[index][0]
+        for index in range(len(horse_rows))
+        if index not in used_rows
+    ]
+    if any(frame_min - tolerance <= y <= frame_max + tolerance for y in unmatched_rows):
+        return []
+    if len(mismatched_slots) > 1:
         return []
     missing_numbers = set(range(1, field_size + 1)) - observed
     unresolved_slots = missing_slots + mismatched_slots
