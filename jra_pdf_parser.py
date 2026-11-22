@@ -56,6 +56,10 @@ def _ocr_runner_row_bounds(
     bottom = min(image_height, int((center + half_height) * scale))
     return top, bottom
 
+def _ocr_runner_identity_bounds(panel_width: int) -> tuple[int, int]:
+    """Crop only the horse-name and sex/age columns, excluding unrelated table fields."""
+    return max(0, int(panel_width * 0.055)), min(panel_width, int(panel_width * 0.215))
+
 
 def _last_stable_identifier_slot_center(centers) -> float | None:
     """Find the final table-row center from stable row spacing, ignoring a detached footer OCR slot."""
@@ -1795,8 +1799,9 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                         panel_image = Image.open(crop_path)
                         try:
                             scale = 5 / 3
-                            x_left = int(panel_width * 0.085 * scale)
-                            x_right = int(panel_width * 0.99 * scale)
+                            identity_left, identity_right = _ocr_runner_identity_bounds(panel_image.width)
+                            x_left = identity_left
+                            x_right = identity_right
                             row_texts = []
                             for row_index, center in enumerate(centers):
                                 previous = centers[row_index - 1] if row_index else center - typical_gap
