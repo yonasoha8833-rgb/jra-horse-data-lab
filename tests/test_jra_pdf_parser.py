@@ -42,7 +42,7 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertIsNone(_consensus_horse_number(["1]", "1"]))
 
     def test_contrast_retry_requires_consensus_and_frame_match(self):
-        self.assertEqual(_verified_horse_retry_consensus(["5", "5", "9"], 8, 5, set()), 5)
+        self.assertEqual(_verified_horse_retry_consensus(["5", "5", ""], 8, 5, set()), 5)
         self.assertIsNone(_verified_horse_retry_consensus(["5", "9", "9"], 8, 5, set()))
         self.assertIsNone(_verified_horse_retry_consensus(["5", "5"], 8, 6, set()))
         self.assertIsNone(_verified_horse_retry_consensus(["5", "5"], 8, 5, {5}))
