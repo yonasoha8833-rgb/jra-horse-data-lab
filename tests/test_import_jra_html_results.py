@@ -81,6 +81,27 @@ class ImportJraHtmlResultsTests(unittest.TestCase):
         self.assertEqual(result["conflicts"][0]["reason"], "horse_name_mismatch")
         self.assertFalse(result["automatic_merge_performed"])
 
+    def test_reports_field_level_conflicts_for_exactly_matched_horses(self):
+        html = [runner(finish=1, finish_time_seconds=94.4, individual_last3f=34.2)]
+        pdf = [runner(finish=2, finish_time_seconds=94.5, individual_last3f=34.4)]
+        result = compare_sources(html, pdf)
+        self.assertEqual(result["matched_count"], 1)
+        self.assertEqual(result["field_conflict_count"], 3)
+        self.assertEqual(
+            {item["field"] for item in result["field_conflicts"]},
+            {"finish", "finish_time_seconds", "individual_last3f"},
+        )
+        self.assertEqual(result["compared_field_count"], 3)
+        self.assertFalse(result["automatic_merge_performed"])
+
+    def test_missing_source_values_are_not_treated_as_agreement(self):
+        html = [runner(finish=1, finish_time_seconds=None, individual_last3f=34.2)]
+        pdf = [runner(finish=1, finish_time_seconds=94.4, individual_last3f=None)]
+        result = compare_sources(html, pdf)
+        self.assertEqual(result["matched_count"], 1)
+        self.assertEqual(result["field_conflict_count"], 0)
+        self.assertEqual(result["missing_field_pair_count"], 8)
+
     def test_missing_pdf_race_metadata_does_not_fuzzy_match(self):
         html = [runner()]
         pdf = [runner(date=None, track=None, race_number=None)]
