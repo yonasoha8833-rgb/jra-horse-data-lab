@@ -45,6 +45,18 @@ def _ascii_digits(value: str) -> str:
     return value.translate(str.maketrans("０１２３４５６７８９", "0123456789"))
 
 
+def _ocr_runner_row_bounds(
+    center: float, previous: float, following: float, scale: float, image_height: int
+) -> tuple[int, int]:
+    """Crop the central 80% of a runner's vertical slot, away from adjacent rows."""
+    before_gap = max(1.0, center - previous)
+    after_gap = max(1.0, following - center)
+    half_height = min(before_gap, after_gap) * 0.40
+    top = max(0, int((center - half_height) * scale))
+    bottom = min(image_height, int((center + half_height) * scale))
+    return top, bottom
+
+
 def _last_valid_ocr_runner_center(centers, identifier_rows, row_texts) -> float | None:
     """Locate the last row that independently parses as a runner, ignoring stray OCR slots."""
     for center, identifier_row, row_text in reversed(list(zip(centers, identifier_rows, row_texts))):
@@ -1762,8 +1774,9 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                             for row_index, center in enumerate(centers):
                                 previous = centers[row_index - 1] if row_index else center - typical_gap
                                 following = centers[row_index + 1] if row_index + 1 < len(centers) else center + typical_gap
-                                y_top = max(0, int(((previous + center) / 2) * scale))
-                                y_bottom = min(panel_image.height, int(((center + following) / 2) * scale))
+                                y_top, y_bottom = _ocr_runner_row_bounds(
+                                    center, previous, following, scale, panel_image.height
+                                )
                                 row_path = temp_dir / f"{page.stem}-{side}-row-{row_index}.png"
                                 row_image = panel_image.crop((x_left, y_top, x_right, y_bottom))
                                 # The runner row is short and densely printed. Normalize
