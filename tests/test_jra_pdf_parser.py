@@ -548,6 +548,25 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertIn("invalid_finish_time_minutes", rows[0]["runner_validation_warnings"])
         self.assertEqual(_complete_ocr_records(rows), [])
 
+    def test_ocr_fallback_does_not_assume_three_rows_mean_three_starters(self):
+        rows = [
+            {
+                "source_url": "official.pdf",
+                "date": "2026-11-14",
+                "track": "札幌",
+                "race_number": 1,
+                "horse_number": number,
+                "frame": number,
+                "declared_field_size": None,
+                "finish_time_seconds": 90.0 + number,
+                "result_status": None,
+            }
+            for number in (1, 2, 3)
+        ]
+        # A 3-runner fragment is ambiguous with larger fields: without an
+        # independently verified '(3頭)' footer, it must not be accepted.
+        self.assertEqual(_complete_ocr_records(rows), [])
+
     def test_ocr_fallback_rejects_ambiguous_or_incomplete_inferred_field(self):
         frame_by_number = {
             **{number: number for number in range(1, 7)},
