@@ -488,18 +488,35 @@ def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]
                     row["declared_field_size"] = inferred
 
         # A matching row count alone is not enough: OCR may duplicate one
-        # horse number while omitting another. Require the exact official
-        # 1..N numbering and matching frame assignments before accepting.
+        # horse number while omitting another. If all numbers form 1..N, the
+        # official frame allocation can be deterministically checked/repaired.
+        # When a verified JRA headcount is present, however, scratches can
+        # leave gaps in horse numbers. In that case accept only a complete set
+        # of unique, in-range horse numbers and independently read valid frame
+        # numbers; never recompute frames from the reduced starter count.
         if complete and declared is not None:
             numbers = [row.get("horse_number") for row in rows]
-            complete = sorted(numbers) == list(range(1, declared + 1))
-            if complete:
-                # The horse-number column is independently OCR-read and forms
-                # the exact official 1..N sequence. In that case the JRA frame
-                # assignment is deterministic from the verified field size;
-                # repair only the frame column, never a horse number.
+            exact_sequence = sorted(numbers) == list(range(1, declared + 1))
+            if exact_sequence:
                 for row in rows:
                     row["frame"] = _expected_frame(declared, row["horse_number"])
+            else:
+                valid_numbers = all(
+                    isinstance(number, int) and not isinstance(number, bool)
+                    and 1 <= number <= 18
+                    for number in numbers
+                )
+                unique_numbers = len(set(numbers)) == len(numbers)
+                valid_frames = all(
+                    isinstance(row.get("frame"), int)
+                    and not isinstance(row.get("frame"), bool)
+                    and 1 <= row["frame"] <= 8
+                    for row in rows
+                )
+                complete = (
+                    rows[0].get("headcount_verified") is True
+                    and valid_numbers and unique_numbers and valid_frames
+                )
         if complete:
             for row in rows:
                 row["extraction_status"] = "ocr_fallback_basic_fields"
