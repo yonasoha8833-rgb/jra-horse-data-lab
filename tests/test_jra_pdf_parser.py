@@ -64,7 +64,7 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertLess(bottom, int(125.0 * (5 / 3)))
 
     def test_ocr_runner_row_bounds_respect_image_edges(self):
-        self.assertEqual(_ocr_runner_row_bounds(5.0, 0.0, 20.0, 2.0, 100), (6, 14))
+        self.assertEqual(_ocr_runner_row_bounds(0.5, 0.0, 20.0, 2.0, 100), (0, 1))
 
     def test_last_valid_ocr_runner_center_ignores_trailing_unreadable_slots(self):
         centers = [10.0, 20.0, 30.0]
