@@ -669,6 +669,18 @@ def _consensus_horse_number(readings: list[str]) -> int | None:
     return valid[0]
 
 
+def _select_consensus_horse_number(
+    aligned_values: list[int], row_readings: list[str]
+) -> int | None:
+    """Require row-local OCR consensus and reject conflicts with the column pass."""
+    consensus = _consensus_horse_number(row_readings)
+    if consensus is None or len(aligned_values) > 1:
+        return None
+    if aligned_values and aligned_values[0] != consensus:
+        return None
+    return consensus
+
+
 def _verified_horse_retry_consensus(
     readings: list[str], field_size: int, frame: int, reserved: set[int]
 ) -> int | None:
@@ -1419,34 +1431,23 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         ["tesseract", str(horse_retry_path), "stdout", "-l", "eng", "--psm", "10", "-c", "tessedit_char_whitelist=0123456789"],
                                         check=True, timeout=15, capture_output=True, text=True,
                                     ).stdout.strip()
-                                    retry_horse_value = _ocr_single_horse_number(horse_retry_text)
-                                    if retry_horse_value is None:
-                                        # PSM 10 can reject a clean, narrow "1" glyph.
-                                        # Retry with two alternate single-word segmentation
-                                        # modes and accept only matching digit-only readings.
-                                        alternate_readings = []
-                                        for psm in ("8", "13"):
-                                            alternate_readings.append(subprocess.run(
-                                                ["tesseract", str(horse_retry_path), "stdout", "-l", "eng",
-                                                 "--psm", psm, "-c", "tessedit_char_whitelist=0123456789"],
-                                                check=True, timeout=15, capture_output=True, text=True,
-                                            ).stdout.strip())
-                                        retry_horse_value = _consensus_horse_number(alternate_readings)
-                                    # The full-column TSV pass can correctly read two-digit
-                                    # horse numbers (for example 14), while PSM 10's
-                                    # single-character row retry may drop the leading 1.
-                                    # Prefer one uniquely aligned full-column reading; use
-                                    # the row retry only when the full-column pass missed it.
+                                    # Always run independent single-row segmentation modes.
+                                    # A lone OCR mode can turn 8 into 5 or drop the leading
+                                    # digit of a two-digit number; require at least two modes
+                                    # to agree, and reject any conflict with the column TSV.
+                                    alternate_readings = []
+                                    for psm in ("8", "13"):
+                                        alternate_readings.append(subprocess.run(
+                                            ["tesseract", str(horse_retry_path), "stdout", "-l", "eng",
+                                             "--psm", psm, "-c", "tessedit_char_whitelist=0123456789"],
+                                            check=True, timeout=15, capture_output=True, text=True,
+                                        ).stdout.strip())
+                                    row_readings = [horse_retry_text, *alternate_readings]
                                     aligned = [
                                         value for y, value in horse_slot_rows
                                         if abs(y - center) <= typical_slot_gap * 0.40 and value is not None
                                     ]
-                                    if len(aligned) == 1:
-                                        horse_value = aligned[0]
-                                    elif len(aligned) == 0:
-                                        horse_value = retry_horse_value
-                                    else:
-                                        horse_value = None
+                                    horse_value = _select_consensus_horse_number(aligned, row_readings)
                                     identifier_row_diagnostics.append(
                                         f"identifier_row={row_index + 1} y={center:.1f} "
                                         f"frame={frame_value} frame_retry={frame_retry_text!r} "
