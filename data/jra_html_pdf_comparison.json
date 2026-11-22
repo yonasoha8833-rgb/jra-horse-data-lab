@@ -2,10 +2,14 @@
   "matching_policy": "exact date + track + race_number + horse_number + horse_name",
   "matched_count": 0,
   "conflict_count": 0,
+  "field_conflict_count": 0,
+  "compared_field_count": 0,
+  "missing_field_pair_count": 0,
   "html_only_count": 32,
   "pdf_only_count": 0,
   "matched": [],
   "conflicts": [],
+  "field_conflicts": [],
   "html_only": [
     {
       "date": "2026-11-15",
