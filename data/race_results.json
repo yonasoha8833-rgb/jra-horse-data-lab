@@ -76,9 +76,9 @@
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate1.pdf",
-      "attempts": 1,
-      "last_attempt_utc": "2026-11-14T10:03:32.116368+00:00",
-      "error": "NameError: name 'number_result' is not defined"
+      "attempts": 2,
+      "last_attempt_utc": "2026-11-22T06:46:48.660019+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate10.pdf",
@@ -100,15 +100,15 @@
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate2.pdf",
-      "attempts": 1,
-      "last_attempt_utc": "2026-11-14T10:03:48.051035+00:00",
-      "error": "NameError: name 'number_result' is not defined"
+      "attempts": 2,
+      "last_attempt_utc": "2026-11-22T06:53:03.685872+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate3.pdf",
-      "attempts": 1,
-      "last_attempt_utc": "2026-11-14T10:04:04.362258+00:00",
-      "error": "NameError: name 'number_result' is not defined"
+      "attempts": 2,
+      "last_attempt_utc": "2026-11-22T06:59:12.881980+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1hakodate4.pdf",
