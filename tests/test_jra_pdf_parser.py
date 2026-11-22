@@ -780,6 +780,22 @@ class JraPdfParserTests(unittest.TestCase):
             _infer_identifier_pairs_from_complete_frame_column(frame_rows, horse_rows), []
         )
 
+    def test_ignores_only_unmatched_trailing_footer_identifier_outside_runner_span(self):
+        frame_rows = [(100.0, 1), (140.0, 2), (180.0, 3), (220.0, 4)]
+        horse_rows = [
+            (100.0, 1), (140.0, 2), (180.0, 3), (220.0, 4),
+            (270.0, None),  # isolated footer/payout OCR slot below the last runner
+        ]
+        inferred = _infer_identifier_pairs_from_complete_frame_column(frame_rows, horse_rows)
+        self.assertEqual([pair for _, pair in inferred], [(1, 1), (2, 2), (3, 3), (4, 4)])
+
+    def test_rejects_unmatched_identifier_inside_runner_span(self):
+        frame_rows = [(100.0, 1), (140.0, 2), (180.0, 3), (220.0, 4)]
+        horse_rows = [
+            (100.0, 1), (140.0, 2), (160.0, 9), (180.0, 3), (220.0, 4),
+        ]
+        self.assertEqual(_infer_identifier_pairs_from_complete_frame_column(frame_rows, horse_rows), [])
+
     def test_infers_missing_horses_when_ocr_rows_are_present_but_unreadable(self):
         entries = [
             (4, 8), (3, 5), (4, 7), (6, 11), (6, 12), (1, 1),
