@@ -57,6 +57,33 @@ def _ocr_runner_row_bounds(
     return top, bottom
 
 
+def _last_stable_identifier_slot_center(centers) -> float | None:
+    """Find the final table-row center from stable row spacing, ignoring a detached footer OCR slot."""
+    ordered = sorted(float(center) for center in centers)
+    if len(ordered) < 4:
+        return None
+    gaps = [later - earlier for earlier, later in zip(ordered, ordered[1:])]
+    positive = [gap for gap in gaps if gap > 0]
+    if len(positive) < 3:
+        return None
+    typical_gap = sorted(positive)[len(positive) // 2]
+    if typical_gap <= 0:
+        return None
+    # If the final detected slot is detached from the regular runner rows,
+    # anchor the footer scan to the preceding stable row, not the stray slot.
+    if len(gaps) >= 2 and gaps[-1] > typical_gap * 1.60:
+        stable_gaps = gaps[:-1]
+        if not stable_gaps or any(
+            gap < typical_gap * 0.60 or gap > typical_gap * 1.40
+            for gap in stable_gaps
+        ):
+            return None
+        return ordered[-2]
+    if any(gap < typical_gap * 0.60 or gap > typical_gap * 1.40 for gap in gaps):
+        return None
+    return ordered[-1]
+
+
 def _last_valid_ocr_runner_center(centers, identifier_rows, row_texts) -> float | None:
     """Locate the last row that independently parses as a runner, ignoring stray OCR slots."""
     for center, identifier_row, row_text in reversed(list(zip(centers, identifier_rows, row_texts))):
@@ -1924,6 +1951,12 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                             last_runner_center = _last_valid_ocr_runner_center(
                                 centers, identifier_rows, row_texts
                             )
+                            if last_runner_center is None:
+                                # Full-row OCR can fail on a noisy scan even when the
+                                # identifier-column geometry still shows the final runner row.
+                                # Use stable row spacing only to position the footer OCR crop;
+                                # this does not infer a horse number or accept a race result.
+                                last_runner_center = _last_stable_identifier_slot_center(centers)
                             if last_runner_center is not None:
                                 headcount_top = max(0, int(last_runner_center * scale) + 20)
                                 headcount_bottom = min(panel_image.height, headcount_top + 180)
