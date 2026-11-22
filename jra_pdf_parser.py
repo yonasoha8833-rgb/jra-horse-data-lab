@@ -1821,8 +1821,8 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         label_right = min(panel_image.width, int(panel_image.width * 0.365))
                                         label_reads = []
                                         offset_diagnostics = []
-                                        for y_offset in (0, 20, 40):
-                                            label_top = headcount_top + y_offset
+                                        for y_offset in (-80, -60, -40, -20):
+                                            label_top = max(0, headcount_top + y_offset)
                                             label_bottom = min(panel_image.height, label_top + 180)
                                             if label_bottom <= label_top:
                                                 continue
