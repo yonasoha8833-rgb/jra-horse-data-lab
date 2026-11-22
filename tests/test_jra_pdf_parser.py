@@ -5,7 +5,7 @@ try:
 except ImportError:
     Image = ImageDraw = None
 
-from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_declared_field_size, _consensus_declared_field_size, _propagate_pdf_identity, _track_from_official_pdf_url, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, _ocr_runner_lines_are_complete, parse_race_text, _ocr_single_horse_number, _consensus_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _identifier_column_retry_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _trim_trailing_identifier_outliers, _strict_ocr_finish_time, _remove_horizontal_identifier_rules
+from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_declared_field_size, _consensus_declared_field_size, _propagate_pdf_identity, _track_from_official_pdf_url, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, _ocr_runner_lines_are_complete, parse_race_text, _ocr_single_horse_number, _verified_horse_retry, _consensus_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _identifier_column_retry_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _trim_trailing_identifier_outliers, _strict_ocr_finish_time, _remove_horizontal_identifier_rules
 
 
 SAMPLE = """
@@ -881,6 +881,15 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertIsNone(_ocr_single_frame_number("rf"))
         self.assertIsNone(_ocr_single_frame_number("17"))
         self.assertIsNone(_ocr_single_frame_number(""))
+
+    def test_verified_horse_retry_rejects_digit_conflicting_with_printed_frame(self):
+        self.assertIsNone(_verified_horse_retry("9", 13, 4, set()))
+
+    def test_verified_horse_retry_accepts_digit_matching_printed_frame(self):
+        self.assertEqual(_verified_horse_retry("5", 13, 4, set()), 5)
+
+    def test_verified_horse_retry_rejects_reserved_duplicate(self):
+        self.assertIsNone(_verified_horse_retry("5", 13, 4, {5}))
 
     def test_single_horse_number_retry_accepts_only_one_valid_digit_token(self):
         self.assertEqual(_ocr_single_horse_number("9"), 9)

@@ -590,6 +590,16 @@ def _ocr_single_horse_number(text: str) -> int | None:
         return None
     return int(token)
 
+def _verified_horse_retry(text: str, field_size: int, frame: int, reserved: set[int]) -> int | None:
+    """Accept a fresh horse-number read only when it agrees with the printed frame."""
+    value = _ocr_single_horse_number(text)
+    if value is None or not 1 <= value <= field_size:
+        return None
+    if _expected_frame(field_size, value) != frame or value in reserved:
+        return None
+    return value
+
+
 def _consensus_horse_number(readings: list[str]) -> int | None:
     """Accept a horse number only when two independent OCR segmentation modes agree."""
     parsed = [_ocr_single_horse_number(value) for value in readings]
@@ -1567,14 +1577,17 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                          "-c", "tessedit_char_whitelist=0123456789"],
                                         check=True, timeout=15, capture_output=True, text=True,
                                     ).stdout.strip()
-                                    retry_value = _ocr_single_horse_number(retry_text)
-                                    accepted_retry = (
-                                        retry_value is not None
-                                        and _expected_frame(len(frame_centers), retry_value) == frame_value
-                                        and retry_value not in reserved
+                                    retry_value = _verified_horse_retry(
+                                        retry_text, len(frame_centers), frame_value, reserved
                                     )
+                                    accepted_retry = retry_value is not None
+                                    # A primary OCR digit that contradicts the printed
+                                    # frame is not retained when the independent retry
+                                    # fails. Keep the slot unreadable; complete-field
+                                    # validation may resolve it only from the unique
+                                    # official frame allocation.
+                                    retried_slots[slot_index] = (center, retry_value)
                                     if accepted_retry:
-                                        retried_slots[slot_index] = (center, retry_value)
                                         reserved.add(retry_value)
                                     identifier_row_diagnostics.append(
                                         f"horse_mismatch_retry y={center:.1f} original={original} "
