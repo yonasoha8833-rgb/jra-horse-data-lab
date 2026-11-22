@@ -626,6 +626,16 @@ def _consensus_horse_number(readings: list[str]) -> int | None:
     return valid[0]
 
 
+def _verified_horse_retry_consensus(
+    readings: list[str], field_size: int, frame: int, reserved: set[int]
+) -> int | None:
+    """Accept only a two-read OCR consensus that also matches the printed frame."""
+    value = _consensus_horse_number(readings)
+    if value is None:
+        return None
+    return _verified_horse_retry(str(value), field_size, frame, reserved)
+
+
 def _ocr_identifier_column(tsv: str, *, scale: float, y_offset: float, allowed: str) -> list[tuple[float, int]]:
     """Read one isolated identifier column without merging adjacent digits."""
     values = []
@@ -1610,6 +1620,36 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     retry_value = _verified_horse_retry(
                                         retry_text, len(frame_centers), frame_value, reserved
                                     )
+                                    contrast_readings = []
+                                    if retry_value is None:
+                                        # A valid-looking but frame-inconsistent digit (for example,
+                                        # a printed 5 read as 9) must not be trusted. Re-read the
+                                        # same isolated printed cell with independent contrast
+                                        # thresholds; accept only a two-reading consensus that
+                                        # also agrees with the independently read frame.
+                                        gray = ImageOps.autocontrast(ImageOps.grayscale(row_crop))
+                                        enlarged = gray.resize(
+                                            (max(1, gray.width * 3), max(1, gray.height * 3)),
+                                            Image.Resampling.LANCZOS,
+                                        )
+                                        for threshold in (100, 145, 190):
+                                            variant = enlarged.point(
+                                                lambda pixel, cutoff=threshold: 255 if pixel >= cutoff else 0
+                                            )
+                                            variant_path = temp_dir / (
+                                                f"{page.stem}-{side}-horse-mismatch-{slot_index}-"
+                                                f"threshold-{threshold}.png"
+                                            )
+                                            ImageOps.expand(variant, border=30, fill="white").save(variant_path)
+                                            contrast_readings.append(subprocess.run(
+                                                ["tesseract", str(variant_path), "stdout", "-l", "eng",
+                                                 "--psm", "10", "-c",
+                                                 "tessedit_char_whitelist=0123456789"],
+                                                check=True, timeout=15, capture_output=True, text=True,
+                                            ).stdout.strip())
+                                        retry_value = _verified_horse_retry_consensus(
+                                            contrast_readings, len(frame_centers), frame_value, reserved
+                                        )
                                     accepted_retry = retry_value is not None
                                     # A primary OCR digit that contradicts the printed
                                     # frame is not retained when the independent retry
@@ -1621,7 +1661,8 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         reserved.add(retry_value)
                                     identifier_row_diagnostics.append(
                                         f"horse_mismatch_retry y={center:.1f} original={original} "
-                                        f"retry={retry_text!r} accepted={accepted_retry}"
+                                        f"retry={retry_text!r} contrast={contrast_readings!r} "
+                                        f"accepted={accepted_retry}"
                                     )
                                 horse_slot_rows = retried_slots
                                 horse_rows = [
