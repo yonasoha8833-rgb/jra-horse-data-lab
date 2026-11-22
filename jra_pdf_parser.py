@@ -1849,8 +1849,8 @@ def _track_from_official_pdf_url(source_url: str) -> str | None:
     if parsed.scheme != "https" or parsed.hostname != "www.jra.go.jp":
         return None
     match = re.fullmatch(
-        r"/datafile/seiseki/report/\\d{4}/\\d+-\\d+"
-        r"(sapporo|hakodate|fukushima|niigata|tokyo|nakayama|chukyo|kyoto|hanshin|kokura)\\d+\\.pdf",
+        r"/datafile/seiseki/report/\d{4}/\d+-\d+"
+        r"(sapporo|hakodate|fukushima|niigata|tokyo|nakayama|chukyo|kyoto|hanshin|kokura)\d+\.pdf",
         parsed.path,
     )
     if not match:
