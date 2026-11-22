@@ -66,9 +66,12 @@ class JraPdfParserTests(unittest.TestCase):
     def test_ocr_runner_row_bounds_respect_image_edges(self):
         self.assertEqual(_ocr_runner_row_bounds(0.5, 0.0, 20.0, 2.0, 100), (0, 1))
 
-    def test_runner_identity_crop_excludes_unrelated_columns(self):
-        self.assertEqual(_ocr_runner_identity_bounds(1788), (98, 384))
-        self.assertLess(_ocr_runner_identity_bounds(1788)[1], int(1788 * 0.25))
+    def test_runner_identity_crop_covers_full_name_and_sex_age_columns(self):
+        left, right = _ocr_runner_identity_bounds(1788)
+        self.assertEqual((left, right), (151, 598))
+        self.assertGreaterEqual(left, int(1788 * 0.08))
+        self.assertGreater(right, int(1788 * 0.30))
+        self.assertLess(right, int(1788 * 0.36))
 
     def test_last_stable_identifier_slot_center_ignores_detached_footer_slot(self):
         from jra_pdf_parser import _last_stable_identifier_slot_center

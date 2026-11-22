@@ -58,7 +58,7 @@ def _ocr_runner_row_bounds(
 
 def _ocr_runner_identity_bounds(panel_width: int) -> tuple[int, int]:
     """Crop only the horse-name and sex/age columns, excluding unrelated table fields."""
-    return max(0, int(panel_width * 0.055)), min(panel_width, int(panel_width * 0.215))
+    return max(0, int(panel_width * 0.085)), min(panel_width, int(panel_width * 0.335))
 
 
 def _last_stable_identifier_slot_center(centers) -> float | None:
