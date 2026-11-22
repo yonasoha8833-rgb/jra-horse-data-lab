@@ -66,6 +66,16 @@ class JraPdfParserTests(unittest.TestCase):
     def test_ocr_runner_row_bounds_respect_image_edges(self):
         self.assertEqual(_ocr_runner_row_bounds(0.5, 0.0, 20.0, 2.0, 100), (0, 1))
 
+    def test_last_stable_identifier_slot_center_ignores_detached_footer_slot(self):
+        from jra_pdf_parser import _last_stable_identifier_slot_center
+        centers = [453.7, 477.7, 500.6, 523.7, 545.7, 568.8, 591.7,
+                   614.6, 637.7, 659.6, 682.8, 705.7, 728.6, 751.7, 819.1]
+        self.assertAlmostEqual(_last_stable_identifier_slot_center(centers), 751.7)
+
+    def test_last_stable_identifier_slot_center_rejects_irregular_rows(self):
+        from jra_pdf_parser import _last_stable_identifier_slot_center
+        self.assertIsNone(_last_stable_identifier_slot_center([10, 20, 35, 60, 100]))
+
     def test_last_valid_ocr_runner_center_ignores_trailing_unreadable_slots(self):
         centers = [10.0, 20.0, 30.0]
         identifier_rows = [
