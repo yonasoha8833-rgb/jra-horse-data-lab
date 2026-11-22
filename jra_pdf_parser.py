@@ -1234,8 +1234,12 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                     check=True, timeout=30, capture_output=True, text=True,
                 ).stdout
                 number_tsv = "FRAME COLUMN\n" + frame_tsv + "\nHORSE COLUMN\n" + horse_tsv
+                # frame_tsv is generated from frame_inner with a 25px top border.
+                # Remove that border from its reported coordinates so frame and horse
+                # row centers share the same number_crop origin (horse_tsv has no border).
+                frame_tsv_y_offset = float(number_box[1]) - 25 / 5
                 frame_rows = _ocr_identifier_column(
-                    frame_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"[1-8]"
+                    frame_tsv, scale=5, y_offset=frame_tsv_y_offset, allowed=r"[1-8]"
                 )
                 horse_rows = _ocr_identifier_column(
                     horse_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"(?:[1-9]|1[0-8])"
@@ -1243,7 +1247,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 # Anchor row-local retries to frame-column positions. The normal
                 # horse-column TSV pass can omit whole rows or merge digits.
                 frame_slot_rows = _ocr_identifier_column_slots(
-                    frame_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"[1-8]"
+                    frame_tsv, scale=5, y_offset=frame_tsv_y_offset, allowed=r"[1-8]"
                 )
                 horse_slot_rows = _ocr_identifier_column_slots(
                     horse_tsv, scale=5, y_offset=float(number_box[1]), allowed=r"(?:[1-9]|1[0-8])"
