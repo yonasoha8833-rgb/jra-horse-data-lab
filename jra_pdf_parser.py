@@ -33,6 +33,7 @@ def _strip_race_heading(line: str) -> str:
     return RACE_RE.sub("", line).strip()
 DATE_RE = re.compile(r"(\d{1,2})月\s*(\d{1,2})日")
 FIELD_SIZE_RE = re.compile(r"[（(]\s*([0-9０-９]{1,2})\s*頭\s*[）)]")
+HEADCOUNT_VERIFIED_RE = re.compile(r"JRA_OCR_HEADCOUNT_VERIFIED=(\d{1,2})")
 DISTANCE_RE = re.compile(r"([0-9０-９]{1,2}[,，][0-9０-９]{3}|[0-9０-９]{3,4})\s*(?:ｍ|m|メートル|\x02)")
 RESULT_STATUS_RE = re.compile(r"(競走中止|失格|中止|取消|除外)")
 GOING_RE = re.compile(r"(?:小雨|小雪|晴|曇|雨|雪)\s*(良|稍重|重|不良)")
@@ -285,6 +286,12 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
         declared_field_size = (
             int(_ascii_digits(declared_match.group(1))) if declared_match else None
         )
+        verified_headcount_match = HEADCOUNT_VERIFIED_RE.search("\\n".join(block))
+        headcount_verified = bool(
+            verified_headcount_match
+            and declared_field_size is not None
+            and int(verified_headcount_match.group(1)) == declared_field_size
+        )
         if declared_field_size is not None and declared_field_size != len(runners):
             validation_warnings.append(
                 f"declared_field_size_mismatch:declared={declared_field_size},parsed={len(runners)}"
@@ -338,6 +345,7 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
                 "finish": current_finish_position if is_placed else None,
                 "field_size": len(runners),
                 "declared_field_size": declared_field_size,
+                "headcount_verified": headcount_verified,
                 "race_validation_warnings": validation_warnings,
                 "race_last3f": last3f,
                 "race_last4f": last4f,
@@ -408,6 +416,10 @@ def _repair_ocr_horse_numbers(rows: list[dict[str, Any]]) -> bool:
 
     if sorted(repaired_numbers) != list(range(1, field_size + 1)):
         return False
+    # This helper exists only to correct a demonstrated OCR prefix error.
+    # Do not use an unchanged short fragment to declare its own row count complete.
+    if all(number == row.get("horse_number") for row, number in zip(rows, repaired_numbers)):
+        return False
 
     for row, number in zip(rows, repaired_numbers):
         row["horse_number"] = number
@@ -458,7 +470,11 @@ def _complete_ocr_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]
         )
         if missing_result:
             continue
-        declared = rows[0].get("declared_field_size")
+        declared = (
+            rows[0].get("declared_field_size")
+            if rows[0].get("headcount_verified") is True
+            else None
+        )
         if declared is not None:
             complete = len(rows) == declared
         else:
@@ -1035,7 +1051,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 clean_lines = [
                     metadata_line
                     for line in result.stdout.splitlines()
-                    if (metadata_line := _strip_race_heading(line))
+                    if (metadata_line := FIELD_SIZE_RE.sub("", _strip_race_heading(line)).strip())
                 ]
 
                 # The runner table has fixed columns. OCR the narrow frame/horse
@@ -1847,49 +1863,53 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                                 f"headcount_line_retry last_runner_y={last_runner_center:.1f} "
                                                 f"text={footer_retry_text!r} accepted={declared_headcount}"
                                             )
-                                    # Last-resort headcount pass: the footer label is in a
-                                    # narrow horizontal band, but its vertical position varies
-                                    # with the number of runner rows. Scan overlapping windows
-                                    # below the last detected runner. Keep only exact '(N頭)' OCR
-                                    # reads and require at least two windows to agree.
-                                    if declared_headcount is None:
-                                        label_left = max(0, int(panel_image.width * 0.10))
-                                        label_right = min(panel_image.width, int(panel_image.width * 0.365))
-                                        label_reads = []
-                                        offset_diagnostics = []
-                                        for y_offset in (-80, -60, -40, -20):
-                                            label_top = max(0, headcount_top + y_offset)
-                                            label_bottom = min(panel_image.height, label_top + 180)
-                                            if label_bottom <= label_top:
-                                                continue
-                                            label_crop = panel_image.crop(
-                                                (label_left, label_top, label_right, label_bottom)
-                                            )
-                                            label_crop = ImageOps.autocontrast(ImageOps.grayscale(label_crop))
-                                            label_crop = label_crop.resize(
-                                                (label_crop.width * 4, label_crop.height * 4),
-                                                Image.Resampling.LANCZOS,
-                                            )
-                                            label_path = temp_dir / (
-                                                f"{page.stem}-{side}-headcount-label-{y_offset}.png"
-                                            )
-                                            label_crop.save(label_path)
-                                            label_text = subprocess.run(
-                                                ["tesseract", str(label_path), "stdout", "-l", "jpn+eng", "--psm", "6"],
-                                                check=True, timeout=15, capture_output=True, text=True,
-                                            ).stdout.strip()
-                                            label_reads.append(label_text)
-                                            offset_diagnostics.append(
-                                                {"offset": y_offset, "text": label_text,
-                                                 "accepted": _ocr_declared_field_size(label_text)}
-                                            )
-                                        declared_headcount = _consensus_declared_field_size(label_reads)
-                                        row_diagnostics.append(
-                                            f"headcount_label_scan readings={offset_diagnostics!r} "
-                                            f"accepted={declared_headcount}"
+                                    # A single OCR layout can turn '(12頭)' into '(2頭)'.
+                                    # Therefore the first-pass and footer-retry readings are
+                                    # diagnostic only: the declared field size is trusted only
+                                    # when at least two independent overlapping footer windows
+                                    # read the same exact official '(N頭)' label.
+                                    single_read_headcount = declared_headcount
+                                    label_left = max(0, int(panel_image.width * 0.10))
+                                    label_right = min(panel_image.width, int(panel_image.width * 0.365))
+                                    label_reads = []
+                                    offset_diagnostics = []
+                                    for y_offset in (-80, -60, -40, -20):
+                                        label_top = max(0, headcount_top + y_offset)
+                                        label_bottom = min(panel_image.height, label_top + 180)
+                                        if label_bottom <= label_top:
+                                            continue
+                                        label_crop = panel_image.crop(
+                                            (label_left, label_top, label_right, label_bottom)
                                         )
+                                        label_crop = ImageOps.autocontrast(ImageOps.grayscale(label_crop))
+                                        label_crop = label_crop.resize(
+                                            (label_crop.width * 4, label_crop.height * 4),
+                                            Image.Resampling.LANCZOS,
+                                        )
+                                        label_path = temp_dir / (
+                                            f"{page.stem}-{side}-headcount-label-{y_offset}.png"
+                                        )
+                                        label_crop.save(label_path)
+                                        label_text = subprocess.run(
+                                            ["tesseract", str(label_path), "stdout", "-l", "jpn+eng", "--psm", "6"],
+                                            check=True, timeout=15, capture_output=True, text=True,
+                                        ).stdout.strip()
+                                        label_reads.append(label_text)
+                                        offset_diagnostics.append(
+                                            {"offset": y_offset, "text": label_text,
+                                             "accepted": _ocr_declared_field_size(label_text)}
+                                        )
+                                    declared_headcount = _consensus_declared_field_size(label_reads)
+                                    row_diagnostics.append(
+                                        f"headcount_label_scan initial_single_read={single_read_headcount!r} "
+                                        f"readings={offset_diagnostics!r} "
+                                        f"consensus_accepted={declared_headcount}"
+                                    )
                                     if declared_headcount is not None:
                                         clean_lines.append(f"({declared_headcount}頭)")
+                                        clean_lines.append(
+                                            f"JRA_OCR_HEADCOUNT_VERIFIED={declared_headcount}"
+                                        )
                             if _ocr_runner_lines_are_complete(row_lines, len(identifier_rows)):
                                 # Row-local OCR is often noisier than the complete-panel pass.
                                 # Replace its runner lines only when every identified row has

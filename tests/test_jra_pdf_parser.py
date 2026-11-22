@@ -15,6 +15,7 @@ SAMPLE = """
 2 2 サノノファイター 牡2鹿 56 田辺 裕信 佐野 信幸氏 栗田 徹 484±0 1：39．0
 6 7 ブルーサンタ 牡2青鹿56 戸崎 圭太 SNSグループ 452＋2 1：39．2
 （2頭）
+JRA_OCR_HEADCOUNT_VERIFIED=2
 ハロンタイム 12．4―10．8―11．5―12．3
 「通過コーナー順 3→4」 上り 4F 52．0―3F 39．4
 """
@@ -546,6 +547,25 @@ class JraPdfParserTests(unittest.TestCase):
         rows[1]["horse_number"], rows[1]["frame"] = 2, 2
         self.assertEqual(rows[0]["finish_time_seconds"], None)
         self.assertIn("invalid_finish_time_minutes", rows[0]["runner_validation_warnings"])
+        self.assertEqual(_complete_ocr_records(rows), [])
+
+    def test_ocr_fallback_does_not_assume_three_rows_mean_three_starters(self):
+        rows = [
+            {
+                "source_url": "official.pdf",
+                "date": "2026-11-14",
+                "track": "札幌",
+                "race_number": 1,
+                "horse_number": number,
+                "frame": number,
+                "declared_field_size": None,
+                "finish_time_seconds": 90.0 + number,
+                "result_status": None,
+            }
+            for number in (1, 2, 3)
+        ]
+        # A 3-runner fragment is ambiguous with larger fields: without an
+        # independently verified '(3頭)' footer, it must not be accepted.
         self.assertEqual(_complete_ocr_records(rows), [])
 
     def test_ocr_fallback_rejects_ambiguous_or_incomplete_inferred_field(self):
