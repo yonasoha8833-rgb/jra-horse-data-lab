@@ -1,8 +1,6 @@
 {
   "source": "JRA official result PDFs listed in data/catalog.json",
-  "processed_sources": [
-    "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo1.pdf"
-  ],
+  "processed_sources": [],
   "import_failures": [
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1chukyo1.pdf",
@@ -437,6 +435,12 @@
       "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
+      "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo1.pdf",
+      "attempts": 1,
+      "last_attempt_utc": "2026-11-22T05:30:38.852954+00:00",
+      "error": "No runner rows recognized; source remains eligible for retry"
+    },
+    {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo2.pdf",
       "attempts": 2,
       "last_attempt_utc": "2026-11-22T04:42:15.410859+00:00",
@@ -468,14 +472,14 @@
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo7.pdf",
-      "attempts": 1,
-      "last_attempt_utc": "2026-11-14T09:42:00.071532+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-11-22T05:35:38.434312+00:00",
       "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo8.pdf",
-      "attempts": 1,
-      "last_attempt_utc": "2026-11-14T09:42:59.279774+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-11-22T05:40:56.570310+00:00",
       "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
@@ -1536,118 +1540,24 @@
     }
   ],
   "last_import_attempted": 3,
-  "record_count": 3,
+  "record_count": 0,
   "quality_report": {
-    "race_count": 1,
+    "race_count": 0,
     "warning_race_count": 0,
     "duplicate_number_race_count": 0,
     "field_size_mismatch_race_count": 0,
     "records_missing_date": 0,
     "records_missing_track": 0,
-    "records_missing_distance": 3,
-    "records_missing_going": 3,
+    "records_missing_distance": 0,
+    "records_missing_going": 0,
     "records_missing_finish_time": 0,
     "records_with_invalid_finish_time": 0,
     "records_with_individual_last3f": 0,
-    "records_missing_individual_last3f": 3,
+    "records_missing_individual_last3f": 0,
     "records_with_horse_registration_number": 0,
-    "records_missing_horse_registration_number": 3
+    "records_missing_horse_registration_number": 0
   },
-  "records": [
-    {
-      "frame": 1,
-      "horse_number": 1,
-      "horse_name": "レガメデルヴェント",
-      "sex": "牡",
-      "age": 2,
-      "finish_time": "1:45.1",
-      "finish_time_seconds": 105.1,
-      "result_status": null,
-      "dead_heat": false,
-      "runner_validation_warnings": [],
-      "date": "2026-07-25",
-      "track": "札幌",
-      "race_number": 5,
-      "race_name": "",
-      "surface": "ダート",
-      "distance": null,
-      "going": null,
-      "finish": 1,
-      "field_size": 3,
-      "declared_field_size": 3,
-      "race_validation_warnings": [],
-      "race_last3f": null,
-      "race_last4f": null,
-      "race_lap_times": [
-        6.9
-      ],
-      "individual_last3f": null,
-      "source_url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo1.pdf",
-      "extraction_status": "ocr_fallback_basic_fields"
-    },
-    {
-      "frame": 3,
-      "horse_number": 3,
-      "horse_name": "ホウオウシュウ",
-      "sex": "牡",
-      "age": 2,
-      "finish_time": "1:47.2",
-      "finish_time_seconds": 107.2,
-      "result_status": null,
-      "dead_heat": false,
-      "runner_validation_warnings": [],
-      "date": "2026-07-25",
-      "track": "札幌",
-      "race_number": 5,
-      "race_name": "",
-      "surface": "ダート",
-      "distance": null,
-      "going": null,
-      "finish": 2,
-      "field_size": 3,
-      "declared_field_size": 3,
-      "race_validation_warnings": [],
-      "race_last3f": null,
-      "race_last4f": null,
-      "race_lap_times": [
-        6.9
-      ],
-      "individual_last3f": null,
-      "source_url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo1.pdf",
-      "extraction_status": "ocr_fallback_basic_fields"
-    },
-    {
-      "frame": 2,
-      "horse_number": 2,
-      "horse_name": "アンバーバレット",
-      "sex": "牡",
-      "age": 2,
-      "finish_time": "1:47.4",
-      "finish_time_seconds": 107.4,
-      "result_status": null,
-      "dead_heat": false,
-      "runner_validation_warnings": [],
-      "date": "2026-07-25",
-      "track": "札幌",
-      "race_number": 5,
-      "race_name": "",
-      "surface": "ダート",
-      "distance": null,
-      "going": null,
-      "finish": 3,
-      "field_size": 3,
-      "declared_field_size": 3,
-      "race_validation_warnings": [],
-      "race_last3f": null,
-      "race_last4f": null,
-      "race_lap_times": [
-        6.9
-      ],
-      "individual_last3f": null,
-      "source_url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1sapporo1.pdf",
-      "extraction_status": "ocr_fallback_basic_fields"
-    }
-  ],
+  "records": [],
   "notes": [
     "finish is based on the order of recognized official result rows",
     "race_last3f is the race-level closing 3F, not an individual horse figure",
