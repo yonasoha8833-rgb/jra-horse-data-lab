@@ -176,6 +176,8 @@ test("omits condition components when sample sizes are insufficient", () => {
   assert.equal(result.distance_score, null);
   assert.equal(result.going_score, null);
   assert.equal(result.relative_last3f_score, null);
+  assert.equal(result.baseline_used_sample_count, 2);
+  assert.equal(result.confidence, "低め");
 });
 
 test("does not count the same runner twice across different source PDFs", () => {

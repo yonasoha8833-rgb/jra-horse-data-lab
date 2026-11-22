@@ -874,6 +874,20 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertIsNone(result["going_score"])
         self.assertIsNone(result["relative_last3f_score"])
 
+    def test_integrated_score_marks_one_or_two_overall_starts_as_low_confidence(self):
+        rows = [
+            {"horse_name": "少数標本馬", "date": "2026-11-01", "finish": 1, "field_size": 10},
+            {"horse_name": "少数標本馬", "date": "2026-11-02", "finish": 2, "field_size": 10},
+        ]
+        result = integrated_horse_performance_score(
+            rows, [], {}, horse_name="少数標本馬",
+        )
+
+        # Keep the existing numeric/API result, but make the weak sample explicit.
+        self.assertEqual(result["baseline_used_sample_count"], 2)
+        self.assertEqual(result["score"], result["baseline_score"])
+        self.assertEqual(result["confidence"], "低め")
+
     def test_integrated_horse_performance_score_validates_weights(self):
         with self.assertRaises(ValueError):
             integrated_horse_performance_score(

@@ -1377,7 +1377,7 @@ def integrated_horse_performance_score(
         count for key, (_, _, count) in available.items() if key != "placing"
     ]
     if not extra_counts:
-        confidence = "総合成績のみ"
+        confidence = "低め" if baseline_used_count < 3 else "総合成績のみ"
     else:
         minimum_sample = min([baseline_used_count, *extra_counts])
         confidence = "高め" if minimum_sample >= 10 else (

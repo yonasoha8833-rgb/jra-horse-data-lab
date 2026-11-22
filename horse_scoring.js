@@ -432,7 +432,7 @@
     const extraCounts = available
       .filter(([key]) => key !== "placing")
       .map(([, item]) => item.count);
-    let confidence = "総合成績のみ";
+    let confidence = baselineUsedCount < 3 ? "低め" : "総合成績のみ";
     if (extraCounts.length) {
       const minimumSample = Math.min(baselineUsedCount, ...extraCounts);
       confidence = minimumSample >= 10 ? "高め" : minimumSample >= 5 ? "中程度" : "低め";
