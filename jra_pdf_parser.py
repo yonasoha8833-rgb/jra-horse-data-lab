@@ -17,6 +17,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 TRACKS = ("札幌", "函館", "福島", "新潟", "東京", "中山", "中京", "京都", "阪神", "小倉")
@@ -1842,20 +1843,46 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 chunks.append(f"第{race_number}競走\n" + "\n".join(clean_lines))
     return "\n".join(chunks)
 
-def _propagate_pdf_identity(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Fill missing date/track only when one value is verified across this single-day JRA PDF."""
+def _track_from_official_pdf_url(source_url: str) -> str | None:
+    """Read the racecourse slug only from a canonical JRA official result-PDF URL."""
+    parsed = urlparse(source_url)
+    if parsed.scheme != "https" or parsed.hostname != "www.jra.go.jp":
+        return None
+    match = re.fullmatch(
+        r"/datafile/seiseki/report/\\d{4}/\\d+-\\d+"
+        r"(sapporo|hakodate|fukushima|niigata|tokyo|nakayama|chukyo|kyoto|hanshin|kokura)\\d+\\.pdf",
+        parsed.path,
+    )
+    if not match:
+        return None
+    return {
+        "sapporo": "札幌", "hakodate": "函館", "fukushima": "福島",
+        "niigata": "新潟", "tokyo": "東京", "nakayama": "中山",
+        "chukyo": "中京", "kyoto": "京都", "hanshin": "阪神",
+        "kokura": "小倉",
+    }[match.group(1)]
+
+
+def _propagate_pdf_identity(
+    records: list[dict[str, Any]], *, source_url: str = ""
+) -> list[dict[str, Any]]:
+    """Propagate one PDF-wide identity; derive track only from its canonical JRA URL."""
     for field in ("date", "track"):
         observed = {
             row.get(field)
             for row in records
             if isinstance(row.get(field), str) and row.get(field).strip()
         }
-        if len(observed) != 1:
+        if len(observed) == 1:
+            verified_value = next(iter(observed))
+        elif field == "track" and not observed:
+            verified_value = _track_from_official_pdf_url(source_url)
+        else:
             continue
-        verified_value = next(iter(observed))
-        for row in records:
-            if not row.get(field):
-                row[field] = verified_value
+        if verified_value:
+            for row in records:
+                if not row.get(field):
+                    row[field] = verified_value
     return records
 
 
@@ -1932,7 +1959,7 @@ def extract_pdf(pdf_bytes: bytes, *, source_url: str = "") -> list[dict[str, Any
         # Each official JRA result PDF represents one course and one meeting day.
         # Reuse a date/track only when OCR independently found exactly one value
         # somewhere in that same PDF; conflicting or wholly missing values stay unknown.
-        ocr_records = _propagate_pdf_identity(ocr_records)
+        ocr_records = _propagate_pdf_identity(ocr_records, source_url=source_url)
         accepted = _complete_ocr_records(ocr_records)
         race_groups: dict[tuple, list[dict[str, Any]]] = {}
         for row in ocr_records:
