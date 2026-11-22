@@ -513,6 +513,32 @@ def _deduplicate_identifier_slots(rows: list[tuple[float, int | None]], *, toler
     return result
 
 
+def _trim_trailing_identifier_outliers(
+    rows: list[tuple[float, int | None]], *, gap_multiplier: float = 1.8,
+) -> list[tuple[float, int | None]]:
+    """Drop only isolated trailing OCR slots; later race validation must still prove a full field.
+
+    Footer/payout text can be detected as a final identifier row far below the
+    runner table. A large final vertical gap marks that trailing slot as an
+    outlier. This never creates or changes an identifier, and any trimmed real
+    runner causes the official field-size/count validation to reject the race.
+    """
+    ordered = sorted(rows, key=lambda item: item[0])
+    while len(ordered) >= 3:
+        gaps = [
+            later[0] - earlier[0]
+            for earlier, later in zip(ordered, ordered[1:])
+            if later[0] > earlier[0]
+        ]
+        if len(gaps) != len(ordered) - 1:
+            break
+        typical_gap = sorted(gaps)[len(gaps) // 2]
+        if typical_gap <= 0 or gaps[-1] <= typical_gap * gap_multiplier:
+            break
+        ordered.pop()
+    return ordered
+
+
 def _ocr_identifier_pairs(text: str) -> list[tuple[int, int] | None]:
     """Read frame/horse identifiers from the narrow, high-contrast number columns."""
     pairs: list[tuple[int, int] | None] = []
@@ -1213,7 +1239,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                             horse_value = retry_values["horse"]
                             if frame_value is not None and horse_value is not None:
                                 scale = 5 / 3
-                                x_left = int(panel_width * 0.115 * scale)
+                                x_left = int(panel_width * 0.085 * scale)
                                 x_right = int(panel_width * 0.99 * scale)
                                 previous_center = slot_centers[-1]
                                 y_top = max(0, int(((previous_center + expected_center) / 2) * scale))
@@ -1370,7 +1396,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 panel_image.height,
                                 int((center + typical_gap * 0.50) * scale),
                             )
-                            x_left = int(panel_width * 0.115 * scale)
+                            x_left = int(panel_width * 0.085 * scale)
                             # Include the official finish-time/result columns at the
                             # far right of the runner table. The previous 82% crop
                             # ended before those columns on some JRA layouts.
@@ -1588,8 +1614,18 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 # same printed row. Conflicting nearby values remain ambiguous.
                 frame_slot_rows = _deduplicate_identifier_slots(frame_slot_rows)
                 horse_slot_rows = _deduplicate_identifier_slots(horse_slot_rows)
-                frame_rows = _deduplicate_identifier_slots(frame_rows)
-                horse_rows = _deduplicate_identifier_slots(horse_rows)
+                # Footer/payout OCR can create a final isolated slot far below the
+                # runner table. Remove only that trailing outlier. The complete-field
+                # validator still requires the independently read official headcount
+                # and exact 1..N horse numbers, so a missed real runner is rejected.
+                frame_slot_rows = _trim_trailing_identifier_outliers(frame_slot_rows)
+                horse_slot_rows = _trim_trailing_identifier_outliers(horse_slot_rows)
+                frame_rows = _deduplicate_identifier_slots([
+                    (center, value) for center, value in frame_slot_rows if value is not None
+                ])
+                horse_rows = _deduplicate_identifier_slots([
+                    (center, value) for center, value in horse_slot_rows if value is not None
+                ])
                 # Preserve the ordinary aligned-column result when no inference is needed.
                 identifier_rows = _pair_identifier_columns(frame_rows, horse_rows)
                 # If a complete frame column is available, fill unreadable horse
@@ -1620,7 +1656,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                         panel_image = Image.open(crop_path)
                         try:
                             scale = 5 / 3
-                            x_left = int(panel_width * 0.115 * scale)
+                            x_left = int(panel_width * 0.085 * scale)
                             x_right = int(panel_width * 0.99 * scale)
                             row_texts = []
                             for row_index, center in enumerate(centers):
