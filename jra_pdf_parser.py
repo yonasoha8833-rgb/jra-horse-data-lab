@@ -1808,6 +1808,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                             x_left = identity_left
                             x_right = identity_right
                             row_texts = []
+                            time_diagnostics = []
                             for row_index, center in enumerate(centers):
                                 previous = centers[row_index - 1] if row_index else center - typical_gap
                                 following = centers[row_index + 1] if row_index + 1 < len(centers) else center + typical_gap
@@ -1940,6 +1941,12 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     ).stdout.strip()
                                     time_reads.append(time_text)
                                 isolated_time = _strict_ocr_finish_time(" ".join(time_reads))
+                                time_diagnostics.append(
+                                    f"time_row={row_index + 1} horse={horse_value} "
+                                    f"y=({y_top},{y_bottom}) x=({time_left},{time_right}) "
+                                    f"reads={time_reads!r} parsed_time={isolated_time!r} "
+                                    f"row_parse={'ok' if parsed_row is not None else 'failed'}"
+                                )
                                 if isolated_time and parsed_row is not None:
                                     # The isolated crop is aligned to the printed time column.
                                     # Use that independent cell reading to replace any
@@ -1956,6 +1963,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 f"row={index + 1} frame={pair[1][0]} horse={pair[1][1]} text={row_text!r}"
                                 for index, (pair, row_text) in enumerate(zip(identifier_rows, row_texts))
                             ]
+                            row_diagnostics = time_diagnostics + row_diagnostics
                             row_diagnostics.append(f"assembled_runner_lines={row_lines!r}")
                             # The official runner-table footer prints the declared field size
                             # (for example, '(16頭)') immediately below the final runner.
