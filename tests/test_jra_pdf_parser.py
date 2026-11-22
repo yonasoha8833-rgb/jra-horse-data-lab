@@ -22,6 +22,17 @@ SAMPLE = """
 
 class JraPdfParserTests(unittest.TestCase):
 
+    def test_parses_jra_gelding_sex_label(self):
+        rows = parse_race_text(
+            "第1競走\n"
+            "9月12日 晴良 （2026年4阪神） 第1競走 障害3歳以上未勝利 2,970ｍ\n"
+            "8 8 バトラーズワーフ 騸4黒鹿 58 坂口智康 1:23.3\n"
+            "(8頭)"
+        )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["sex"], "騸")
+        self.assertEqual(rows[0]["age"], 4)
+
     def test_consensus_horse_number_requires_two_matching_valid_reads(self):
         self.assertEqual(_consensus_horse_number(["1", "1"]), 1)
         self.assertEqual(_consensus_horse_number(["", "5", "5"]), 5)
