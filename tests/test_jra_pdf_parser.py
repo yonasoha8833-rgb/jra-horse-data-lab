@@ -5,7 +5,7 @@ try:
 except ImportError:
     Image = ImageDraw = None
 
-from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_declared_field_size, _consensus_declared_field_size, _propagate_pdf_identity, _track_from_official_pdf_url, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, _ocr_runner_lines_are_complete, parse_race_text, _ocr_single_horse_number, _consensus_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _identifier_column_retry_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _strict_ocr_finish_time, _remove_horizontal_identifier_rules
+from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_declared_field_size, _consensus_declared_field_size, _propagate_pdf_identity, _track_from_official_pdf_url, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, _ocr_runner_lines_are_complete, parse_race_text, _ocr_single_horse_number, _consensus_horse_number, _ocr_single_frame_number, _identifier_column_inner_bounds, _identifier_column_retry_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _trim_trailing_identifier_outliers, _strict_ocr_finish_time, _remove_horizontal_identifier_rules
 
 
 SAMPLE = """
@@ -649,6 +649,20 @@ class JraPdfParserTests(unittest.TestCase):
             _deduplicate_identifier_slots([(736.7, 5), (736.9, 5), (760.0, 6)]),
             [(736.8, 5), (760.0, 6)],
         )
+
+    def test_trims_only_isolated_trailing_footer_identifier_slots(self):
+        rows = [
+            (455.0, 7), (482.0, 5), (508.0, 3), (533.0, 4),
+            (559.0, 1), (584.0, 6), (610.0, 8), (635.0, 10),
+            (660.0, 11), (686.0, 9), (711.0, 2), (737.0, 12),
+            (812.0, None),
+        ]
+        trimmed = _trim_trailing_identifier_outliers(rows)
+        self.assertEqual(trimmed, rows[:12])
+
+    def test_does_not_trim_regularly_spaced_identifier_rows(self):
+        rows = [(100.0 + index * 25.0, index + 1) for index in range(12)]
+        self.assertEqual(_trim_trailing_identifier_outliers(rows), rows)
 
     def test_keeps_conflicting_identifier_detections_on_same_row(self):
         self.assertEqual(
