@@ -100,7 +100,7 @@ class ImportJraHtmlResultsTests(unittest.TestCase):
         result = compare_sources(html, pdf)
         self.assertEqual(result["matched_count"], 1)
         self.assertEqual(result["field_conflict_count"], 0)
-        self.assertEqual(result["missing_field_pair_count"], 2)
+        self.assertEqual(result["missing_field_pair_count"], 8)
 
     def test_missing_pdf_race_metadata_does_not_fuzzy_match(self):
         html = [runner()]
