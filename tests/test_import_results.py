@@ -41,6 +41,7 @@ class ImportResultsTests(unittest.TestCase):
                 "source_url": "valid.pdf", "date": "2026-09-26",
                 "race_number": 1, "horse_number": number, "frame": number,
                 "declared_field_size": 2,
+                "headcount_verified": True,
                 "track": "東京",
                 "extraction_status": "ocr_fallback_basic_fields",
             }
