@@ -882,6 +882,15 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertIsNone(_ocr_single_frame_number("17"))
         self.assertIsNone(_ocr_single_frame_number(""))
 
+    def test_verified_horse_retry_rejects_digit_conflicting_with_printed_frame(self):
+        self.assertIsNone(_verified_horse_retry("9", 13, 4, set()))
+
+    def test_verified_horse_retry_accepts_digit_matching_printed_frame(self):
+        self.assertEqual(_verified_horse_retry("5", 13, 4, set()), 5)
+
+    def test_verified_horse_retry_rejects_reserved_duplicate(self):
+        self.assertIsNone(_verified_horse_retry("5", 13, 4, {5}))
+
     def test_single_horse_number_retry_accepts_only_one_valid_digit_token(self):
         self.assertEqual(_ocr_single_horse_number("9"), 9)
         self.assertEqual(_ocr_single_horse_number(" 18 "), 18)
