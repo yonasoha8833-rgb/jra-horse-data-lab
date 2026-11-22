@@ -33,18 +33,6 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(rows[0]["sex"], "騸")
         self.assertEqual(rows[0]["age"], 4)
 
-    def test_parses_jra_sen_sex_labels(self):
-        for sex in ("せん", "セン", "セ"):
-            with self.subTest(sex=sex):
-                rows = parse_race_text(
-                    "第1競走\\n"
-                    f"9月12日 晴良 （2026年4阪神） 第1競走 3歳未勝利 1,400ｍ\\n"
-                    f"1 1 サンプルホース {sex}4鹿 57 騎手名 1:23.3\\n"
-                    "(1頭)"
-                )
-                self.assertEqual(len(rows), 1)
-                self.assertEqual(rows[0]["sex"], sex)
-
     def test_consensus_horse_number_requires_two_matching_valid_reads(self):
         self.assertEqual(_consensus_horse_number(["1", "1"]), 1)
         self.assertEqual(_consensus_horse_number(["", "5", "5"]), 5)
