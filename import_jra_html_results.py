@@ -67,15 +67,33 @@ def validate_complete_races(records: list[dict]) -> tuple[list[dict], list[dict]
     return accepted, rejected
 
 
+def _comparison_values_equal(left: Any, right: Any) -> bool:
+    """Compare source values conservatively, allowing only sub-tenth float noise."""
+    if isinstance(left, (int, float)) and not isinstance(left, bool) and isinstance(right, (int, float)) and not isinstance(right, bool):
+        return abs(float(left) - float(right)) <= 0.05
+    if isinstance(left, list) and isinstance(right, list):
+        return len(left) == len(right) and all(
+            _comparison_values_equal(a, b) for a, b in zip(left, right)
+        )
+    return left == right
+
+
 def compare_sources(html_records: list[dict], pdf_records: list[dict]) -> dict:
-    """Exact identity comparison only; never infer, fuzzy-match, or merge."""
+    """Exact identity comparison plus field-by-field discrepancies; never infer or merge."""
     pdf_index: dict[tuple, list[dict]] = {}
     for row in pdf_records:
         key = _runner_key(row)
         if all(value not in (None, "") for value in key):
             pdf_index.setdefault(key, []).append(row)
-    matched, conflicts, html_only = [], [], []
+    matched, conflicts, html_only, field_conflicts = [], [], [], []
     html_keys = set()
+    fields = (
+        "frame", "finish", "finish_time_seconds", "individual_last3f",
+        "corner_positions", "popularity", "race_last3f", "race_last4f",
+        "race_lap_times",
+    )
+    compared_field_count = 0
+    missing_field_pair_count = 0
     for row in html_records:
         key = _runner_key(row)
         html_keys.add(key)
@@ -91,10 +109,21 @@ def compare_sources(html_records: list[dict], pdf_records: list[dict]) -> dict:
         pdf_row = candidates[0]
         item = {**base, "html_horse_name": row.get("horse_name"),
                 "pdf_horse_name": pdf_row.get("horse_name")}
-        if row.get("horse_name") == pdf_row.get("horse_name"):
-            matched.append(item)
-        else:
+        if row.get("horse_name") != pdf_row.get("horse_name"):
             conflicts.append({**item, "reason": "horse_name_mismatch"})
+            continue
+        matched.append(item)
+        for field in fields:
+            html_value, pdf_value = row.get(field), pdf_row.get(field)
+            if html_value is None or pdf_value is None or html_value == "" or pdf_value == "":
+                missing_field_pair_count += 1
+                continue
+            compared_field_count += 1
+            if not _comparison_values_equal(html_value, pdf_value):
+                field_conflicts.append({
+                    **base, "field": field,
+                    "html_value": html_value, "pdf_value": pdf_value,
+                })
     pdf_only = [
         {"date": row.get("date"), "track": row.get("track"),
          "race_number": row.get("race_number"), "horse_number": row.get("horse_number")}
@@ -103,9 +132,14 @@ def compare_sources(html_records: list[dict], pdf_records: list[dict]) -> dict:
     return {
         "matching_policy": "exact date + track + race_number + horse_number + horse_name",
         "matched_count": len(matched), "conflict_count": len(conflicts),
+        "field_conflict_count": len(field_conflicts),
+        "compared_field_count": compared_field_count,
+        "missing_field_pair_count": missing_field_pair_count,
         "html_only_count": len(html_only), "pdf_only_count": len(pdf_only),
-        "matched": matched, "conflicts": conflicts, "html_only": html_only,
-        "pdf_only": pdf_only, "automatic_merge_performed": False,
+        "matched": matched, "conflicts": conflicts,
+        "field_conflicts": field_conflicts,
+        "html_only": html_only, "pdf_only": pdf_only,
+        "automatic_merge_performed": False,
     }
 
 
