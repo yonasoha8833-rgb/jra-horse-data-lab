@@ -590,6 +590,16 @@ def _ocr_single_horse_number(text: str) -> int | None:
         return None
     return int(token)
 
+def _verified_horse_retry(text: str, field_size: int, frame: int, reserved: set[int]) -> int | None:
+    """Accept a fresh horse-number read only when it agrees with the printed frame."""
+    value = _ocr_single_horse_number(text)
+    if value is None or not 1 <= value <= field_size:
+        return None
+    if _expected_frame(field_size, value) != frame or value in reserved:
+        return None
+    return value
+
+
 def _consensus_horse_number(readings: list[str]) -> int | None:
     """Accept a horse number only when two independent OCR segmentation modes agree."""
     parsed = [_ocr_single_horse_number(value) for value in readings]
