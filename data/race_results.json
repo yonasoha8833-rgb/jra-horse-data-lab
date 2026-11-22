@@ -64,14 +64,14 @@
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1fukushima5.pdf",
-      "attempts": 1,
-      "last_attempt_utc": "2026-11-14T11:41:35.861629+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-11-22T09:25:18.821656+00:00",
       "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-1fukushima6.pdf",
-      "attempts": 1,
-      "last_attempt_utc": "2026-11-14T11:44:01.703840+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-11-22T09:31:45.294205+00:00",
       "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
@@ -580,8 +580,8 @@
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2fukushima1.pdf",
-      "attempts": 1,
-      "last_attempt_utc": "2026-11-14T11:49:06.820021+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-11-22T09:37:51.003017+00:00",
       "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
