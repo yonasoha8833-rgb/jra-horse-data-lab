@@ -155,7 +155,7 @@ def _track(text: str) -> str | None:
 def _strict_ocr_finish_time(text: str) -> str | None:
     """Return one unambiguous, plausible finish-time token from an isolated OCR cell."""
     matches = re.findall(
-        r"(?<![0-9A-Za-z])(?:([0-9０-９]{1,2})\s*[:：]\s*)?([0-9０-９]{2})\s*[.．]\s*([0-9０-９])(?![0-9A-Za-z])",
+        r"(?<![0-9A-Za-z:：])(?:([0-9０-９]{1,2})\s*[:：]\s*)?([0-9０-９]{2})\s*[.．]\s*([0-9０-９])(?![0-9A-Za-z])",
         text,
     )
     values = set()
