@@ -172,7 +172,7 @@ def _strict_ocr_finish_time(text: str) -> str | None:
             int(_ascii_digits(value)) if value else 0
             for value in (minute_text, second_text, tenth_text)
         )
-        if 0 <= minutes <= 15 and 0 <= seconds < 60:
+        if 0 <= minutes <= 5 and 0 <= seconds < 60:
             values.add(f"{minutes}:{seconds:02d}.{tenth}")
     return next(iter(values)) if len(values) == 1 else None
 
