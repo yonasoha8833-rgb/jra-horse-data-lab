@@ -155,13 +155,16 @@ def _track(text: str) -> str | None:
 def _strict_ocr_finish_time(text: str) -> str | None:
     """Return one unambiguous, plausible finish-time token from an isolated OCR cell."""
     matches = re.findall(
-        r"(?<![0-9A-Za-z])([0-9０-９]{1,2})\s*[:：]\s*([0-9０-９]{2})\s*[.．]\s*([0-9０-９])(?![0-9A-Za-z])",
+        r"(?<![0-9A-Za-z:：])(?:([0-9０-９]{1,2})\s*[:：]\s*)?([0-9０-９]{2})\s*[.．]\s*([0-9０-９])(?![0-9A-Za-z])",
         text,
     )
     values = set()
     for minute_text, second_text, tenth_text in matches:
+        # JRA sprint results can be printed as seconds only (for example,
+        # 57.0 on the 1,000m straight-course result sheet). Normalize that
+        # isolated time-cell reading to the existing M:SS.t representation.
         minutes, seconds, tenth = (
-            int(_ascii_digits(value))
+            int(_ascii_digits(value)) if value else 0
             for value in (minute_text, second_text, tenth_text)
         )
         if 0 <= minutes <= 15 and 0 <= seconds < 60:
@@ -1921,8 +1924,8 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 # disagreement with the full-row reading makes the row
                                 # incomplete instead of silently choosing either value.
                                 parsed_row = _runner(f"{frame_value}|{horse_value} {row_result}")
-                                time_left = int(panel_image.width * 0.765)
-                                time_right = int(panel_image.width * 0.805)
+                                time_left = int(panel_image.width * 0.795)
+                                time_right = int(panel_image.width * 0.85)
                                 time_crop_path = temp_dir / f"{page.stem}-{side}-time-{row_index}.png"
                                 time_crop = panel_image.crop((time_left, y_top, time_right, y_bottom))
                                 time_crop = ImageOps.autocontrast(ImageOps.grayscale(time_crop))
