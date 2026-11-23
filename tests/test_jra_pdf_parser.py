@@ -63,6 +63,10 @@ class JraPdfParserTests(unittest.TestCase):
     def test_strict_ocr_finish_time_rejects_ambiguous_or_invalid_values(self):
         self.assertIsNone(_strict_ocr_finish_time("1:41.8 1:42.0"))
         self.assertIsNone(_strict_ocr_finish_time("1:61.8"))
+        # A leading OCR artifact can turn a real 1:46.7 into 11:46.7.
+        # No JRA race finish time can plausibly take eleven minutes.
+        self.assertIsNone(_strict_ocr_finish_time("11:46.7"))
+        self.assertIsNone(_strict_ocr_finish_time("6:00.0"))
         self.assertIsNone(_strict_ocr_finish_time("O1:41.8"))
         self.assertIsNone(_strict_ocr_finish_time(""))
 
