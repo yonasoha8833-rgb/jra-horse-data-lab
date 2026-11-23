@@ -61,6 +61,11 @@ def _ocr_runner_identity_bounds(panel_width: int) -> tuple[int, int]:
     return max(0, int(panel_width * 0.085)), min(panel_width, int(panel_width * 0.335))
 
 
+def _ocr_finish_time_bounds(panel_width: int) -> tuple[int, int]:
+    """Crop the full printed finish-time cell, excluding adjacent margin and placing columns."""
+    return max(0, int(panel_width * 0.765)), min(panel_width, int(panel_width * 0.825))
+
+
 def _last_stable_identifier_slot_center(centers) -> float | None:
     """Find the final table-row center from stable row spacing, ignoring a detached footer OCR slot."""
     ordered = sorted(float(center) for center in centers)
@@ -1924,8 +1929,7 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 # disagreement with the full-row reading makes the row
                                 # incomplete instead of silently choosing either value.
                                 parsed_row = _runner(f"{frame_value}|{horse_value} {row_result}")
-                                time_left = int(panel_image.width * 0.795)
-                                time_right = int(panel_image.width * 0.85)
+                                time_left, time_right = _ocr_finish_time_bounds(panel_image.width)
                                 time_crop_path = temp_dir / f"{page.stem}-{side}-time-{row_index}.png"
                                 time_crop = panel_image.crop((time_left, y_top, time_right, y_bottom))
                                 time_crop = ImageOps.autocontrast(ImageOps.grayscale(time_crop))
