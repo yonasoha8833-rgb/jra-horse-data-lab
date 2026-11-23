@@ -57,6 +57,8 @@ class JraPdfParserTests(unittest.TestCase):
     def test_strict_ocr_finish_time_accepts_one_plausible_isolated_time(self):
         self.assertEqual(_strict_ocr_finish_time("1:41.8"), "1:41.8")
         self.assertEqual(_strict_ocr_finish_time("１：４１．８"), "1:41.8")
+        self.assertEqual(_strict_ocr_finish_time("57.0"), "0:57.0")
+        self.assertEqual(_strict_ocr_finish_time("57.2"), "0:57.2")
 
     def test_strict_ocr_finish_time_rejects_ambiguous_or_invalid_values(self):
         self.assertIsNone(_strict_ocr_finish_time("1:41.8 1:42.0"))
