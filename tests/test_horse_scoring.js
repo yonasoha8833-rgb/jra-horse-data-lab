@@ -243,6 +243,34 @@ test("deduplicates the same race across sources and merges missing runner times"
   assert.equal(target.conditions.track[0].average_relative_score, 100);
 });
 
+test("exposes Python-compatible relative last-3F diagnostics and condition times", () => {
+  const rows = [];
+  for (let race = 1; race <= 3; race += 1) {
+    const base = {
+      date: "2026-11-0" + race, track: "東京", race_number: 1,
+      surface: "芝", distance: 1600, going: "良", field_size: 3
+    };
+    rows.push(
+      { ...base, horse_name: "診断対象馬", horse_registration_number: "2020-54321",
+        horse_number: 1, finish: 1, individual_last3f: 33.2 },
+      { ...base, horse_name: "診断相手馬A", horse_registration_number: "2021-54321",
+        horse_number: 2, finish: 2, individual_last3f: 34.1 },
+      { ...base, horse_name: "診断相手馬B", horse_registration_number: "2022-54321",
+        horse_number: 3, finish: 3, individual_last3f: 35.0 }
+    );
+  }
+
+  const target = summarizeRelativeLast3f(rows)
+    .find(item => item.horse_registration_number === "2020-54321");
+  assert.equal(target.identity_basis, "official_registration_number");
+  assert.equal(target.identity_verified, true);
+  assert.equal(target.comparable_starts, 3);
+  assert.equal(target.average_relative_score, 100);
+  assert.equal(target.conditions.track[0].sample_count, 3);
+  assert.equal(target.conditions.track[0].average_relative_score, 100);
+  assert.equal(target.conditions.track[0].average_individual_last3f, 33.2);
+});
+
 test("does not treat an explicit race-level last-3F as an individual legacy value", () => {
   assert.equal(individualLast3fValue({
     individual_last3f: null, last3f: 33.0, race_last3f: 35.0
