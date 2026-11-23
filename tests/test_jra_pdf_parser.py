@@ -5,7 +5,7 @@ try:
 except ImportError:
     Image = ImageDraw = None
 
-from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_runner_row_bounds, _ocr_runner_identity_bounds, _ocr_declared_field_size, _consensus_declared_field_size, _propagate_pdf_identity, _track_from_official_pdf_url, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, _ocr_runner_lines_are_complete, parse_race_text, _ocr_single_horse_number, _verified_horse_retry, _consensus_horse_number, _select_consensus_horse_number, _verified_horse_retry_consensus, _ocr_single_frame_number, _identifier_column_inner_bounds, _identifier_column_retry_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _trim_trailing_identifier_outliers, _strict_ocr_finish_time, _remove_horizontal_identifier_rules
+from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_runner_row_bounds, _ocr_runner_identity_bounds, _ocr_declared_field_size, _consensus_declared_field_size, _propagate_pdf_identity, _track_from_official_pdf_url, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, _ocr_runner_lines_are_complete, parse_race_text, _ocr_single_horse_number, _verified_horse_retry, _consensus_horse_number, _select_consensus_horse_number, _verified_horse_retry_consensus, _ocr_single_frame_number, _identifier_column_inner_bounds, _identifier_column_retry_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _trim_trailing_identifier_outliers, _strict_ocr_finish_time, _ocr_finish_time_bounds, _remove_horizontal_identifier_rules
 
 
 SAMPLE = """
@@ -74,6 +74,12 @@ class JraPdfParserTests(unittest.TestCase):
 
     def test_ocr_runner_row_bounds_respect_image_edges(self):
         self.assertEqual(_ocr_runner_row_bounds(0.5, 0.0, 20.0, 2.0, 100), (0, 1))
+
+    def test_finish_time_crop_covers_time_without_adjacent_columns(self):
+        left, right = _ocr_finish_time_bounds(1788)
+        self.assertEqual((left, right), (1367, 1475))
+        self.assertLess(left, int(1788 * 0.795))
+        self.assertLess(right, int(1788 * 0.85))
 
     def test_runner_identity_crop_covers_full_name_and_sex_age_columns(self):
         left, right = _ocr_runner_identity_bounds(1788)
