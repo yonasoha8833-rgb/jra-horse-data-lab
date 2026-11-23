@@ -247,13 +247,21 @@
         }
         conditions[label] = Array.from(groups.entries())
           .filter(([, items]) => items.length >= minConditionStarts)
-          .map(([condition, items]) => ({
-            condition,
-            sample_count: items.length,
-            average_relative_score: Number((
-              items.reduce((sum, item) => sum + item.relative_last3f_score, 0) / items.length
-            ).toFixed(1))
-          }))
+          .map(([condition, items]) => {
+            const individualTimes = items
+              .map(individualLast3fValue)
+              .filter(value => value !== null && value > 0);
+            return {
+              condition,
+              sample_count: items.length,
+              average_relative_score: Number((
+                items.reduce((sum, item) => sum + item.relative_last3f_score, 0) / items.length
+              ).toFixed(1)),
+              average_individual_last3f: individualTimes.length
+                ? Number((individualTimes.reduce((sum, value) => sum + value, 0) / individualTimes.length).toFixed(2))
+                : null
+            };
+          })
           .sort((a, b) => b.sample_count - a.sample_count
             || a.condition.localeCompare(b.condition, "ja"));
       }
@@ -262,7 +270,13 @@
         horse_name: String(rows[0].horse_name || "").trim(),
         horse_registration_number: isRegistration ? identity.slice("registration:".length) : null,
         identity_basis: isRegistration ? "official_registration_number" : "horse_name_only",
-        conditions
+        identity_verified: isRegistration,
+        comparable_starts: rows.length,
+        average_relative_score: Number((
+          rows.reduce((sum, row) => sum + row.relative_last3f_score, 0) / rows.length
+        ).toFixed(1)),
+        conditions,
+        warning: "同一レース内の個別上がり3F順位を0〜100点に換算した相対指数です。異なるレース間の走破速度や勝率を示すものではありません。"
       });
     }
     return results;
