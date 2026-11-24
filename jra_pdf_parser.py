@@ -1157,7 +1157,16 @@ def _attach_verified_isolated_finish_time(
         str(row_text or ""),
     )
     candidate = f"{without_row_time} | {isolated_time}"
-    if _runner(f"{frame}|{horse} {candidate}") is None:
+    candidate_line = f"{frame}|{horse} {candidate}"
+    identity_match = RUNNER_RE.match(candidate_line)
+    if identity_match is None:
+        return None
+    horse_name = identity_match.group(3).strip()
+    # OCR placeholders are not horse identities. Do not let an independently
+    # recognized time turn an unreadable name into an accepted runner row.
+    if not horse_name or "?" in horse_name or not re.search(r"[ぁ-ゖァ-ヺ一-龯A-Za-z]", horse_name):
+        return None
+    if _runner(candidate_line) is None:
         return None
     return candidate
 
