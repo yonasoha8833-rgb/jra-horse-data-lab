@@ -5,7 +5,7 @@ try:
 except ImportError:
     Image = ImageDraw = None
 
-from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_runner_row_bounds, _ocr_runner_identity_bounds, _ocr_declared_field_size, _consensus_declared_field_size, _propagate_pdf_identity, _track_from_official_pdf_url, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, _ocr_runner_lines_are_complete, parse_race_text, _ocr_single_horse_number, _verified_horse_retry, _consensus_horse_number, _select_consensus_horse_number, _verified_horse_retry_consensus, _ocr_single_frame_number, _identifier_column_inner_bounds, _identifier_column_retry_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _trim_trailing_identifier_outliers, _strict_ocr_finish_time, _ocr_finish_time_bounds, _remove_horizontal_identifier_rules
+from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_runner_row_bounds, _ocr_runner_identity_bounds, _ocr_declared_field_size, _consensus_declared_field_size, _propagate_pdf_identity, _track_from_official_pdf_url, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, _ocr_runner_lines_are_complete, parse_race_text, _ocr_single_horse_number, _verified_horse_retry, _consensus_horse_number, _select_consensus_horse_number, _verified_horse_retry_consensus, _ocr_single_frame_number, _identifier_column_inner_bounds, _identifier_column_retry_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _trim_trailing_identifier_outliers, _strict_ocr_finish_time, _ocr_finish_time_bounds, _remove_horizontal_identifier_rules, _ocr_runner_name_bounds, _ocr_runner_demographics_bounds, _consensus_ocr_horse_name, _consensus_ocr_sex_age
 
 
 SAMPLE = """
@@ -84,6 +84,28 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual((left, right), (1396, 1475))
         self.assertLess(left, int(1788 * 0.795))
         self.assertLess(right, int(1788 * 0.85))
+
+    def test_runner_name_and_demographics_cells_are_separate(self):
+        self.assertEqual(_ocr_runner_name_bounds(1788), (151, 455))
+        self.assertEqual(_ocr_runner_demographics_bounds(1788), (455, 598))
+
+    def test_horse_name_ocr_requires_unambiguous_japanese_consensus(self):
+        self.assertEqual(
+            _consensus_ocr_horse_name(["| リッケンバッカー", "リッケンバッカー", "|リッケンバッカー"]),
+            "リッケンバッカー",
+        )
+        self.assertIsNone(
+            _consensus_ocr_horse_name(["| オリンボスカズマ", "| オリンポスカズマ", "| オリンポスカズマ"]),
+        )
+        self.assertIsNone(_consensus_ocr_horse_name(["", "123", ""]))
+
+    def test_sex_age_ocr_requires_two_matching_valid_reads_without_conflict(self):
+        self.assertEqual(
+            _consensus_ocr_sex_age(["騸8栗", "騸8累", "孔8栗"]),
+            ("騸", 8),
+        )
+        self.assertIsNone(_consensus_ocr_sex_age(["牡6鹿", "牝6鹿", "牡6黒鹿"]))
+        self.assertIsNone(_consensus_ocr_sex_age(["牡1鹿", "牡1鹿", ""]))
 
     def test_runner_identity_crop_covers_full_name_and_sex_age_columns(self):
         left, right = _ocr_runner_identity_bounds(1788)

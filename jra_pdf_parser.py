@@ -60,6 +60,52 @@ def _ocr_runner_identity_bounds(panel_width: int) -> tuple[int, int]:
     """Crop only the horse-name and sex/age columns, excluding unrelated table fields."""
     return max(0, int(panel_width * 0.085)), min(panel_width, int(panel_width * 0.335))
 
+def _ocr_runner_name_bounds(panel_width: int) -> tuple[int, int]:
+    """Crop the printed horse-name cell separately from sex/age metadata."""
+    return max(0, int(panel_width * 0.085)), min(panel_width, int(panel_width * 0.255))
+
+
+def _ocr_runner_demographics_bounds(panel_width: int) -> tuple[int, int]:
+    """Crop only the printed sex/age cell for independent OCR verification."""
+    return max(0, int(panel_width * 0.255)), min(panel_width, int(panel_width * 0.335))
+
+
+def _consensus_ocr_horse_name(readings: list[str]) -> str | None:
+    """Return a Japanese horse name only when independent OCR layouts agree."""
+    candidates = []
+    for reading in readings:
+        value = re.sub(r"\s+", "", str(reading or ""))
+        value = re.sub(r"^[^ぁ-んァ-ヶー一-龯]+", "", value)
+        if re.fullmatch(r"[ぁ-んァ-ヶー一-龯]+", value):
+            candidates.append(value)
+    if len(candidates) < 2:
+        return None
+    counts = {value: candidates.count(value) for value in set(candidates)}
+    winners = [value for value, count in counts.items() if count >= 2]
+    # A conflicting valid Japanese reading is evidence of ambiguity, not a
+    # reason to select the majority string.
+    if len(winners) != 1 or len(counts) != 1:
+        return None
+    return winners[0]
+
+
+def _consensus_ocr_sex_age(readings: list[str]) -> tuple[str, int] | None:
+    """Return sex/age only when at least two OCR layouts agree without conflict."""
+    candidates = []
+    for reading in readings:
+        match = re.search(r"(牡|牝|騸|セン|せん|セ)\s*([0-9０-９]{1,2})", str(reading or ""))
+        if match:
+            age = int(_ascii_digits(match.group(2)))
+            if 2 <= age <= 20:
+                candidates.append((match.group(1), age))
+    if len(candidates) < 2:
+        return None
+    counts = {value: candidates.count(value) for value in set(candidates)}
+    winners = [value for value, count in counts.items() if count >= 2]
+    if len(winners) != 1 or len(counts) != 1:
+        return None
+    return winners[0]
+
 
 def _ocr_finish_time_bounds(panel_width: int) -> tuple[int, int]:
     """Crop the full printed finish-time cell, excluding adjacent margin and placing columns."""
@@ -1929,6 +1975,53 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 # disagreement with the full-row reading makes the row
                                 # incomplete instead of silently choosing either value.
                                 parsed_row = _runner(f"{frame_value}|{horse_value} {row_result}")
+                                if parsed_row is None:
+                                    # Retry name and sex/age as separate printed cells.
+                                    # The combined row OCR often confuses rare sex glyphs
+                                    # with neighboring columns; only exact multi-layout
+                                    # agreement may supply these identity fields.
+                                    name_left, name_right = _ocr_runner_name_bounds(panel_image.width)
+                                    demo_left, demo_right = _ocr_runner_demographics_bounds(panel_image.width)
+                                    name_crop = panel_image.crop((name_left, y_top, name_right, y_bottom))
+                                    demo_crop = panel_image.crop((demo_left, y_top, demo_right, y_bottom))
+                                    name_readings = []
+                                    for psm in ("7", "8", "13"):
+                                        name_image = ImageOps.autocontrast(ImageOps.grayscale(name_crop))
+                                        name_image = name_image.resize(
+                                            (name_image.width * 4, name_image.height * 4),
+                                            Image.Resampling.LANCZOS,
+                                        )
+                                        name_path = temp_dir / f"{page.stem}-{side}-name-{row_index}-{psm}.png"
+                                        name_image.save(name_path)
+                                        name_readings.append(subprocess.run(
+                                            ["tesseract", str(name_path), "stdout", "-l", "jpn", "--psm", psm],
+                                            check=True, timeout=15, capture_output=True, text=True,
+                                        ).stdout.strip())
+                                    demographics_readings = []
+                                    for psm in ("7", "8", "11"):
+                                        demo_image = ImageOps.autocontrast(ImageOps.grayscale(demo_crop))
+                                        demo_image = demo_image.resize(
+                                            (demo_image.width * 4, demo_image.height * 4),
+                                            Image.Resampling.LANCZOS,
+                                        )
+                                        demo_path = temp_dir / f"{page.stem}-{side}-demographics-{row_index}-{psm}.png"
+                                        demo_image.save(demo_path)
+                                        demographics_readings.append(subprocess.run(
+                                            ["tesseract", str(demo_path), "stdout", "-l", "jpn", "--psm", psm],
+                                            check=True, timeout=15, capture_output=True, text=True,
+                                        ).stdout.strip())
+                                    verified_name = _consensus_ocr_horse_name(name_readings)
+                                    verified_demographics = _consensus_ocr_sex_age(demographics_readings)
+                                    if verified_name and verified_demographics:
+                                        verified_sex, verified_age = verified_demographics
+                                        row_result = f"{verified_name}|{verified_sex}{verified_age} {row_result}"
+                                    time_diagnostics.append(
+                                        f"identity_row={row_index + 1} horse={horse_value} "
+                                        f"name_reads={name_readings!r} verified_name={verified_name!r} "
+                                        f"demographic_reads={demographics_readings!r} "
+                                        f"verified_demographics={verified_demographics!r}"
+                                    )
+                                    parsed_row = _runner(f"{frame_value}|{horse_value} {row_result}")
                                 time_left, time_right = _ocr_finish_time_bounds(panel_image.width)
                                 time_crop_path = temp_dir / f"{page.stem}-{side}-time-{row_index}.png"
                                 time_crop = panel_image.crop((time_left, y_top, time_right, y_bottom))
