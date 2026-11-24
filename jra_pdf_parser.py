@@ -63,7 +63,7 @@ def _ocr_runner_identity_bounds(panel_width: int) -> tuple[int, int]:
 
 def _ocr_finish_time_bounds(panel_width: int) -> tuple[int, int]:
     """Crop the full printed finish-time cell, excluding adjacent margin and placing columns."""
-    return max(0, int(panel_width * 0.78)), min(panel_width, int(panel_width * 0.825))
+    return max(0, int(panel_width * 0.781)), min(panel_width, int(panel_width * 0.825))
 
 
 def _last_stable_identifier_slot_center(centers) -> float | None:
