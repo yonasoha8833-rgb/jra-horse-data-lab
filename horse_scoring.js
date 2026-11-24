@@ -28,6 +28,11 @@
     return /^[0-9]{4}-[0-9]{5}$/.test(candidate) ? candidate : null;
   }
 
+  function horseProfileId(value) {
+    const candidate = String(value || "").trim();
+    return candidate || null;
+  }
+
   function distanceBand(value) {
     const distance = numeric(value);
     if (distance === null || distance < 1000 || distance > 5000) return null;
@@ -208,9 +213,11 @@
         seen.add(runnerKey);
       }
       const name = String(row.horse_name || "").trim();
-      if (!name) continue;
       const registration = registrationNumber(row.horse_registration_number);
-      const identity = registration ? "registration:" + registration : "name:" + name;
+      const profileId = horseProfileId(row.horse_profile_id);
+      if (!name && !profileId) continue;
+      const identity = registration ? "registration:" + registration
+        : profileId ? "profile:" + profileId : "name:" + name;
       if (!horses.has(identity)) horses.set(identity, []);
       horses.get(identity).push(row);
     }
@@ -266,11 +273,15 @@
             || a.condition.localeCompare(b.condition, "ja"));
       }
       const isRegistration = identity.startsWith("registration:");
+      const isProfileId = identity.startsWith("profile:");
+      const profileId = rows.map(row => horseProfileId(row.horse_profile_id)).find(Boolean) || null;
       results.push({
         horse_name: String(rows[0].horse_name || "").trim(),
         horse_registration_number: isRegistration ? identity.slice("registration:".length) : null,
-        identity_basis: isRegistration ? "official_registration_number" : "horse_name_only",
-        identity_verified: isRegistration,
+        horse_profile_id: profileId,
+        identity_basis: isRegistration ? "official_registration_number"
+          : isProfileId ? "official_horse_profile_id" : "horse_name_only",
+        identity_verified: isRegistration || isProfileId,
         comparable_starts: rows.length,
         average_relative_score: Number((
           rows.reduce((sum, row) => sum + row.relative_last3f_score, 0) / rows.length
@@ -375,18 +386,20 @@
     );
 
     const registration = registrationNumber(settings.horseRegistrationNumber);
-    let name = String(settings.horseName || "").trim();
-    if (!name && rows.length) name = String(rows[0].horse_name || "").trim();
+    const profileId = horseProfileId(settings.horseProfileId);
+    const name = String(settings.horseName || "").trim();
     let relativeComponent = {
       score: null, raw_score: null, sample_count: 0, matched_condition: null
     };
-    if (registration || name) {
+    if (registration || profileId || name) {
       const relativeSummaries = Array.isArray(settings.relativeSummaries)
         ? settings.relativeSummaries
         : summarizeRelativeLast3f(raceRecords, { minConditionStarts });
       const horseSummary = relativeSummaries.find(item =>
         (registration && item.horse_registration_number === registration)
-        || (!registration && !item.horse_registration_number && item.horse_name === name)
+        || (profileId && item.horse_profile_id === profileId)
+        || (!registration && !profileId && !item.horse_registration_number
+          && !item.horse_profile_id && item.horse_name === name)
       );
       if (horseSummary) {
         const track = String(target.track || "").trim();
@@ -474,6 +487,7 @@
       integrated: componentsUsed.length > 1,
       confidence,
       identity_basis: registration ? "official_registration_number"
+        : profileId ? "official_horse_profile_id"
         : name ? "horse_name_only" : "unverified",
       warning: "着順・距離・馬場状態・同一レース内の個別上がり3F順位を統合した説明用指数です。不足した要素は除外し、残りの重みを再配分します。勝率や将来の着順予測ではありません。"
     };

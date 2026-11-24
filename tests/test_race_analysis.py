@@ -704,6 +704,73 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertFalse(result["integrated"])
 
 
+    def test_relative_last3f_uses_exact_jra_horse_profile_id(self):
+        race_rows = []
+        horse_rows = []
+        for race_number in range(1, 4):
+            base = {
+                "date": f"2026-11-0{race_number}",
+                "track": "京都",
+                "race_number": race_number,
+                "surface": "芝",
+                "distance": 1600,
+                "going": "良",
+                "field_size": 3,
+            }
+            target = {
+                **base, "horse_name": "同名馬", "horse_profile_id": "pw-target/AA",
+                "horse_number": 1, "finish": 1, "individual_last3f": 33.0,
+            }
+            horse_rows.append(target)
+            race_rows.extend([
+                target,
+                {**base, "horse_name": "同名馬", "horse_profile_id": "pw-other/BB",
+                 "horse_number": 2, "finish": 2, "individual_last3f": 34.0},
+                {**base, "horse_name": "第三馬", "horse_profile_id": "pw-third/CC",
+                 "horse_number": 3, "finish": 3, "individual_last3f": 35.0},
+            ])
+
+        summaries = summarize_relative_last3f(race_rows)
+        self.assertEqual(len(summaries), 3)
+        target_summary = next(
+            item for item in summaries if item["horse_profile_id"] == "pw-target/AA"
+        )
+        same_name_other = next(
+            item for item in summaries if item["horse_profile_id"] == "pw-other/BB"
+        )
+        self.assertEqual(target_summary["identity_basis"], "official_horse_profile_id")
+        self.assertTrue(target_summary["identity_verified"])
+        self.assertEqual(target_summary["comparable_starts"], 3)
+        self.assertEqual(target_summary["average_relative_score"], 100.0)
+        self.assertNotEqual(
+            target_summary["average_relative_score"],
+            same_name_other["average_relative_score"],
+        )
+
+        identified = integrated_horse_performance_score(
+            horse_rows, race_rows,
+            {"track": "京都", "surface": "芝", "distance": 1600, "going": "良"},
+            horse_profile_id="pw-target/AA",
+        )
+        self.assertEqual(identified["relative_last3f_sample_count"], 3)
+        self.assertEqual(identified["relative_last3f_raw_score"], 100.0)
+        self.assertEqual(identified["identity_basis"], "official_horse_profile_id")
+
+        unidentified = integrated_horse_performance_score(
+            horse_rows, race_rows,
+            {"track": "京都", "surface": "芝", "distance": 1600, "going": "良"},
+        )
+        self.assertIsNone(unidentified["relative_last3f_score"])
+        self.assertEqual(unidentified["identity_basis"], "unverified")
+
+        legacy = integrated_condition_last3f_score(
+            horse_rows, race_rows,
+            {"track": "京都", "surface": "芝", "distance": 1600, "going": "良"},
+            horse_profile_id="pw-target/AA",
+        )
+        self.assertTrue(legacy["integrated"])
+        self.assertEqual(legacy["relative_last3f_score"], 100.0)
+
     def test_integrated_horse_performance_score_combines_independent_components(self):
         horse_rows = []
         specifications = [
