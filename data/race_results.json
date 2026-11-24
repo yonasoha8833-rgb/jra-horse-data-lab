@@ -1174,20 +1174,20 @@
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3niigata1.pdf",
-      "attempts": 1,
-      "last_attempt_utc": "2026-11-16T11:55:40.443348+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-11-24T11:53:02.028925+00:00",
       "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3niigata2.pdf",
-      "attempts": 1,
-      "last_attempt_utc": "2026-11-16T11:57:55.898024+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-11-24T12:00:19.454079+00:00",
       "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
       "url": "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-3niigata3.pdf",
-      "attempts": 1,
-      "last_attempt_utc": "2026-11-16T12:00:18.326335+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-11-24T12:09:12.037635+00:00",
       "error": "No runner rows recognized; source remains eligible for retry"
     },
     {
