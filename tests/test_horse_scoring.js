@@ -94,6 +94,60 @@ test("integrates placing, distance, going and relative individual last-3F", () =
   assert.equal(result.identity_basis, "official_registration_number");
 });
 
+test("uses exact JRA horse profile IDs for relative last-3F identity", () => {
+  const raceRows = [];
+  const horseRows = [];
+  for (let raceNumber = 1; raceNumber <= 3; raceNumber += 1) {
+    const base = {
+      date: "2026-11-0" + raceNumber,
+      track: "京都",
+      race_number: raceNumber,
+      surface: "芝",
+      distance: 1600,
+      going: "良",
+      field_size: 3
+    };
+    const target = {
+      ...base, horse_name: "同名馬", horse_profile_id: "pw-target/AA",
+      horse_number: 1, finish: 1, individual_last3f: 33
+    };
+    horseRows.push(target);
+    raceRows.push(
+      target,
+      { ...base, horse_name: "同名馬", horse_profile_id: "pw-other/BB",
+        horse_number: 2, finish: 2, individual_last3f: 34 },
+      { ...base, horse_name: "第三馬", horse_profile_id: "pw-third/CC",
+        horse_number: 3, finish: 3, individual_last3f: 35 }
+    );
+  }
+
+  const summaries = summarizeRelativeLast3f(raceRows);
+  assert.equal(summaries.length, 3);
+  const targetSummary = summaries.find(item => item.horse_profile_id === "pw-target/AA");
+  const sameNameOther = summaries.find(item => item.horse_profile_id === "pw-other/BB");
+  assert.equal(targetSummary.identity_basis, "official_horse_profile_id");
+  assert.equal(targetSummary.identity_verified, true);
+  assert.equal(targetSummary.comparable_starts, 3);
+  assert.equal(targetSummary.average_relative_score, 100);
+  assert.notEqual(targetSummary.average_relative_score, sameNameOther.average_relative_score);
+
+  const identified = integratedHorsePerformanceScore(
+    horseRows, raceRows,
+    { track: "京都", surface: "芝", distance: 1600, going: "良" },
+    { horseProfileId: "pw-target/AA" }
+  );
+  assert.equal(identified.relative_last3f_sample_count, 3);
+  assert.equal(identified.relative_last3f_raw_score, 100);
+  assert.equal(identified.identity_basis, "official_horse_profile_id");
+
+  const unidentified = integratedHorsePerformanceScore(
+    horseRows, raceRows,
+    { track: "京都", surface: "芝", distance: 1600, going: "良" }
+  );
+  assert.equal(unidentified.relative_last3f_score, null);
+  assert.equal(unidentified.identity_basis, "unverified");
+});
+
 test("shrinks strong condition results toward overall form", () => {
   const horseRows = [];
   for (let index = 1; index <= 6; index += 1) {
