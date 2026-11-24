@@ -1142,6 +1142,26 @@ def _build_ocr_runner_lines(
 
 
 
+def _attach_verified_isolated_finish_time(
+    frame: int,
+    horse: int,
+    row_text: str,
+    isolated_time: str | None,
+) -> str | None:
+    """Attach an independently read time only when the complete runner validates."""
+    if not isolated_time:
+        return None
+    without_row_time = re.sub(
+        r"(?<![0-9A-Za-z])[0-9０-９]{1,2}[:：][0-9０-９]{2}[.．]\\s*[0-9０-９](?![0-9A-Za-z])",
+        "",
+        str(row_text or ""),
+    )
+    candidate = f"{without_row_time} | {isolated_time}"
+    if _runner(f"{frame}|{horse} {candidate}") is None:
+        return None
+    return candidate
+
+
 def _build_verified_partial_ocr_runner_lines(
     identifier_rows: list[tuple[float, tuple[int, int]]],
     row_texts: list[str],
@@ -2074,16 +2094,15 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     f"reads={time_reads!r} parsed_time={isolated_time!r} "
                                     f"row_parse={'ok' if parsed_row is not None else 'failed'}"
                                 )
-                                if isolated_time and parsed_row is not None:
-                                    # The isolated crop is aligned to the printed time column.
-                                    # Use that independent cell reading to replace any
-                                    # conflicting full-row OCR token, never to infer a value.
-                                    row_result = re.sub(
-                                        r"(?<![0-9A-Za-z])[0-9０-９]{1,2}[:：][0-9０-９]{2}[.．]\s*[0-9０-９](?![0-9A-Za-z])",
-                                        "",
-                                        row_result,
-                                    )
-                                    row_result = f"{row_result} | {isolated_time}"
+                                # A separately read time may recover a row whose
+                                # combined OCR missed the time token. Re-validate the
+                                # complete row after attachment; identity/name/sex/age
+                                # requirements are not bypassed.
+                                verified_time_row = _attach_verified_isolated_finish_time(
+                                    frame_value, horse_value, row_result, isolated_time
+                                )
+                                if verified_time_row is not None:
+                                    row_result = verified_time_row
                                 row_texts.append(row_result)
                             row_lines = _build_ocr_runner_lines(identifier_rows, row_texts)
                             row_diagnostics = [
