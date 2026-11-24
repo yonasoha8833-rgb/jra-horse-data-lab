@@ -8,6 +8,14 @@
     {
       "label": "2026-11-15 東京 7R",
       "url": "https://www.jra.go.jp/JRADB/accessS.html?CNAME=pw01sde0105202605040720261115%2F16"
+    },
+    {
+      "label": "2026-11-22 京都 7R（1勝クラス）",
+      "url": "https://www.jra.go.jp/JRADB/accessS.html?CNAME=pw01sde1008202605060720261122%2FDC"
+    },
+    {
+      "label": "2026-11-22 東京 8R（2勝クラス）",
+      "url": "https://www.jra.go.jp/JRADB/accessS.html?CNAME=pw01sde0105202605061020261122%2F5C"
     }
   ]
 }
