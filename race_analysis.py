@@ -43,6 +43,12 @@ def _registration_number(value: Any) -> str | None:
     return candidate if REGISTRATION_NUMBER_RE.fullmatch(candidate) else None
 
 
+def _horse_profile_id(value: Any) -> str | None:
+    """Return an exact, non-empty official JRA horse profile identifier."""
+    candidate = str(value or "").strip()
+    return candidate or None
+
+
 def parse_corner_positions(value: Any) -> list[int] | None:
     """Parse positive corner ranks from a list or a delimited official value."""
     if isinstance(value, str):
@@ -844,10 +850,14 @@ def summarize_relative_last3f(
                 continue
             seen.add(runner_key)
         name = str(row.get("horse_name") or "").strip()
-        if not name:
-            continue
         registration = _registration_number(row.get("horse_registration_number"))
-        identity = ("registration", registration) if registration else ("name", name)
+        profile_id = _horse_profile_id(row.get("horse_profile_id"))
+        if not name and not profile_id:
+            continue
+        identity = (
+            ("registration", registration) if registration else
+            ("profile", profile_id) if profile_id else ("name", name)
+        )
         horses[identity].append(row)
 
     results = []
@@ -898,11 +908,19 @@ def summarize_relative_last3f(
             conditions[label] = sorted(
                 summaries, key=lambda item: (-item["sample_count"], item["condition"])
             )
+        profile_id = next(
+            (value for row in rows if (value := _horse_profile_id(row.get("horse_profile_id")))),
+            None,
+        )
         results.append({
             "horse_name": str(rows[0].get("horse_name") or "").strip(),
             "horse_registration_number": identity[1] if identity[0] == "registration" else None,
-            "identity_basis": "official_registration_number" if identity[0] == "registration" else "horse_name_only",
-            "identity_verified": identity[0] == "registration",
+            "horse_profile_id": profile_id,
+            "identity_basis": (
+                "official_registration_number" if identity[0] == "registration" else
+                "official_horse_profile_id" if identity[0] == "profile" else "horse_name_only"
+            ),
+            "identity_verified": identity[0] in {"registration", "profile"},
             "comparable_starts": len(rows),
             "average_relative_score": round(mean(row["relative_last3f_score"] for row in rows), 1),
             "conditions": conditions,
@@ -916,6 +934,7 @@ def integrated_condition_last3f_score(
     target_conditions: dict[str, Any],
     *,
     horse_registration_number: str | None = None,
+    horse_profile_id: str | None = None,
     horse_name: str | None = None,
     min_condition_starts: int = 3,
     prior_strength: float = 5.0,
@@ -948,8 +967,9 @@ def integrated_condition_last3f_score(
         }
 
     registration = _registration_number(horse_registration_number)
+    profile_id = _horse_profile_id(horse_profile_id)
     name = str(horse_name or "").strip()
-    if not registration and not name:
+    if not registration and not profile_id and not name:
         return {
             **base,
             "relative_last3f_score": None,
@@ -964,7 +984,13 @@ def integrated_condition_last3f_score(
     target = next((
         item for item in summaries
         if (registration and item["horse_registration_number"] == registration)
-        or (not registration and not item["horse_registration_number"] and item["horse_name"] == name)
+        or (profile_id and item["horse_profile_id"] == profile_id)
+        or (
+            not registration and not profile_id
+            and not item["horse_registration_number"]
+            and not item["horse_profile_id"]
+            and item["horse_name"] == name
+        )
     ), None)
     if target is None:
         return {
@@ -1141,6 +1167,7 @@ def integrated_horse_performance_score(
     target_conditions: dict[str, Any],
     *,
     horse_registration_number: str | None = None,
+    horse_profile_id: str | None = None,
     horse_name: str | None = None,
     min_condition_starts: int = 3,
     prior_strength: float = 5.0,
@@ -1272,28 +1299,29 @@ def integrated_horse_performance_score(
     )
 
     registration = _registration_number(horse_registration_number)
+    profile_id = _horse_profile_id(horse_profile_id)
     name = str(horse_name or "").strip()
-    if not name and rows:
-        name = str(rows[0].get("horse_name") or "").strip()
     relative_component = {
         "score": None,
         "raw_score": None,
         "sample_count": 0,
         "matched_condition": None,
     }
-    if registration or name:
+    if registration or profile_id or name:
         relative_summaries = summarize_relative_last3f(
             race_records, min_condition_starts=min_condition_starts
         )
         horse_summary = next((
             item for item in relative_summaries
             if (
-                registration
-                and item["horse_registration_number"] == registration
-            ) or (
-                not registration
-                and not item["horse_registration_number"]
-                and item["horse_name"] == name
+                (registration and item["horse_registration_number"] == registration)
+                or (profile_id and item["horse_profile_id"] == profile_id)
+                or (
+                    not registration and not profile_id
+                    and not item["horse_registration_number"]
+                    and not item["horse_profile_id"]
+                    and item["horse_name"] == name
+                )
             )
         ), None)
         if horse_summary is not None:
@@ -1408,6 +1436,7 @@ def integrated_horse_performance_score(
         "confidence": confidence,
         "identity_basis": (
             "official_registration_number" if registration else
+            "official_horse_profile_id" if profile_id else
             "horse_name_only" if name else "unverified"
         ),
         "warning": (
