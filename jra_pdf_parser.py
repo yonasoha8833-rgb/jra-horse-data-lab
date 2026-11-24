@@ -1155,7 +1155,7 @@ def _build_verified_partial_ocr_runner_lines(
         return []
     verified = []
     for (_, (frame, horse)), text in zip(identifier_rows, row_texts):
-        text = re.sub(r"^\\s*[1-8]\\s*[|/\\\\{}()\\[\\].,:;<>_-]*\\s*\\d{1,2}\\s*", "", text)
+        text = re.sub(r"^\s*[1-8]\s*[|/\\{}()\[\].,:;<>_-]*\s*\d{1,2}\s*", "", text)
         runner = _runner(f"{frame}|{horse} {text.strip()}")
         if runner is None:
             continue
