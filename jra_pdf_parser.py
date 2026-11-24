@@ -1134,7 +1134,7 @@ def _build_ocr_runner_lines(
         return []
     lines = []
     for (_, (frame, horse)), text in zip(identifier_rows, row_texts):
-        text = re.sub(r"^\s*[1-8]\s*[|/\\\\{}()\[\].,:;<>_-]*\s*\d{1,2}\s*", "", text)
+        text = re.sub(r"^\s*[1-8]\s*[|/\\{}()\[\].,:;<>_-]*\s*\d{1,2}\s*", "", text)
         if not text.strip():
             return []
         lines.append(f"{frame}|{horse} {text.strip()}")
