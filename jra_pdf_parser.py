@@ -1134,12 +1134,39 @@ def _build_ocr_runner_lines(
         return []
     lines = []
     for (_, (frame, horse)), text in zip(identifier_rows, row_texts):
-        text = re.sub(r"^\s*[1-8]\s*[|/\\\\{}()\[\].,:;<>_-]*\s*\d{1,2}\s*", "", text)
+        text = re.sub(r"^\s*[1-8]\s*[|/\\{}()\[\].,:;<>_-]*\s*\d{1,2}\s*", "", text)
         if not text.strip():
             return []
         lines.append(f"{frame}|{horse} {text.strip()}")
     return lines
 
+
+
+def _build_verified_partial_ocr_runner_lines(
+    identifier_rows: list[tuple[float, tuple[int, int]]],
+    row_texts: list[str],
+) -> list[str]:
+    """Keep only row-local OCR rows with a valid identity and same-row result.
+
+    Missing or ambiguous rows are omitted, never reconstructed. Race-level
+    completeness checks remain responsible for rejecting an incomplete field.
+    """
+    if len(identifier_rows) != len(row_texts):
+        return []
+    verified = []
+    for (_, (frame, horse)), text in zip(identifier_rows, row_texts):
+        text = re.sub(r"^\s*[1-8]\s*[|/\\{}()\[\].,:;<>_-]*\s*\d{1,2}\s*", "", text)
+        runner = _runner(f"{frame}|{horse} {text.strip()}")
+        if runner is None:
+            continue
+        if (
+            runner.get("finish_time_seconds") is None
+            and not runner.get("result_status")
+            and not runner.get("dead_heat")
+        ):
+            continue
+        verified.append(f"{frame}|{horse} {text.strip()}")
+    return verified
 
 
 def _ocr_runner_lines_are_complete(lines: list[str], expected_count: int) -> bool:
@@ -2162,18 +2189,24 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         clean_lines.append(
                                             f"JRA_OCR_HEADCOUNT_VERIFIED={declared_headcount}"
                                         )
-                            if _ocr_runner_lines_are_complete(row_lines, len(identifier_rows)):
-                                # Row-local OCR is often noisier than the complete-panel pass.
-                                # Replace its runner lines only when every identified row has
-                                # a strict result-time or terminal-status parse; otherwise
-                                # preserve the original panel OCR for downstream validation.
+                            verified_row_lines = _build_verified_partial_ocr_runner_lines(
+                                identifier_rows, row_texts
+                            )
+                            if verified_row_lines:
+                                # Keep independently verified rows even when another row
+                                # failed OCR. Missing rows remain missing, so strict race-level
+                                # headcount and horse-number checks still reject incomplete fields.
                                 non_runner_lines = [
                                     line for line in clean_lines if not _runner(line.strip())
                                 ]
-                                clean_lines = non_runner_lines + row_lines
+                                clean_lines = non_runner_lines + verified_row_lines
+                                row_diagnostics.append(
+                                    f"row_local_verified_rows={len(verified_row_lines)}/"
+                                    f"{len(identifier_rows)}; incomplete_rows_not_reconstructed"
+                                )
                             else:
                                 row_diagnostics.append(
-                                    "row_local_ocr_not_used: incomplete_or_invalid_runner_rows"
+                                    "row_local_ocr_not_used: no_verified_runner_rows"
                                 )
                         finally:
                             panel_image.close()
