@@ -5,7 +5,7 @@
   "field_conflict_count": 0,
   "compared_field_count": 0,
   "missing_field_pair_count": 0,
-  "html_only_count": 32,
+  "html_only_count": 50,
   "pdf_only_count": 0,
   "matched": [],
   "conflicts": [],
@@ -233,6 +233,132 @@
       "track": "東京",
       "race_number": 7,
       "horse_number": 9,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 5,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 9,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 2,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 12,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 16,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 17,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 14,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 10,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 1,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 4,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 7,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 15,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 3,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 13,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 6,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 18,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 8,
+      "reason": "no_exact_pdf_match"
+    },
+    {
+      "date": "2026-11-22",
+      "track": "京都",
+      "race_number": 7,
+      "horse_number": 11,
       "reason": "no_exact_pdf_match"
     }
   ],
