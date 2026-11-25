@@ -49,6 +49,32 @@ def _horse_profile_id(value: Any) -> str | None:
     return candidate or None
 
 
+def _matches_horse_summary(
+    item: dict[str, Any],
+    registration: str | None,
+    profile_id: str | None,
+    name: str,
+) -> bool:
+    """Match the strongest supplied horse identifiers without accepting conflicts."""
+    item_registration = _registration_number(item.get("horse_registration_number"))
+    item_profile_id = _horse_profile_id(item.get("horse_profile_id"))
+    if registration or profile_id:
+        if registration and item_registration and item_registration != registration:
+            return False
+        if profile_id and item_profile_id and item_profile_id != profile_id:
+            return False
+        return bool(
+            (registration and item_registration == registration)
+            or (profile_id and item_profile_id == profile_id)
+        )
+    return bool(
+        name
+        and not item_registration
+        and not item_profile_id
+        and item.get("horse_name") == name
+    )
+
+
 def parse_corner_positions(value: Any) -> list[int] | None:
     """Parse positive corner ranks from a list or a delimited official value."""
     if isinstance(value, str):
@@ -1311,19 +1337,13 @@ def integrated_horse_performance_score(
         relative_summaries = summarize_relative_last3f(
             race_records, min_condition_starts=min_condition_starts
         )
-        horse_summary = next((
+        matching_summaries = [
             item for item in relative_summaries
-            if (
-                (registration and item["horse_registration_number"] == registration)
-                or (profile_id and item["horse_profile_id"] == profile_id)
-                or (
-                    not registration and not profile_id
-                    and not item["horse_registration_number"]
-                    and not item["horse_profile_id"]
-                    and item["horse_name"] == name
-                )
-            )
-        ), None)
+            if _matches_horse_summary(item, registration, profile_id, name)
+        ]
+        # Two separate partial-ID summaries cannot prove that both IDs belong
+        # to the same horse; omit the component instead of choosing the first.
+        horse_summary = matching_summaries[0] if len(matching_summaries) == 1 else None
         if horse_summary is not None:
             track = str(target.get("track") or "").strip()
             relative_candidates = []

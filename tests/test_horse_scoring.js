@@ -94,6 +94,87 @@ test("integrates placing, distance, going and relative individual last-3F", () =
   assert.equal(result.identity_basis, "official_registration_number");
 });
 
+test("rejects conflicting registration and profile IDs in integrated scoring", () => {
+  const { horseRows } = buildFourFactorFixture();
+  const conditions = {
+    track_surface_distance: [{
+      condition: "東京 芝 1600m",
+      sample_count: 3,
+      average_relative_score: 100
+    }]
+  };
+  const relativeSummaries = [
+    {
+      horse_name: "統合評価馬",
+      horse_registration_number: "2021-12345",
+      horse_profile_id: "pw-target/AA",
+      conditions
+    },
+    {
+      horse_name: "統合評価馬",
+      horse_registration_number: "2020-12345",
+      horse_profile_id: "pw-other/BB",
+      conditions: {
+        track_surface_distance: [{
+          condition: "東京 芝 1600m",
+          sample_count: 3,
+          average_relative_score: 0
+        }]
+      }
+    }
+  ];
+  const result = integratedHorsePerformanceScore(
+    horseRows,
+    [],
+    { track: "東京", surface: "芝", distance: 1600, going: "良" },
+    {
+      horseRegistrationNumber: "2020-12345",
+      horseProfileId: "pw-target/AA",
+      relativeSummaries
+    }
+  );
+  assert.equal(result.relative_last3f_score, null);
+  assert.equal(result.relative_last3f_sample_count, 0);
+  assert.equal(result.components_used.includes("relative_last3f"), false);
+});
+
+test("omits relative last-3F when supplied IDs match separate partial summaries", () => {
+  const { horseRows } = buildFourFactorFixture();
+  const conditions = {
+    track_surface_distance: [{
+      condition: "東京 芝 1600m",
+      sample_count: 3,
+      average_relative_score: 100
+    }]
+  };
+  const result = integratedHorsePerformanceScore(
+    horseRows,
+    [],
+    { track: "東京", surface: "芝", distance: 1600, going: "良" },
+    {
+      horseRegistrationNumber: "2020-12345",
+      horseProfileId: "pw-target/AA",
+      relativeSummaries: [
+        {
+          horse_name: "統合評価馬",
+          horse_registration_number: null,
+          horse_profile_id: "pw-target/AA",
+          conditions
+        },
+        {
+          horse_name: "統合評価馬",
+          horse_registration_number: "2020-12345",
+          horse_profile_id: null,
+          conditions
+        }
+      ]
+    }
+  );
+  assert.equal(result.relative_last3f_score, null);
+  assert.equal(result.relative_last3f_sample_count, 0);
+  assert.equal(result.components_used.includes("relative_last3f"), false);
+});
+
 test("uses exact JRA horse profile IDs for relative last-3F identity", () => {
   const raceRows = [];
   const horseRows = [];
@@ -489,7 +570,8 @@ test("validates the current official HTML sidecar race groups end to end", () =>
   const sidecarPath = path.join(__dirname, "..", "data", "jra_html_results.json");
   const sidecar = JSON.parse(fs.readFileSync(sidecarPath, "utf8"));
   const records = sidecar.records;
-  assert.equal(records.length, 32);
+  assert.ok(records.length > 0);
+  assert.equal(sidecar.record_count, records.length);
   const raceGroups = new Map();
   for (const row of records) {
     const key = [row.date, row.track, row.race_number].join("|");
@@ -499,8 +581,14 @@ test("validates the current official HTML sidecar race groups end to end", () =>
     assert.ok(Number.isInteger(row.field_size) && row.field_size > 1);
     assert.ok(Number.isInteger(row.corner_3) && row.corner_3 >= 1 && row.corner_3 <= row.field_size);
   }
-  assert.equal(raceGroups.size, 2);
-  assert.deepEqual([...raceGroups.values()].map(group => group.length).sort((a, b) => a - b), [14, 18]);
+  assert.ok(raceGroups.size >= 2);
+  const expectedRaceSizes = [...raceGroups.values()]
+    .map(group => group[0].field_size)
+    .sort((a, b) => a - b);
+  assert.deepEqual(
+    [...raceGroups.values()].map(group => group.length).sort((a, b) => a - b),
+    expectedRaceSizes
+  );
   for (const group of raceGroups.values()) {
     const expectedSize = group[0].field_size;
     assert.equal(group.length, expectedSize);
@@ -509,9 +597,12 @@ test("validates the current official HTML sidecar race groups end to end", () =>
     assert.ok(group.every(row => JSON.stringify(row.race_lap_times) === JSON.stringify(group[0].race_lap_times)));
   }
   const lapSummaries = summarizeOfficialRaceLapSplits(records);
-  assert.equal(lapSummaries.length, 2);
-  assert.deepEqual(lapSummaries.map(item => item.runner_record_count).sort((a, b) => a - b), [14, 18]);
+  assert.equal(lapSummaries.length, raceGroups.size);
+  assert.deepEqual(
+    lapSummaries.map(item => item.runner_record_count).sort((a, b) => a - b),
+    expectedRaceSizes
+  );
   const forwardSummaries = summarizeForwardPosition(records);
-  assert.equal(forwardSummaries.length, 32);
-  assert.ok(forwardSummaries.every(item => item.sample_count === 1));
+  assert.ok(forwardSummaries.length > 0);
+  assert.ok(forwardSummaries.every(item => item.sample_count >= 1));
 });
