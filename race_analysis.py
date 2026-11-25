@@ -1337,10 +1337,13 @@ def integrated_horse_performance_score(
         relative_summaries = summarize_relative_last3f(
             race_records, min_condition_starts=min_condition_starts
         )
-        horse_summary = next((
+        matching_summaries = [
             item for item in relative_summaries
             if _matches_horse_summary(item, registration, profile_id, name)
-        ), None)
+        ]
+        # Two separate partial-ID summaries cannot prove that both IDs belong
+        # to the same horse; omit the component instead of choosing the first.
+        horse_summary = matching_summaries[0] if len(matching_summaries) == 1 else None
         if horse_summary is not None:
             track = str(target.get("track") or "").strip()
             relative_candidates = []
