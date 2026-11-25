@@ -828,6 +828,67 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(result["relative_last3f_sample_count"], 0)
         self.assertNotIn("relative_last3f", result["components_used"])
 
+    def test_integrated_score_rejects_split_partial_horse_identity_matches(self):
+        horse_rows = []
+        race_rows = []
+        for race_number in range(1, 4):
+            date = f"2026-11-{race_number:02d}"
+            horse_rows.append({
+                "horse_name": "対象馬",
+                "horse_registration_number": "2020-12345",
+                "horse_profile_id": "pw-target/AA",
+                "source_url": f"target-split-{race_number}.pdf",
+                "date": date,
+                "track": "京都",
+                "race_number": race_number,
+                "horse_number": 1,
+                "surface": "芝",
+                "distance": 1600,
+                "going": "良",
+                "finish": 2,
+                "field_size": 4,
+                "individual_last3f": 34.0,
+            })
+            base = {
+                "date": date, "track": "京都", "race_number": race_number,
+                "surface": "芝", "distance": 1600, "going": "良", "field_size": 4,
+            }
+            race_rows.extend([
+                {
+                    **base, "horse_name": "プロフィールIDのみ",
+                    "horse_profile_id": "pw-target/AA",
+                    "horse_number": 1, "finish": 1, "individual_last3f": 33.0,
+                },
+                {
+                    **base, "horse_name": "登録番号のみ",
+                    "horse_registration_number": "2020-12345",
+                    "horse_number": 2, "finish": 2, "individual_last3f": 34.0,
+                },
+                {
+                    **base, "horse_name": "相手馬C",
+                    "horse_registration_number": "2022-12345",
+                    "horse_profile_id": "pw-other/BB",
+                    "horse_number": 3, "finish": 3, "individual_last3f": 35.0,
+                },
+                {
+                    **base, "horse_name": "相手馬D",
+                    "horse_registration_number": "2023-12345",
+                    "horse_profile_id": "pw-third/CC",
+                    "horse_number": 4, "finish": 4, "individual_last3f": 36.0,
+                },
+            ])
+
+        result = integrated_horse_performance_score(
+            horse_rows,
+            race_rows,
+            {"track": "京都", "surface": "芝", "distance": 1600, "going": "良"},
+            horse_registration_number="2020-12345",
+            horse_profile_id="pw-target/AA",
+        )
+        self.assertIsNone(result["relative_last3f_score"])
+        self.assertEqual(result["relative_last3f_sample_count"], 0)
+        self.assertNotIn("relative_last3f", result["components_used"])
+
     def test_integrated_horse_performance_score_combines_independent_components(self):
         horse_rows = []
         specifications = [
