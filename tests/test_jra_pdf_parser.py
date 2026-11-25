@@ -192,6 +192,24 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertIsNone(_consensus_declared_field_size(["(8頭)", "noise"]))
         self.assertIsNone(_consensus_declared_field_size(["(18頭)", "(19頭)"]))
 
+    def test_official_pdf_url_overrides_ocr_year_and_conflicting_track(self):
+        misleading_header = SAMPLE.replace("2026年5東京", "2076年5中山")
+        rows = parse_race_text(
+            misleading_header,
+            source_url="https://www.jra.go.jp/datafile/seiseki/report/2026/2026-5tokyo3.pdf",
+        )
+        self.assertEqual(len(rows), 2)
+        self.assertEqual({row["date"] for row in rows}, {"2026-11-08"})
+        self.assertEqual({row["track"] for row in rows}, {"東京"})
+
+    def test_year_is_not_inferred_from_noncanonical_source_url(self):
+        misleading_header = SAMPLE.replace("2026年5東京", "2076年5東京")
+        rows = parse_race_text(
+            misleading_header,
+            source_url="https://example.com/datafile/seiseki/report/2026/2026-5tokyo3.pdf",
+        )
+        self.assertEqual({row["date"] for row in rows}, {"2076-11-08"})
+
     def test_propagates_only_one_verified_pdf_wide_date_and_track(self):
         rows = [
             {"date": "2026-01-10", "track": "京都"},
