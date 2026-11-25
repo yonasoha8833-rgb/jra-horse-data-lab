@@ -6,10 +6,29 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 
-from jra_pdf_parser import _complete_ocr_records, download_and_extract
+from jra_pdf_parser import (
+    _complete_ocr_records,
+    _track_from_official_pdf_url,
+    _year_from_official_pdf_url,
+    download_and_extract,
+)
 
 CATALOG = Path("data/catalog.json")
 OUTPUT = Path("data/race_results.json")
+
+
+def _official_pdf_identity_conflicts(row: dict) -> bool:
+    """Detect saved OCR identity that contradicts a canonical JRA PDF URL."""
+    source = str(row.get("source_url") or "").strip()
+    official_year = _year_from_official_pdf_url(source)
+    if official_year is not None:
+        saved_date = str(row.get("date") or "")
+        if not saved_date.startswith(f"{official_year:04d}-"):
+            return True
+    official_track = _track_from_official_pdf_url(source)
+    if official_track is not None and row.get("track") != official_track:
+        return True
+    return False
 
 
 def sanitize_existing_records(records: list[dict]) -> list[dict]:
@@ -22,7 +41,10 @@ def sanitize_existing_records(records: list[dict]) -> list[dict]:
         row for row in records
         if row.get("extraction_status") == "ocr_fallback_basic_fields"
     ]
-    return ordinary + _complete_ocr_records(legacy_ocr)
+    identity_consistent_ocr = [
+        row for row in legacy_ocr if not _official_pdf_identity_conflicts(row)
+    ]
+    return ordinary + _complete_ocr_records(identity_consistent_ocr)
 
 
 def rejected_legacy_ocr_sources(records: list[dict]) -> set[str]:
@@ -37,7 +59,10 @@ def rejected_legacy_ocr_sources(records: list[dict]) -> set[str]:
         source = str(row.get("source_url") or "").strip()
         if source:
             original_counts[source] = original_counts.get(source, 0) + 1
-    for row in _complete_ocr_records(legacy_ocr):
+    identity_consistent_ocr = [
+        row for row in legacy_ocr if not _official_pdf_identity_conflicts(row)
+    ]
+    for row in _complete_ocr_records(identity_consistent_ocr):
         source = str(row.get("source_url") or "").strip()
         if source:
             accepted_counts[source] = accepted_counts.get(source, 0) + 1
