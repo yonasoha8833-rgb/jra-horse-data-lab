@@ -412,9 +412,10 @@
       const relativeSummaries = Array.isArray(settings.relativeSummaries)
         ? settings.relativeSummaries
         : summarizeRelativeLast3f(raceRecords, { minConditionStarts });
-      const horseSummary = relativeSummaries.find(item =>
+      const matchingSummaries = relativeSummaries.filter(item =>
         matchesHorseSummary(item, registration, profileId, name)
       );
+      const horseSummary = matchingSummaries.length === 1 ? matchingSummaries[0] : null;
       if (horseSummary) {
         const track = String(target.track || "").trim();
         const candidates = [];
