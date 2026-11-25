@@ -94,6 +94,50 @@ test("integrates placing, distance, going and relative individual last-3F", () =
   assert.equal(result.identity_basis, "official_registration_number");
 });
 
+test("rejects conflicting registration and profile IDs in integrated scoring", () => {
+  const { horseRows } = buildFourFactorFixture();
+  const conditions = {
+    track_surface_distance: [{
+      condition: "東京 芝 1600m",
+      sample_count: 3,
+      average_relative_score: 100
+    }]
+  };
+  const relativeSummaries = [
+    {
+      horse_name: "統合評価馬",
+      horse_registration_number: "2021-12345",
+      horse_profile_id: "pw-target/AA",
+      conditions
+    },
+    {
+      horse_name: "統合評価馬",
+      horse_registration_number: "2020-12345",
+      horse_profile_id: "pw-other/BB",
+      conditions: {
+        track_surface_distance: [{
+          condition: "東京 芝 1600m",
+          sample_count: 3,
+          average_relative_score: 0
+        }]
+      }
+    }
+  ];
+  const result = integratedHorsePerformanceScore(
+    horseRows,
+    [],
+    { track: "東京", surface: "芝", distance: 1600, going: "良" },
+    {
+      horseRegistrationNumber: "2020-12345",
+      horseProfileId: "pw-target/AA",
+      relativeSummaries
+    }
+  );
+  assert.equal(result.relative_last3f_score, null);
+  assert.equal(result.relative_last3f_sample_count, 0);
+  assert.equal(result.components_used.includes("relative_last3f"), false);
+});
+
 test("uses exact JRA horse profile IDs for relative last-3F identity", () => {
   const raceRows = [];
   const horseRows = [];
