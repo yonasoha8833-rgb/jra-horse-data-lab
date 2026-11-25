@@ -222,6 +222,16 @@ def _strict_ocr_finish_time(text: str) -> str | None:
             values.add(f"{minutes}:{seconds:02d}.{tenth}")
     return next(iter(values)) if len(values) == 1 else None
 
+def _consensus_ocr_finish_time(readings: list[str]) -> str | None:
+    """Accept an isolated finish time only when at least two valid reads agree exactly."""
+    valid = [
+        value for reading in readings
+        if (value := _strict_ocr_finish_time(str(reading or ""))) is not None
+    ]
+    if len(valid) < 2 or len(set(valid)) != 1:
+        return None
+    return valid[0]
+
 
 def _runner(line: str) -> dict[str, Any] | None:
     # OCR sometimes inserts a space inside a two-digit horse number (e.g. "2 1 2").
@@ -2092,20 +2102,42 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     Image.Resampling.LANCZOS,
                                 )
                                 time_crop.save(time_crop_path)
+                                # Compare the normalized grayscale crop with two
+                                # independent binarization thresholds. A time is
+                                # accepted only if at least two valid OCR reads agree
+                                # and no other valid reading conflicts.
+                                time_variants = [("gray", time_crop_path)]
+                                for threshold in (120, 170):
+                                    variant = time_crop.point(
+                                        lambda pixel, cutoff=threshold: (
+                                            255 if pixel >= cutoff else 0
+                                        )
+                                    )
+                                    variant_path = temp_dir / (
+                                        f"{page.stem}-{side}-time-{row_index}-"
+                                        f"threshold-{threshold}.png"
+                                    )
+                                    variant.save(variant_path)
+                                    time_variants.append((f"threshold-{threshold}", variant_path))
                                 time_reads = []
-                                for time_psm in ("7", "8"):
-                                    time_text = subprocess.run(
-                                        ["tesseract", str(time_crop_path), "stdout", "-l", "eng",
-                                         "--psm", time_psm, "-c",
-                                         "tessedit_char_whitelist=0123456789:."],
-                                        check=True, timeout=15, capture_output=True, text=True,
-                                    ).stdout.strip()
-                                    time_reads.append(time_text)
-                                isolated_time = _strict_ocr_finish_time(" ".join(time_reads))
+                                time_read_details = []
+                                for variant_name, variant_path in time_variants:
+                                    for time_psm in ("7", "8"):
+                                        time_text = subprocess.run(
+                                            ["tesseract", str(variant_path), "stdout", "-l", "eng",
+                                             "--psm", time_psm, "-c",
+                                             "tessedit_char_whitelist=0123456789:."],
+                                            check=True, timeout=15, capture_output=True, text=True,
+                                        ).stdout.strip()
+                                        time_reads.append(time_text)
+                                        time_read_details.append(
+                                            f"{variant_name}/psm{time_psm}={time_text!r}"
+                                        )
+                                isolated_time = _consensus_ocr_finish_time(time_reads)
                                 time_diagnostics.append(
                                     f"time_row={row_index + 1} horse={horse_value} "
                                     f"y=({y_top},{y_bottom}) x=({time_left},{time_right}) "
-                                    f"reads={time_reads!r} parsed_time={isolated_time!r} "
+                                    f"reads={time_read_details!r} parsed_time={isolated_time!r} "
                                     f"row_parse={'ok' if parsed_row is not None else 'failed'}"
                                 )
                                 # A separately read time may recover a row whose
