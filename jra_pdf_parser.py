@@ -330,11 +330,14 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
         race_date = None
         if date_match:
             month, day = map(int, date_match.groups())
+            # The canonical JRA PDF URL is authoritative for the season year.
+            # OCR can turn 2026 into 2076; never let that corrupt race history.
+            source_year = _year_from_official_pdf_url(source_url)
             year_match = re.search(r"(20\d{2})年", header_window)
-            if not year_match and source_url:
-                year_match = re.search(r"/(20\d{2})/", source_url)
-            if year_match:
-                year = int(year_match.group(1))
+            year = source_year if source_year is not None else (
+                int(year_match.group(1)) if year_match else None
+            )
+            if year is not None:
                 try:
                     race_date = date(year, month, day).isoformat()
                 except ValueError:
@@ -354,7 +357,9 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
                 surface = "障害"
                 break
 
-        track = _track(header_window)
+        # A canonical official PDF identifies exactly one racecourse.
+        # Prefer it over OCR text that may accidentally read another course name.
+        track = _track_from_official_pdf_url(source_url) or _track(header_window)
         going_match = GOING_RE.search(header_window)
         going = going_match.group(1) if going_match else None
         race_name_match = re.search(r"第\s*\d+\s*競走\s*(.*?)\s*[0-9０-９]{1,2}(?:[,，][0-9０-９]{3}|[0-9０-９]{2,3})", header_window)
@@ -2261,6 +2266,19 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                 race_number = page_index * 2 + side_index + 1
                 chunks.append(f"第{race_number}競走\n" + "\n".join(clean_lines))
     return "\n".join(chunks)
+
+def _year_from_official_pdf_url(source_url: str) -> int | None:
+    """Read the season year only from a canonical JRA official result-PDF URL."""
+    parsed = urlparse(source_url)
+    if parsed.scheme != "https" or parsed.hostname != "www.jra.go.jp":
+        return None
+    match = re.fullmatch(
+        r"/datafile/seiseki/report/(\d{4})/\d+-\d+"
+        r"(?:sapporo|hakodate|fukushima|niigata|tokyo|nakayama|chukyo|kyoto|hanshin|kokura)\d+\.pdf",
+        parsed.path,
+    )
+    return int(match.group(1)) if match else None
+
 
 def _track_from_official_pdf_url(source_url: str) -> str | None:
     """Read the racecourse slug only from a canonical JRA official result-PDF URL."""
