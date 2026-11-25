@@ -33,6 +33,23 @@
     return candidate || null;
   }
 
+
+  function matchesHorseSummary(item, registration, profileId, name) {
+    const itemRegistration = registrationNumber(item && item.horse_registration_number);
+    const itemProfileId = horseProfileId(item && item.horse_profile_id);
+    if (registration || profileId) {
+      if (registration && itemRegistration && itemRegistration !== registration) return false;
+      if (profileId && itemProfileId && itemProfileId !== profileId) return false;
+      return Boolean(
+        (registration && itemRegistration === registration)
+        || (profileId && itemProfileId === profileId)
+      );
+    }
+    return Boolean(
+      name && !itemRegistration && !itemProfileId && item && item.horse_name === name
+    );
+  }
+
   function distanceBand(value) {
     const distance = numeric(value);
     if (distance === null || distance < 1000 || distance > 5000) return null;
@@ -396,10 +413,7 @@
         ? settings.relativeSummaries
         : summarizeRelativeLast3f(raceRecords, { minConditionStarts });
       const horseSummary = relativeSummaries.find(item =>
-        (registration && item.horse_registration_number === registration)
-        || (profileId && item.horse_profile_id === profileId)
-        || (!registration && !profileId && !item.horse_registration_number
-          && !item.horse_profile_id && item.horse_name === name)
+        matchesHorseSummary(item, registration, profileId, name)
       );
       if (horseSummary) {
         const track = String(target.track || "").trim();
