@@ -59,6 +59,49 @@ class ImportResultsTests(unittest.TestCase):
         self.assertTrue(all(row["source_url"] == "valid.pdf" for row in cleaned[1:]))
 
 
+    def test_sanitize_existing_ocr_rejects_identity_conflicting_with_official_pdf_url(self):
+        official_url = (
+            "https://www.jra.go.jp/datafile/seiseki/report/2026/2026-2tokyo2.pdf"
+        )
+
+        def rows(source_url, date, track):
+            return [
+                {
+                    "source_url": source_url,
+                    "date": date,
+                    "track": track,
+                    "race_number": 2,
+                    "horse_number": number,
+                    "frame": number,
+                    "finish_time": "1:39.5",
+                    "finish_time_seconds": 99.5,
+                    "declared_field_size": 2,
+                    "headcount_verified": True,
+                    "extraction_status": "ocr_fallback_basic_fields",
+                }
+                for number in (1, 2)
+            ]
+
+        stale = rows(official_url, "2076-04-26", "中山")
+        correct = rows(official_url, "2026-04-26", "東京")
+        noncanonical = rows("https://example.test/result.pdf", "2076-04-26", "中山")
+        saved = [*stale, *correct, *noncanonical]
+
+        cleaned = import_results.sanitize_existing_records(saved)
+
+        self.assertEqual(
+            import_results.rejected_legacy_ocr_sources(saved),
+            {official_url},
+        )
+        self.assertEqual(len(cleaned), 4)
+        self.assertEqual(
+            {(row["source_url"], row["date"], row["track"]) for row in cleaned},
+            {
+                (official_url, "2026-04-26", "東京"),
+                ("https://example.test/result.pdf", "2076-04-26", "中山"),
+            },
+        )
+
     def test_main_retries_processed_sources_without_retained_validated_rows(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
