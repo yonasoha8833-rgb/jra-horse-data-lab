@@ -87,8 +87,24 @@ class JraPdfParserTests(unittest.TestCase):
             "0:57.0",
         )
         self.assertIsNone(_consensus_ocr_finish_time(["1:27.1", ""]))
+        self.assertEqual(
+            _consensus_ocr_finish_time(["1:27.1", "1:27.2", "1:27.1"]),
+            "1:27.1",
+        )
         self.assertIsNone(
-            _consensus_ocr_finish_time(["1:27.1", "1:27.2", "1:27.1"])
+            _consensus_ocr_finish_time(["1:27.1", "1:27.2", "1:27.1", "1:27.2"])
+        )
+        # OCR artifacts from one threshold/layout must not override a repeated
+        # valid reading supported by the other passes.
+        self.assertEqual(
+            _consensus_ocr_finish_time([
+                "1:12.4", "1:12.4", "4:12.4", "1:12.4", "1:12.4", "1:12.4"
+            ]),
+            "1:12.4",
+        )
+        self.assertEqual(
+            _consensus_ocr_finish_time(["02.5", "1:12.5", "1:12.5", "1:12.5"]),
+            "1:12.5",
         )
         self.assertIsNone(
             _consensus_ocr_finish_time(["1:61.1", "1:61.1", ""])
