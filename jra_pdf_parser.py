@@ -223,14 +223,20 @@ def _strict_ocr_finish_time(text: str) -> str | None:
     return next(iter(values)) if len(values) == 1 else None
 
 def _consensus_ocr_finish_time(readings: list[str]) -> str | None:
-    """Accept an isolated finish time only when at least two valid reads agree exactly."""
-    valid = [
-        value for reading in readings
-        if (value := _strict_ocr_finish_time(str(reading or ""))) is not None
-    ]
-    if len(valid) < 2 or len(set(valid)) != 1:
+    """Accept a unique repeated reading; tolerate one-off OCR noise, reject ties."""
+    counts: dict[str, int] = {}
+    for reading in readings:
+        value = _strict_ocr_finish_time(str(reading or ""))
+        if value is not None:
+            counts[value] = counts.get(value, 0) + 1
+    if not counts:
         return None
-    return valid[0]
+    ranked = sorted(counts.items(), key=lambda item: item[1], reverse=True)
+    # Require at least two matching reads. A single dissenting OCR result is
+    # common with thresholded scans; equal support remains ambiguous.
+    if ranked[0][1] < 2 or (len(ranked) > 1 and ranked[0][1] == ranked[1][1]):
+        return None
+    return ranked[0][0]
 
 
 def _runner(line: str) -> dict[str, Any] | None:
