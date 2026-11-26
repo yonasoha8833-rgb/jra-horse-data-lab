@@ -131,7 +131,7 @@ class JraPdfParserTests(unittest.TestCase):
 
     def test_finish_time_crop_covers_time_without_adjacent_columns(self):
         left, right = _ocr_finish_time_bounds(1788)
-        self.assertEqual((left, right), (1396, 1475))
+        self.assertEqual((left, right), (1378, 1466))
         self.assertLess(left, int(1788 * 0.795))
         self.assertLess(right, int(1788 * 0.85))
 
@@ -147,6 +147,10 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertIsNone(
             _consensus_ocr_horse_name(["| オリンボスカズマ", "| オリンポスカズマ", "| オリンポスカズマ"]),
         )
+        self.assertEqual(
+            _consensus_ocr_horse_name(["ビップマリク|", "。 ビップマリク|", "。 ビップマリク|"]),
+            "ビップマリク",
+        )
         self.assertIsNone(_consensus_ocr_horse_name(["", "123", ""]))
 
     def test_sex_age_ocr_requires_two_matching_valid_reads_without_conflict(self):
@@ -155,6 +159,7 @@ class JraPdfParserTests(unittest.TestCase):
             ("騸", 8),
         )
         self.assertIsNone(_consensus_ocr_sex_age(["牡6鹿", "牝6鹿", "牡6黒鹿"]))
+        self.assertEqual(_consensus_ocr_sex_age(["騙3黒鹿", "騙3黒鹿", "騙3黒廃"]), ("騙", 3))
         self.assertIsNone(_consensus_ocr_sex_age(["牡1鹿", "牡1鹿", ""]))
 
     def test_runner_identity_crop_covers_full_name_and_sex_age_columns(self):
