@@ -1102,6 +1102,46 @@ def _normalized_finish_score(row: dict[str, Any]) -> float | None:
     return 100.0 * (field_size - finish) / (field_size - 1)
 
 
+def _normalized_integrated_score(row: dict[str, Any]) -> float | None:
+    """Score official finishers normally and explicit started non-finishers as zero.
+
+    Only JRA result statuses that prove the horse started (競走中止, 失格)
+    receive zero. Scratches, exclusions, unknown statuses and missing rows
+    remain unscored rather than being guessed.
+    """
+    placing = _normalized_finish_score(row)
+    if placing is not None:
+        return placing
+    status = str(row.get("result_status") or "").strip()
+    field_size = _number(row.get("field_size"))
+    if (
+        status in {"競走中止", "失格"}
+        and field_size is not None
+        and field_size.is_integer()
+        and field_size > 1
+    ):
+        return 0.0
+    return None
+
+
+def _integrated_performance_score(records: Iterable[dict[str, Any]]) -> float | None:
+    """Recent field-normalized form, including only explicit started non-finishers."""
+    valid = []
+    for row in records:
+        score = _normalized_integrated_score(row)
+        if score is not None:
+            valid.append((str(row.get("date") or ""), score))
+    valid.sort(key=lambda item: item[0], reverse=True)
+    recent = valid[:BASELINE_RECENT_LIMIT]
+    if not recent:
+        return None
+    weights = list(range(len(recent), 0, -1))
+    return round(
+        sum(score * weight for (_, score), weight in zip(recent, weights)) / sum(weights),
+        1,
+    )
+
+
 def _race_runner_identity(row: dict[str, Any]) -> tuple[str, str, str, str] | None:
     """Identify a runner within an official race, independent of source PDF."""
     date = str(row.get("date") or "").strip()
@@ -1164,7 +1204,7 @@ def _score_condition_component(
         scores = [
             score for row in rows
             if matches(row)
-            and (score := _normalized_finish_score(row)) is not None
+            and (score := _normalized_integrated_score(row)) is not None
         ]
         if len(scores) < min_starts:
             continue
@@ -1242,8 +1282,8 @@ def integrated_horse_performance_score(
             seen[key] = len(rows)
         rows.append(row)
 
-    valid_rows = [row for row in rows if _normalized_finish_score(row) is not None]
-    baseline = performance_score(valid_rows)
+    valid_rows = [row for row in rows if _normalized_integrated_score(row) is not None]
+    baseline = _integrated_performance_score(valid_rows)
     baseline_count = len(valid_rows)
     baseline_used_count = min(BASELINE_RECENT_LIMIT, baseline_count)
     if baseline is None:
