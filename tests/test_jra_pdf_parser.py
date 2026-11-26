@@ -131,7 +131,7 @@ class JraPdfParserTests(unittest.TestCase):
 
     def test_finish_time_crop_covers_time_without_adjacent_columns(self):
         left, right = _ocr_finish_time_bounds(1788)
-        self.assertEqual((left, right), (1378, 1466))
+        self.assertEqual((left, right), (1394, 1466))
         self.assertLess(left, int(1788 * 0.795))
         self.assertLess(right, int(1788 * 0.85))
 
