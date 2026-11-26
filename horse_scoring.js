@@ -67,6 +67,16 @@
     return 100 * (fieldSize - finish) / (fieldSize - 1);
   }
 
+  function normalizedIntegratedScore(row) {
+    const placing = normalizedFinishScore(row);
+    if (placing !== null) return placing;
+    const status = String(row && row.result_status || "").trim();
+    const fieldSize = numeric(row && row.field_size);
+    if ((status === "競走中止" || status === "失格")
+        && Number.isInteger(fieldSize) && fieldSize > 1) return 0;
+    return null;
+  }
+
   function raceRunnerIdentity(row) {
     const date = String(row.date || "").trim();
     const track = String(row.track || "").trim();
@@ -113,6 +123,25 @@
     const valid = [];
     for (const row of records || []) {
       const score = normalizedFinishScore(row);
+      if (score !== null) valid.push({ date: String(row.date || ""), score });
+    }
+    valid.sort((a, b) => b.date.localeCompare(a.date));
+    const recent = valid.slice(0, BASELINE_RECENT_LIMIT);
+    if (!recent.length) return null;
+    let weighted = 0;
+    let totalWeight = 0;
+    recent.forEach((item, index) => {
+      const weight = recent.length - index;
+      weighted += item.score * weight;
+      totalWeight += weight;
+    });
+    return Number((weighted / totalWeight).toFixed(1));
+  }
+
+  function integratedPerformanceScore(records) {
+    const valid = [];
+    for (const row of records || []) {
+      const score = normalizedIntegratedScore(row);
       if (score !== null) valid.push({ date: String(row.date || ""), score });
     }
     valid.sort((a, b) => b.date.localeCompare(a.date));
@@ -312,7 +341,7 @@
 
   function scoreConditionComponent(rows, candidates, baseline, minStarts, priorStrength) {
     for (const [label, matches] of candidates) {
-      const scores = rows.filter(matches).map(normalizedFinishScore).filter(value => value !== null);
+      const scores = rows.filter(matches).map(normalizedIntegratedScore).filter(value => value !== null);
       if (scores.length < minStarts) continue;
       const rawScore = scores.reduce((sum, value) => sum + value, 0) / scores.length;
       const adjusted = (rawScore * scores.length + baseline * priorStrength)
@@ -351,8 +380,8 @@
     if (weights.placing <= 0) throw new RangeError("placingWeight must be greater than zero");
 
     const rows = deduplicateHorseRows(horseRecords);
-    const validRows = rows.filter(row => normalizedFinishScore(row) !== null);
-    const baseline = performanceScore(validRows);
+    const validRows = rows.filter(row => normalizedIntegratedScore(row) !== null);
+    const baseline = integratedPerformanceScore(validRows);
     const baselineCount = validRows.length;
     const baselineUsedCount = Math.min(BASELINE_RECENT_LIMIT, baselineCount);
     if (baseline === null) {
