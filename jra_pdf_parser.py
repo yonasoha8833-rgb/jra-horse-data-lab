@@ -24,7 +24,7 @@ TRACKS = ("札幌", "函館", "福島", "新潟", "東京", "中山", "中京", 
 RUNNER_RE = re.compile(
     # OCR may separate frame/horse numbers ("2 2", "2 1 2") or join them ("811"),
     # and may substitute braces or punctuation for the printed separator.
-    r"^\s*([1-8])\s*[|/\\\\{}()\[\].,:;<>_-]*\s*(\d{1,2})\s*[|/\\\\{}()\[\].,:;<>_-]?\s*(.+?)\s*[|/\\\\{}()\[\].,:;<>_-]?\s*(牡|牝|騸|セン|せん|セ)\s*([0-9０-９]+)",
+    r"^\s*([1-8])\s*[|/\\\\{}()\[\].,:;<>_-]*\s*(\d{1,2})\s*[|/\\\\{}()\[\].,:;<>_-]?\s*(.+?)\s*[|/\\\\{}()\[\].,:;<>_-]?\s*(牡|牝|騸|騙|セン|せん|セ)\s*([0-9０-９]+)",
 )
 RACE_RE = re.compile(r"第\s*(\d+)\s*競走")
 
@@ -75,7 +75,7 @@ def _consensus_ocr_horse_name(readings: list[str]) -> str | None:
     candidates = []
     for reading in readings:
         value = re.sub(r"\s+", "", str(reading or ""))
-        value = re.sub(r"^[^ぁ-んァ-ヶー一-龯]+", "", value)
+        value = re.sub(r"^[^ぁ-んァ-ヶー一-龯]+|[^ぁ-んァ-ヶー一-龯]+$", "", value)
         if re.fullmatch(r"[ぁ-んァ-ヶー一-龯]+", value):
             candidates.append(value)
     if len(candidates) < 2:
@@ -93,7 +93,7 @@ def _consensus_ocr_sex_age(readings: list[str]) -> tuple[str, int] | None:
     """Return sex/age only when at least two OCR layouts agree without conflict."""
     candidates = []
     for reading in readings:
-        match = re.search(r"(牡|牝|騸|セン|せん|セ)\s*([0-9０-９]{1,2})", str(reading or ""))
+        match = re.search(r"(牡|牝|騸|騙|セン|せん|セ)\s*([0-9０-９]{1,2})", str(reading or ""))
         if match:
             age = int(_ascii_digits(match.group(2)))
             if 2 <= age <= 20:
@@ -109,7 +109,10 @@ def _consensus_ocr_sex_age(readings: list[str]) -> tuple[str, int] | None:
 
 def _ocr_finish_time_bounds(panel_width: int) -> tuple[int, int]:
     """Crop the full printed finish-time cell, excluding adjacent margin and placing columns."""
-    return max(0, int(panel_width * 0.781)), min(panel_width, int(panel_width * 0.825))
+    # The right edge of the old crop included the table rule, which Tesseract
+    # sometimes read as an extra trailing digit (for example 1:58.11).
+    # Shift slightly left and narrow the crop while retaining the complete time.
+    return max(0, int(panel_width * 0.771)), min(panel_width, int(panel_width * 0.820))
 
 
 def _last_stable_identifier_slot_center(centers) -> float | None:
