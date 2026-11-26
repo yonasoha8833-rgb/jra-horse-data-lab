@@ -171,6 +171,18 @@ def _consensus_declared_field_size(readings: list[str]) -> int | None:
         return None
     return valid[0]
 
+def _consensus_declared_field_size_windows(reading_windows: list[list[str]]) -> int | None:
+    """Require matching headcounts from at least two distinct footer windows."""
+    window_values = []
+    for readings in reading_windows:
+        valid = {value for reading in readings
+                 if (value := _ocr_declared_field_size(reading)) is not None}
+        if len(valid) == 1:
+            window_values.append(next(iter(valid)))
+    if len(window_values) < 2 or len(set(window_values)) != 1:
+        return None
+    return window_values[0]
+
 
 def _seconds(value: str | None) -> float | None:
     if not value:
@@ -2221,9 +2233,9 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     single_read_headcount = declared_headcount
                                     label_left = max(0, int(panel_image.width * 0.10))
                                     label_right = min(panel_image.width, int(panel_image.width * 0.365))
-                                    label_reads = []
+                                    label_read_windows = []
                                     offset_diagnostics = []
-                                    for y_offset in (-80, -60, -40, -20):
+                                    for y_offset in (-120, -100, -80, -60, -40, -20):
                                         label_top = max(0, headcount_top + y_offset)
                                         label_bottom = min(panel_image.height, label_top + 180)
                                         if label_bottom <= label_top:
@@ -2240,16 +2252,24 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                             f"{page.stem}-{side}-headcount-label-{y_offset}.png"
                                         )
                                         label_crop.save(label_path)
-                                        label_text = subprocess.run(
-                                            ["tesseract", str(label_path), "stdout", "-l", "jpn+eng", "--psm", "6"],
-                                            check=True, timeout=15, capture_output=True, text=True,
-                                        ).stdout.strip()
-                                        label_reads.append(label_text)
+                                        label_texts = []
+                                        for label_psm in ("6", "11"):
+                                            label_texts.append(subprocess.run(
+                                                ["tesseract", str(label_path), "stdout", "-l", "jpn+eng",
+                                                 "--psm", label_psm],
+                                                check=True, timeout=15, capture_output=True, text=True,
+                                            ).stdout.strip())
+                                        label_read_windows.append(label_texts)
                                         offset_diagnostics.append(
-                                            {"offset": y_offset, "text": label_text,
-                                             "accepted": _ocr_declared_field_size(label_text)}
+                                            {"offset": y_offset, "readings": label_texts,
+                                             "accepted": sorted({
+                                                 value for reading in label_texts
+                                                 if (value := _ocr_declared_field_size(reading)) is not None
+                                             })}
                                         )
-                                    declared_headcount = _consensus_declared_field_size(label_reads)
+                                    declared_headcount = _consensus_declared_field_size_windows(
+                                        label_read_windows
+                                    )
                                     row_diagnostics.append(
                                         f"headcount_label_scan initial_single_read={single_read_headcount!r} "
                                         f"readings={offset_diagnostics!r} "
