@@ -112,7 +112,7 @@ def _ocr_finish_time_bounds(panel_width: int) -> tuple[int, int]:
     # The left panel's finish-time glyphs sit slightly farther right than the
     # previous crop captured. Shift both edges right to retain the tenths digit
     # while keeping the adjacent placing-margin column outside the crop.
-    return max(0, int(panel_width * 0.783)), min(panel_width, int(panel_width * 0.824))
+    return max(0, int(panel_width * 0.783)), min(panel_width, int(panel_width * 0.8235))
 
 
 def _last_stable_identifier_slot_center(centers) -> float | None:
