@@ -109,10 +109,10 @@ def _consensus_ocr_sex_age(readings: list[str]) -> tuple[str, int] | None:
 
 def _ocr_finish_time_bounds(panel_width: int) -> tuple[int, int]:
     """Crop the full printed finish-time cell, excluding adjacent margin and placing columns."""
-    # The right edge of the old crop included the table rule, which Tesseract
-    # sometimes read as an extra trailing digit (for example 1:58.11).
-    # Shift slightly left and narrow the crop while retaining the complete time.
-    return max(0, int(panel_width * 0.771)), min(panel_width, int(panel_width * 0.820))
+    # Keep both vertical rules and the placing-margin column outside the crop.
+    # Starting too far left merges the placing margin into the time (for example
+    # "11:55.0" instead of "1:55.0"). The right edge stays before the next rule.
+    return max(0, int(panel_width * 0.780)), min(panel_width, int(panel_width * 0.820))
 
 
 def _last_stable_identifier_slot_center(centers) -> float | None:
