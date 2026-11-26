@@ -889,6 +889,58 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(result["relative_last3f_sample_count"], 0)
         self.assertNotIn("relative_last3f", result["components_used"])
 
+    def test_integrated_score_counts_only_explicit_started_nonfinishers_as_zero(self):
+        horse_rows = [
+            {
+                "horse_name": "中止含む馬", "date": "2026-11-01",
+                "track": "東京", "race_number": 1, "horse_number": 1,
+                "surface": "芝", "distance": 1600, "going": "良",
+                "finish": 1, "field_size": 10,
+            },
+            {
+                "horse_name": "中止含む馬", "date": "2026-11-02",
+                "track": "東京", "race_number": 1, "horse_number": 1,
+                "surface": "芝", "distance": 1600, "going": "良",
+                "finish": 5, "field_size": 10,
+            },
+            {
+                "horse_name": "中止含む馬", "date": "2026-11-03",
+                "track": "東京", "race_number": 1, "horse_number": 1,
+                "surface": "芝", "distance": 1600, "going": "良",
+                "finish": None, "field_size": 10, "result_status": "競走中止",
+            },
+            {
+                "horse_name": "中止含む馬", "date": "2026-11-04",
+                "track": "東京", "race_number": 1, "horse_number": 1,
+                "surface": "芝", "distance": 1600, "going": "良",
+                "finish": None, "field_size": 10, "result_status": "失格",
+            },
+            {
+                "horse_name": "中止含む馬", "date": "2026-11-05",
+                "track": "東京", "race_number": 1, "horse_number": 1,
+                "surface": "芝", "distance": 1600, "going": "良",
+                "finish": None, "field_size": 10, "result_status": "取消",
+            },
+            {
+                "horse_name": "中止含む馬", "date": "2026-11-06",
+                "track": "東京", "race_number": 1, "horse_number": 1,
+                "surface": "芝", "distance": 1600, "going": "良",
+                "finish": None, "field_size": 10,
+            },
+        ]
+
+        result = integrated_horse_performance_score(
+            horse_rows, [],
+            {"track": "東京", "surface": "芝", "distance": 1600, "going": "良"},
+        )
+
+        self.assertEqual(result["baseline_sample_count"], 4)
+        self.assertEqual(result["baseline_used_sample_count"], 4)
+        self.assertEqual(result["baseline_score"], 21.1)
+        self.assertEqual(result["distance_sample_count"], 4)
+        self.assertEqual(result["going_sample_count"], 4)
+        self.assertNotIn("relative_last3f", result["components_used"])
+
     def test_integrated_horse_performance_score_combines_independent_components(self):
         horse_rows = []
         specifications = [
