@@ -391,7 +391,9 @@
         going_score: null, going_raw_score: null, going_sample_count: 0, going_condition: null,
         relative_last3f_score: null, relative_last3f_raw_score: null,
         relative_last3f_sample_count: 0, relative_last3f_condition: null,
-        component_weights: {}, components_used: [], integrated: false, confidence: "判定材料不足"
+        component_weights: {}, components_used: [], component_coverage_count: 0,
+        component_coverage_total: 4, component_coverage_ratio: 0,
+        integrated: false, confidence: "判定材料不足"
       };
     }
 
@@ -500,6 +502,7 @@
     }
     const combined = available.reduce((sum, [, item]) =>
       sum + item.score * item.weight, 0) / totalWeight;
+    const componentsUsed = available.map(([key]) => key);
     const extraCounts = available
       .filter(([key]) => key !== "placing")
       .map(([, item]) => item.count);
@@ -507,8 +510,9 @@
     if (extraCounts.length) {
       const minimumSample = Math.min(baselineUsedCount, ...extraCounts);
       confidence = minimumSample >= 10 ? "高め" : minimumSample >= 5 ? "中程度" : "低め";
+      if (componentsUsed.length < 4 && confidence === "高め") confidence = "中程度";
+      if (componentsUsed.length === 2 && confidence === "中程度") confidence = "低め";
     }
-    const componentsUsed = available.map(([key]) => key);
     return {
       score: Number(combined.toFixed(1)),
       baseline_score: baseline,
@@ -528,6 +532,9 @@
       relative_last3f_condition: relativeComponent.matched_condition,
       component_weights: componentWeights,
       components_used: componentsUsed,
+      component_coverage_count: componentsUsed.length,
+      component_coverage_total: 4,
+      component_coverage_ratio: Number((componentsUsed.length / 4).toFixed(2)),
       integrated: componentsUsed.length > 1,
       confidence,
       identity_basis: registration ? "official_registration_number"
