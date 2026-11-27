@@ -1188,7 +1188,7 @@ def _attach_verified_isolated_finish_time(
     if not isolated_time:
         return None
     without_row_time = re.sub(
-        r"(?<![0-9A-Za-z])[0-9０-９]{1,2}[:：][0-9０-９]{2}[.．]\\s*[0-9０-９](?![0-9A-Za-z])",
+        r"(?<![0-9A-Za-z])[0-9０-９]{1,2}[:：][0-9０-９]{2}[.．]\s*[0-9０-９](?![0-9A-Za-z])",
         "",
         str(row_text or ""),
     )
