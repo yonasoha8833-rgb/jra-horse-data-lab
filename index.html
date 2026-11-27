@@ -200,6 +200,9 @@ function appendIntegratedHorseScore(card,result,target){
  const headline=document.createElement('p');headline.className='count';
  headline.textContent=result.score===null?'総合指数：判定材料不足':'4要素総合指数：'+result.score.toFixed(1)+' / 100（'+result.confidence+'）';
  details.append(headline);
+ const coverage=document.createElement('p');coverage.className='muted';
+ coverage.textContent='算入要素：'+(result.component_coverage_count??(result.components_used||[]).length)+'/4（欠損・条件不足の要素は除外）';
+ details.append(coverage);
  const labels={
   placing:'着順成績',distance:'距離適性',going:'馬場適性',relative_last3f:'個別上がり3F相対'
  };

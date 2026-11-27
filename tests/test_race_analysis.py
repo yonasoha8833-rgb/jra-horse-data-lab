@@ -1020,6 +1020,9 @@ class RaceAnalysisTests(unittest.TestCase):
         )
         self.assertAlmostEqual(result["score"], round(expected, 1))
         self.assertEqual(result["identity_basis"], "official_registration_number")
+        self.assertEqual(result["component_coverage_count"], 4)
+        self.assertEqual(result["component_coverage_total"], 4)
+        self.assertEqual(result["component_coverage_ratio"], 1.0)
 
     def test_integrated_score_confidence_uses_effective_five_start_baseline(self):
         rows = [
@@ -1047,7 +1050,34 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(result["baseline_used_sample_count"], 5)
         self.assertEqual(result["distance_sample_count"], 12)
         self.assertEqual(result["going_sample_count"], 12)
+        self.assertEqual(result["component_coverage_count"], 3)
+        self.assertEqual(result["component_coverage_ratio"], 0.75)
         self.assertEqual(result["confidence"], "中程度")
+
+    def test_integrated_score_downgrades_confidence_with_only_one_suitability_factor(self):
+        rows = [
+            {
+                "horse_name": "距離だけの馬",
+                "date": f"2026-11-{index:02d}",
+                "track": "東京",
+                "race_number": index,
+                "horse_number": 1,
+                "surface": "芝",
+                "distance": 1600,
+                "finish": 1,
+                "field_size": 10,
+            }
+            for index in range(1, 6)
+        ]
+        result = integrated_horse_performance_score(
+            rows, [], {"surface": "芝", "distance": 1600}, horse_name="距離だけの馬",
+        )
+        self.assertEqual(result["distance_sample_count"], 5)
+        self.assertIsNone(result["going_score"])
+        self.assertIsNone(result["relative_last3f_score"])
+        self.assertEqual(result["component_coverage_count"], 2)
+        self.assertEqual(result["component_coverage_ratio"], 0.5)
+        self.assertEqual(result["confidence"], "低め")
 
     def test_integrated_horse_performance_score_uses_distance_band_and_shrinks_small_samples(self):
         rows = [
@@ -1110,6 +1140,8 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertIsNone(result["distance_score"])
         self.assertIsNone(result["going_score"])
         self.assertIsNone(result["relative_last3f_score"])
+        self.assertEqual(result["component_coverage_count"], 1)
+        self.assertEqual(result["component_coverage_ratio"], 0.25)
 
     def test_integrated_score_marks_one_or_two_overall_starts_as_low_confidence(self):
         rows = [

@@ -124,6 +124,9 @@ test("integrates placing, distance, going and relative individual last-3F", () =
     + result.relative_last3f_score * 0.2;
   assert.equal(result.score, Number(expected.toFixed(1)));
   assert.equal(result.identity_basis, "official_registration_number");
+  assert.equal(result.component_coverage_count, 4);
+  assert.equal(result.component_coverage_total, 4);
+  assert.equal(result.component_coverage_ratio, 1);
 });
 
 test("rejects conflicting registration and profile IDs in integrated scoring", () => {
@@ -319,7 +322,32 @@ test("confidence uses the effective five-start baseline window", () => {
   assert.equal(result.baseline_used_sample_count, 5);
   assert.equal(result.distance_sample_count, 12);
   assert.equal(result.going_sample_count, 12);
+  assert.equal(result.component_coverage_count, 3);
+  assert.equal(result.component_coverage_ratio, 0.75);
   assert.equal(result.confidence, "中程度");
+});
+
+test("downgrades confidence when only one of three suitability factors is available", () => {
+  const horseRows = Array.from({ length: 5 }, (_, index) => ({
+    horse_name: "距離だけの馬",
+    date: "2026-11-" + String(index + 1).padStart(2, "0"),
+    track: "東京",
+    race_number: index + 1,
+    horse_number: 1,
+    surface: "芝",
+    distance: 1600,
+    finish: 1,
+    field_size: 10
+  }));
+  const result = integratedHorsePerformanceScore(
+    horseRows, [], { surface: "芝", distance: 1600 }, { horseName: "距離だけの馬" }
+  );
+  assert.equal(result.distance_sample_count, 5);
+  assert.equal(result.going_score, null);
+  assert.equal(result.relative_last3f_score, null);
+  assert.equal(result.component_coverage_count, 2);
+  assert.equal(result.component_coverage_ratio, 0.5);
+  assert.equal(result.confidence, "低め");
 });
 
 test("omits condition components when sample sizes are insufficient", () => {
@@ -345,6 +373,8 @@ test("omits condition components when sample sizes are insufficient", () => {
   assert.equal(result.relative_last3f_score, null);
   assert.equal(result.baseline_used_sample_count, 2);
   assert.equal(result.confidence, "低め");
+  assert.equal(result.component_coverage_count, 1);
+  assert.equal(result.component_coverage_ratio, 0.25);
 });
 
 test("does not count the same runner twice across different source PDFs", () => {

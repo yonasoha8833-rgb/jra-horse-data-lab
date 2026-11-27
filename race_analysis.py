@@ -1306,6 +1306,9 @@ def integrated_horse_performance_score(
             "relative_last3f_condition": None,
             "component_weights": {},
             "components_used": [],
+            "component_coverage_count": 0,
+            "component_coverage_total": 4,
+            "component_coverage_ratio": 0.0,
             "integrated": False,
             "confidence": "判定材料不足",
         }
@@ -1464,6 +1467,7 @@ def integrated_horse_performance_score(
     extra_counts = [
         count for key, (_, _, count) in available.items() if key != "placing"
     ]
+    components_used = list(available)
     if not extra_counts:
         confidence = "低め" if baseline_used_count < 3 else "総合成績のみ"
     else:
@@ -1471,8 +1475,11 @@ def integrated_horse_performance_score(
         confidence = "高め" if minimum_sample >= 10 else (
             "中程度" if minimum_sample >= 5 else "低め"
         )
+        if len(components_used) < 4 and confidence == "高め":
+            confidence = "中程度"
+        if len(components_used) == 2 and confidence == "中程度":
+            confidence = "低め"
 
-    components_used = list(available)
     return {
         "score": round(combined, 1),
         "baseline_score": baseline,
@@ -1492,6 +1499,9 @@ def integrated_horse_performance_score(
         "relative_last3f_condition": relative_component["matched_condition"],
         "component_weights": component_weights,
         "components_used": components_used,
+        "component_coverage_count": len(components_used),
+        "component_coverage_total": 4,
+        "component_coverage_ratio": round(len(components_used) / 4, 2),
         "integrated": len(components_used) > 1,
         "confidence": confidence,
         "identity_basis": (
