@@ -109,10 +109,10 @@ def _consensus_ocr_sex_age(readings: list[str]) -> tuple[str, int] | None:
 
 def _ocr_finish_time_bounds(panel_width: int) -> tuple[int, int]:
     """Crop the full printed finish-time cell, excluding adjacent margin and placing columns."""
-    # Keep both vertical rules and the placing-margin column outside the crop.
-    # Starting too far left merges the placing margin into the time (for example
-    # "11:55.0" instead of "1:55.0"). The right edge stays before the next rule.
-    return max(0, int(panel_width * 0.780)), min(panel_width, int(panel_width * 0.820))
+    # The left panel's finish-time glyphs sit slightly farther right than the
+    # previous crop captured. Shift both edges right to retain the tenths digit
+    # while keeping the adjacent placing-margin column outside the crop.
+    return max(0, int(panel_width * 0.783)), min(panel_width, int(panel_width * 0.8235))
 
 
 def _last_stable_identifier_slot_center(centers) -> float | None:
