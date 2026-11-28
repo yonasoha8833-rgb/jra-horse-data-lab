@@ -457,9 +457,19 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
                 last4f, last3f = _seconds(match.group(1)), _seconds(match.group(2))
             lap_match = LAP_RE.search(line)
             if lap_match:
-                laps = [
+                candidate_laps = [
                     _seconds(v) for v in re.findall(r"[0-9０-９]+[.．][0-9０-９]+", lap_match.group(1))
                 ]
+                # JRA lap-time rows contain a sequence of 200 m splits.
+                # A lone OCR fragment (for example "12.8") is not a usable
+                # race pace profile and must not be exposed as a complete series.
+                if (
+                    len(candidate_laps) >= 4
+                    and all(value is not None and 8.0 <= value <= 20.0 for value in candidate_laps)
+                ):
+                    laps = candidate_laps
+                else:
+                    laps = None
 
         # Finish order follows the official result table's runner row order.
         # Ties are not guessed from margins; downstream validation can refine it.

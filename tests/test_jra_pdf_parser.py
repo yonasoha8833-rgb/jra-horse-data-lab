@@ -452,6 +452,15 @@ class JraPdfParserTests(unittest.TestCase):
 
 
 
+    def test_rejects_incomplete_single_value_lap_time_sequence(self):
+        incomplete_sample = SAMPLE.replace(
+            "ハロンタイム 12．4―10．8―11．5―12．3",
+            "ハロンタイム 12．8",
+        )
+        rows = parse_race_text(incomplete_sample)
+        self.assertEqual(len(rows), 2)
+        self.assertIsNone(rows[0]["race_lap_times"])
+
     def test_extracts_track_going_condition_from_race_header(self):
         for header, expected in (
             ("晴良", "良"),
