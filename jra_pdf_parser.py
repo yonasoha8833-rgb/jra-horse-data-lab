@@ -1248,7 +1248,13 @@ def _attach_verified_isolated_finish_time(
     )
     candidate = f"{without_row_time} | {isolated_time}"
     candidate_line = f"{frame}|{horse} {candidate}"
+    # A horse name independently verified by multiple OCR layouts may
+    # legitimately carry the dedicated unreadable-demographics marker.
+    # Accept that same verified identity path here as well; the isolated
+    # finish time is still attached only after _runner validates the row.
     identity_match = RUNNER_RE.match(candidate_line)
+    if identity_match is None:
+        identity_match = VERIFIED_NAME_ONLY_RE.match(candidate_line)
     if identity_match is None:
         return None
     horse_name = identity_match.group(3).strip()

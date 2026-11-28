@@ -81,6 +81,16 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(parsed["horse_name"], "サノノファイター")
         self.assertEqual(parsed["finish_time"], "1:39.0")
 
+    def test_independent_time_accepts_independently_verified_name_without_demographics(self):
+        row = "タッチザスカイ JRA_DEMOGRAPHICS_UNREADABLE"
+        recovered = _attach_verified_isolated_finish_time(7, 13, row, "1:17.2")
+        self.assertIsNotNone(recovered)
+        parsed = _runner(f"7|13 {recovered}")
+        self.assertEqual(parsed["horse_name"], "タッチザスカイ")
+        self.assertIsNone(parsed["sex"])
+        self.assertIsNone(parsed["age"])
+        self.assertEqual(parsed["finish_time"], "1:17.2")
+
     def test_independent_time_replaces_conflicting_row_ocr_time(self):
         row = "サノノファイター 牡2鹿 56 田辺 裕信 484±0 1:38.9"
         recovered = _attach_verified_isolated_finish_time(2, 2, row, "1:39.0")
