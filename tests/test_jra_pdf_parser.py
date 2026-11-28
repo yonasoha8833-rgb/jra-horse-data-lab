@@ -471,6 +471,23 @@ class JraPdfParserTests(unittest.TestCase):
 
 
 
+    def test_parses_ocr_spaced_laps_distance_and_bare_going_label(self):
+        text = SAMPLE.replace("晴良", "良").replace("1，600ｍ", "1, 600%%")
+        text = text.replace(
+            "ハロンタイム 12．4―10．8―11．5―12．3",
+            "ハロンタイム 12. 4一10. 8一11. 5一12. 3",
+        ).replace(
+            "上り 4F 52．0―3F 39．4",
+            "上り 4F 52. 0一3F 39. 4",
+        )
+        rows = parse_race_text(text, source_url="https://www.jra.go.jp/datafile/seiseki/report/2026/2026-5tokyo1.pdf")
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["distance"], 1600)
+        self.assertEqual(rows[0]["going"], "良")
+        self.assertEqual(rows[0]["race_lap_times"], [12.4, 10.8, 11.5, 12.3])
+        self.assertEqual(rows[0]["race_last4f"], 52.0)
+        self.assertEqual(rows[0]["race_last3f"], 39.4)
+
     def test_rejects_incomplete_single_value_lap_time_sequence(self):
         incomplete_sample = SAMPLE.replace(
             "ハロンタイム 12．4―10．8―11．5―12．3",
