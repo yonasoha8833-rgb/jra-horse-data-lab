@@ -509,6 +509,12 @@ class JraPdfParserTests(unittest.TestCase):
                 self.assertEqual(rows[0]["going"], expected)
 
 
+    def test_parses_ocr_distance_with_cent_sign_before_percent_unit(self):
+        text = SAMPLE.replace("1，600ｍ", "1, 600¢%")
+        rows = parse_race_text(text)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["distance"], 1600)
+
     def test_accepts_distance_without_thousands_separator(self):
         text = SAMPLE.replace("1，600ｍ", "1600ｍ")
         rows = parse_race_text(text)
