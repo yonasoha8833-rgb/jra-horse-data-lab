@@ -175,6 +175,13 @@ class JraPdfParserTests(unittest.TestCase):
         top, bottom = _ocr_runner_row_bounds(
             100.0, 75.0, 125.0, 5 / 3, 500, half_gap_ratio=0.49
         )
+        self.assertEqual((top, bottom), (146, 187))
+        self.assertLess(bottom, int(125.0 * (5 / 3)))
+
+    def test_expanded_runner_row_retry_stays_inside_neighboring_row_centers(self):
+        top, bottom = _ocr_runner_row_bounds(
+            100.0, 75.0, 125.0, 5 / 3, 500, half_gap_ratio=0.49
+        )
         self.assertEqual((top, bottom), (141, 181))
         self.assertLess(bottom, int(125.0 * (5 / 3)))
 
