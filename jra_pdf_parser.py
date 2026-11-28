@@ -39,11 +39,11 @@ def _strip_race_heading(line: str) -> str:
 DATE_RE = re.compile(r"(\d{1,2})月\s*(\d{1,2})日")
 FIELD_SIZE_RE = re.compile(r"[（(]\s*([0-9０-９]{1,2})\s*頭\s*[）)]")
 HEADCOUNT_VERIFIED_RE = re.compile(r"JRA_OCR_HEADCOUNT_VERIFIED=(\d{1,2})")
-DISTANCE_RE = re.compile(r"([0-9０-９]{1,2}[,，][0-9０-９]{3}|[0-9０-９]{3,4})\s*(?:ｍ|m|メートル|\x02)")
+DISTANCE_RE = re.compile(r"([0-9０-９]{1,2}\s*[,，]\s*[0-9０-９]{3}|[0-9０-９]{3,4})\s*(?:ｍ|m|メートル|\x02|%{1,2})")
 RESULT_STATUS_RE = re.compile(r"(競走中止|失格|中止|取消|除外)")
 GOING_RE = re.compile(r"(?:小雨|小雪|晴|曇|雨|雪)\s*(良|稍重|重|不良)")
-LAST3F_RE = re.compile(r"上り\s*4F\s*([0-9.．]+)\s*[―ー-]\s*3F\s*([0-9.．]+)")
-LAP_RE = re.compile(r"ハロンタイム\s*([0-9.．―ー-]+)")
+LAST3F_RE = re.compile(r"上り\s*4F\s*([0-9０-９]+\s*[.．]\s*[0-9０-９]+)\s*[一―ー–—-]\s*3F\s*([0-9０-９]+\s*[.．]\s*[0-9０-９]+)")
+LAP_RE = re.compile(r"ハロンタイム\s*([0-9０-９.．\s一―ー–—-]+)")
 
 
 def _ascii_digits(value: str) -> str:
@@ -196,7 +196,7 @@ def _consensus_declared_field_size_windows(reading_windows: list[list[str]]) -> 
 def _seconds(value: str | None) -> float | None:
     if not value:
         return None
-    value = _ascii_digits(value).replace("．", ".")
+    value = re.sub(r"\s+", "", _ascii_digits(value).replace("．", "."))
     try:
         return float(value)
     except ValueError:
@@ -206,7 +206,7 @@ def _seconds(value: str | None) -> float | None:
 def _distance(value: str | None) -> int | None:
     if not value:
         return None
-    digits = _ascii_digits(value).replace(",", "").replace("，", "")
+    digits = re.sub(r"\s+", "", _ascii_digits(value)).replace(",", "").replace("，", "")
     try:
         distance = int(digits)
     except ValueError:
@@ -425,7 +425,14 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
         # Prefer it over OCR text that may accidentally read another course name.
         track = _track_from_official_pdf_url(source_url) or _track(header_window)
         going_match = GOING_RE.search(header_window)
-        going = going_match.group(1) if going_match else None
+        if going_match:
+            going = going_match.group(1)
+        else:
+            # Some JRA PDF OCR layouts separate the weather and going columns,
+            # leaving a bare condition label such as "良" in the header.
+            # Accept it only when the complete header has one unique condition.
+            going_values = set(re.findall(r"稍重|不良|重|良", header_window))
+            going = next(iter(going_values)) if len(going_values) == 1 else None
         race_name_match = re.search(r"第\s*\d+\s*競走\s*(.*?)\s*[0-9０-９]{1,2}(?:[,，][0-9０-９]{3}|[0-9０-９]{2,3})", header_window)
         race_name = race_name_match.group(1).strip() if race_name_match else None
 
@@ -473,7 +480,11 @@ def parse_race_text(text: str, *, source_url: str = "") -> list[dict[str, Any]]:
             lap_match = LAP_RE.search(line)
             if lap_match:
                 candidate_laps = [
-                    _seconds(v) for v in re.findall(r"[0-9０-９]+[.．][0-9０-９]+", lap_match.group(1))
+                    _seconds(f"{whole}.{fraction}")
+                    for whole, fraction in re.findall(
+                        r"([0-9０-９]{1,2})\s*[.．]\s*([0-9０-９])",
+                        lap_match.group(1),
+                    )
                 ]
                 # JRA lap-time rows contain a sequence of 200 m splits.
                 # A lone OCR fragment (for example "12.8") is not a usable
