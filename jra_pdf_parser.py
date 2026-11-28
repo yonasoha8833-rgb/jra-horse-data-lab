@@ -106,10 +106,18 @@ def _apply_verified_ocr_identity(
     """Replace combined-row identity with independently verified horse-name evidence."""
     if not verified_name:
         return ""
+    # Discard the combined OCR horse name and its unverified sex/age prefix.
+    # Preserve only the text after the original sex/age token; if no such token
+    # exists, the separately OCRed finish-time path may recover the result field.
+    identity_match = re.search(
+        r"(?:牡|牝|騸|騙|セン|せん|セ)\\s*[0-9０-９]{1,2}",
+        row_text,
+    )
+    tail = row_text[identity_match.end():].strip() if identity_match else ""
     if verified_demographics:
         sex, age = verified_demographics
-        return f"{verified_name}|{sex}{age} {row_text}"
-    return f"{verified_name} JRA_DEMOGRAPHICS_UNREADABLE {row_text}"
+        return f"{verified_name}|{sex}{age} {tail}".strip()
+    return f"{verified_name} JRA_DEMOGRAPHICS_UNREADABLE {tail}".strip()
 
 
 def _consensus_ocr_sex_age(readings: list[str]) -> tuple[str, int] | None:
