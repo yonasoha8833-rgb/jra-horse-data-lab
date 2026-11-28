@@ -27,7 +27,7 @@ RUNNER_RE = re.compile(
     # The demographics cell is optional: a separately verified horse name and
     # result may still be useful when sex/age OCR is unreadable. Keep the name
     # bounded to name characters so the result tail cannot be swallowed.
-    r"^\s*([1-8])\s*[|/\\\\{}()\[\].,:;<>_-]*\s*(\d{1,2})\s*[|/\\\\{}()\[\].,:;<>_-]?\s*([ぁ-んァ-ヶー一-龯A-Za-z・]+?)\s*(?:(牡|牝|騸|騙|セン|せん|セ)\s*([0-9０-９]+))?(?=\s|$)",
+    r"^\s*([1-8])\s*[|/\\\\{}()\[\].,:;<>_-]*\s*(\d{1,2})\s*[|/\\\\{}()\[\].,:;<>_-]?\s*([ぁ-んァ-ヶー一-龯A-Za-z・]+?)\s*(?:(牡|牝|騸|騙|セン|せん|セ)\s*([0-9０-９]+))?(?!\s*(?:牡|牝|騸|騙|セン|せん|セ)\s*[0-9０-９])(?=\s|$)",
 )
 RACE_RE = re.compile(r"第\s*(\d+)\s*競走")
 
