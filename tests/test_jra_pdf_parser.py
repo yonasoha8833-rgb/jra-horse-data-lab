@@ -5,7 +5,7 @@ try:
 except ImportError:
     Image = ImageDraw = None
 
-from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_runner_row_bounds, _ocr_runner_identity_bounds, _ocr_declared_field_size, _consensus_declared_field_size, _consensus_declared_field_size_windows, _propagate_pdf_identity, _track_from_official_pdf_url, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, _build_verified_partial_ocr_runner_lines, _ocr_runner_lines_are_complete, _runner, parse_race_text, _ocr_single_horse_number, _verified_horse_retry, _consensus_horse_number, _select_consensus_horse_number, _verified_horse_retry_consensus, _ocr_single_frame_number, _identifier_column_inner_bounds, _identifier_column_retry_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _trim_trailing_identifier_outliers, _strict_ocr_finish_time, _ocr_finish_time_bounds, _ocr_finish_time_crop_bounds, _remove_horizontal_identifier_rules, _ocr_runner_name_bounds, _ocr_runner_demographics_bounds, _consensus_ocr_horse_name, _consensus_ocr_sex_age, _attach_verified_isolated_finish_time
+from jra_pdf_parser import _last_valid_ocr_runner_center, _ocr_runner_row_bounds, _ocr_runner_identity_bounds, _ocr_declared_field_size, _consensus_declared_field_size, _consensus_declared_field_size_windows, _propagate_pdf_identity, _track_from_official_pdf_url, _strip_race_heading, _complete_ocr_records, _match_ocr_identifier_rows, _ocr_identifier_pairs, _ocr_tsv_lines, _ocr_identifier_column, _ocr_identifier_column_slots, _pair_identifier_columns, _infer_identifier_pairs_from_complete_horse_column, _infer_identifier_pairs_from_complete_frame_column, _build_ocr_runner_lines, _build_verified_partial_ocr_runner_lines, _ocr_runner_lines_are_complete, _runner, parse_race_text, _ocr_single_horse_number, _verified_horse_retry, _consensus_horse_number, _select_consensus_horse_number, _verified_horse_retry_consensus, _ocr_single_frame_number, _identifier_column_inner_bounds, _identifier_column_retry_bounds, _unmatched_trailing_identifier_slots, _trailing_identifier_slot_center, _internal_identifier_slot_centers, _deduplicate_identifier_slots, _trim_trailing_identifier_outliers, _strict_ocr_finish_time, _ocr_finish_time_bounds, _ocr_finish_time_crop_bounds, _remove_horizontal_identifier_rules, _ocr_runner_name_bounds, _ocr_runner_demographics_bounds, _consensus_ocr_horse_name, _apply_verified_ocr_identity, _consensus_ocr_sex_age, _attach_verified_isolated_finish_time
 
 
 SAMPLE = """
@@ -22,6 +22,31 @@ JRA_OCR_HEADCOUNT_VERIFIED=2
 
 
 class JraPdfParserTests(unittest.TestCase):
+
+    def test_verified_identity_replaces_combined_row_name(self):
+        row = _apply_verified_ocr_identity(
+            "誤読された馬名 牡3鹿 55 1:23.4", "正しい馬名", ("牝", 3)
+        )
+        parsed = _runner(f"2|2 {row}")
+        self.assertEqual(parsed["horse_name"], "正しい馬名")
+        self.assertEqual(parsed["sex"], "牝")
+        self.assertEqual(parsed["finish_time"], "1:23.4")
+
+    def test_verified_name_without_demographics_keeps_demographics_null(self):
+        row = _apply_verified_ocr_identity(
+            "誤読された馬名 牡3鹿 55 1:23.4", "正しい馬名", None
+        )
+        parsed = _runner(f"2|2 {row}")
+        self.assertEqual(parsed["horse_name"], "正しい馬名")
+        self.assertIsNone(parsed["sex"])
+        self.assertIsNone(parsed["age"])
+
+    def test_unverified_name_rejects_even_parseable_combined_row(self):
+        row = _apply_verified_ocr_identity(
+            "誤読された馬名 牡3鹿 55 1:23.4", "", ("牡", 3)
+        )
+        self.assertEqual(row, "")
+        self.assertIsNone(_runner(f"2|2 {row}"))
 
     def test_runner_rejects_unverified_missing_demographics(self):
         self.assertIsNone(_runner("2|2 サノノファイター 56 田辺 裕信 1:39.0"))
