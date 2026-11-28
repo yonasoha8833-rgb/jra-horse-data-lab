@@ -51,12 +51,18 @@ def _ascii_digits(value: str) -> str:
 
 
 def _ocr_runner_row_bounds(
-    center: float, previous: float, following: float, scale: float, image_height: int
+    center: float,
+    previous: float,
+    following: float,
+    scale: float,
+    image_height: int,
+    half_gap_ratio: float = 0.46,
 ) -> tuple[int, int]:
-    """Crop the central 80% of a runner's vertical slot, away from adjacent rows."""
+    """Crop a bounded portion of one runner slot without crossing adjacent row centers."""
     before_gap = max(1.0, center - previous)
     after_gap = max(1.0, following - center)
-    half_height = min(before_gap, after_gap) * 0.46
+    ratio = min(0.49, max(0.0, half_gap_ratio))
+    half_height = min(before_gap, after_gap) * ratio
     top = max(0, int((center - half_height) * scale))
     bottom = min(image_height, int((center + half_height) * scale))
     return top, bottom
@@ -2122,6 +2128,57 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         ):
                                             row_result = enhanced_text
                                             break
+                                # If the standard row crop still has no independently parsed
+                                # result, retry a slightly taller slot. The crop remains bounded
+                                # before the neighboring row centers; acceptance still requires
+                                # the strict parser to read a result from this same horse row.
+                                parsed_before_expanded = _runner(
+                                    f"{frame_value}|{horse_value} {row_result}"
+                                )
+                                if (
+                                    parsed_before_expanded is None
+                                    or (
+                                        parsed_before_expanded.get("finish_time_seconds") is None
+                                        and not parsed_before_expanded.get("result_status")
+                                        and not parsed_before_expanded.get("dead_heat")
+                                    )
+                                ):
+                                    expanded_top, expanded_bottom = _ocr_runner_row_bounds(
+                                        center, previous, following, scale, panel_image.height,
+                                        half_gap_ratio=0.49,
+                                    )
+                                    if (expanded_top, expanded_bottom) != (y_top, y_bottom):
+                                        expanded_image = panel_image.crop(
+                                            (x_left, expanded_top, x_right, expanded_bottom)
+                                        )
+                                        expanded_image = ImageOps.autocontrast(
+                                            ImageOps.grayscale(expanded_image)
+                                        )
+                                        expanded_image = expanded_image.resize(
+                                            (expanded_image.width * 4, expanded_image.height * 4),
+                                            Image.Resampling.LANCZOS,
+                                        )
+                                        expanded_path = temp_dir / (
+                                            f"{page.stem}-{side}-row-{row_index}-expanded.png"
+                                        )
+                                        expanded_image.save(expanded_path)
+                                        for expanded_psm in ("7", "6", "11"):
+                                            expanded_text = subprocess.run(
+                                                ["tesseract", str(expanded_path), "stdout", "-l", "jpn+eng",
+                                                 "--psm", expanded_psm, "-c",
+                                                 "preserve_interword_spaces=1"],
+                                                check=True, timeout=20, capture_output=True, text=True,
+                                            ).stdout.strip()
+                                            expanded_runner = _runner(
+                                                f"{frame_value}|{horse_value} {expanded_text}"
+                                            )
+                                            if expanded_runner is not None and (
+                                                expanded_runner.get("finish_time_seconds") is not None
+                                                or expanded_runner.get("result_status")
+                                                or expanded_runner.get("dead_heat")
+                                            ):
+                                                row_result = expanded_text
+                                                break
                                 # Independently OCR the official finish-time cell.
                                 # A clear isolated reading can recover a missed time, but a
                                 # disagreement with the full-row reading makes the row
