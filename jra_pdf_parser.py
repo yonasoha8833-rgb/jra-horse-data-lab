@@ -42,7 +42,7 @@ HEADCOUNT_VERIFIED_RE = re.compile(r"JRA_OCR_HEADCOUNT_VERIFIED=(\d{1,2})")
 DISTANCE_RE = re.compile(r"([0-9０-９]{1,2}\s*[,，]\s*[0-9０-９]{3}|[0-9０-９]{3,4})\s*(?:ｍ|m|メートル|\x02|%{1,2})")
 RESULT_STATUS_RE = re.compile(r"(競走中止|失格|中止|取消|除外)")
 GOING_RE = re.compile(r"(?:小雨|小雪|晴|曇|雨|雪)\s*(良|稍重|重|不良)")
-LAST3F_RE = re.compile(r"上り\s*4F\s*([0-9０-９]+\s*[.．]\s*[0-9０-９]+)\s*[一―ー–—-]\s*3F\s*([0-9０-９]+\s*[.．]\s*[0-9０-９]+)")
+LAST3F_RE = re.compile(r"(?:上り|トり)\s*4F\s*([0-9０-９]+\s*[.．]\s*[0-9０-９]+)\s*[一―ー–—-]\s*3F\s*([0-9０-９]+\s*[.．]\s*[0-9０-９]+)")
 LAP_RE = re.compile(r"ハロンタイム\s*([0-9０-９.．\s一―ー–—-]+)")
 
 
