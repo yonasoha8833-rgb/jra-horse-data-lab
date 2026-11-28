@@ -230,7 +230,7 @@ def _strict_ocr_finish_time(text: str) -> str | None:
     # digits (for example, "1:55.0" becomes "1155.0"). Accept this compact
     # form only when it is exactly M + SS.t and the seconds are valid.
     compact_matches = re.findall(
-        r"(?<![0-9A-Za-z])([0-5０-５])([0-9０-９]{2})\\s*[.．]\\s*([0-9０-９])(?![0-9A-Za-z])",
+        r"(?<![0-9A-Za-z])([0-5０-５])([0-9０-９]{2})\s*[.．]\s*([0-9０-９])(?![0-9A-Za-z])",
         text,
     )
     for minute_text, second_text, tenth_text in compact_matches:
