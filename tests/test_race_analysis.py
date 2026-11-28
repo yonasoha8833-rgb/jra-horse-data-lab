@@ -647,6 +647,31 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(target["conditions"]["track"][0]["sample_count"], 3)
         self.assertEqual(target["conditions"]["track"][0]["average_relative_score"], 100.0)
 
+    def test_relative_last3f_rejects_duplicate_runner_rows_from_same_source(self):
+        rows = []
+        for race_number in range(1, 4):
+            date = f"2026-11-0{race_number}"
+            base = {
+                "date": date, "track": "東京", "race_number": race_number,
+                "surface": "芝", "distance": 1600, "going": "良",
+                "field_size": 3, "source_url": "same-official-source.pdf",
+            }
+            runners = [
+                {**base, "horse_name": "対象馬", "horse_registration_number": "2020-12345",
+                 "horse_number": 1, "finish": 1, "individual_last3f": 33.0},
+                {**base, "horse_name": "相手馬A", "horse_registration_number": "2021-12345",
+                 "horse_number": 2, "finish": 2, "individual_last3f": 34.0},
+                {**base, "horse_name": "相手馬B", "horse_registration_number": "2022-12345",
+                 "horse_number": 3, "finish": 3, "individual_last3f": 35.0},
+            ]
+            rows.extend(runners)
+            rows.append({**runners[0]})
+
+        self.assertEqual(
+            summarize_relative_last3f(rows, min_condition_starts=1),
+            [],
+        )
+
     def test_integrated_score_combines_condition_form_and_relative_last3f(self):
         horse_rows = []
         race_rows = []
@@ -1123,6 +1148,30 @@ class RaceAnalysisTests(unittest.TestCase):
         self.assertEqual(result["baseline_sample_count"], 3)
         self.assertEqual(result["distance_sample_count"], 3)
         self.assertEqual(result["going_sample_count"], 3)
+
+    def test_integrated_score_excludes_same_source_duplicate_starts(self):
+        rows = [
+            {
+                "horse_name": "同一PDF重複馬", "date": f"2026-11-0{index}",
+                "track": "東京", "race_number": index, "horse_number": 1,
+                "surface": "芝", "distance": 1600, "going": "良",
+                "finish": finish, "field_size": 10,
+                "source_url": f"annual-{index}.pdf",
+            }
+            for index, finish in enumerate((1, 2, 3), start=1)
+        ]
+        rows.append({**rows[1]})
+
+        result = integrated_horse_performance_score(
+            rows, [],
+            {"track": "東京", "surface": "芝", "distance": 1600, "going": "良"},
+            horse_name="同一PDF重複馬",
+        )
+
+        self.assertEqual(result["baseline_sample_count"], 2)
+        self.assertEqual(result["distance_sample_count"], 0)
+        self.assertEqual(result["going_sample_count"], 0)
+        self.assertEqual(result["components_used"], ["placing"])
 
     def test_integrated_horse_performance_score_falls_back_without_condition_data(self):
         rows = [

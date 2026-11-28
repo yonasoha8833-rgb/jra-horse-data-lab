@@ -129,6 +129,34 @@ test("integrates placing, distance, going and relative individual last-3F", () =
   assert.equal(result.component_coverage_ratio, 1);
 });
 
+test("excludes same-source duplicate starts from integrated scoring", () => {
+  const rows = [1, 2, 3].map((index, offset) => ({
+    horse_name: "同一PDF重複馬",
+    date: "2026-11-0" + index,
+    track: "東京",
+    race_number: index,
+    horse_number: 1,
+    surface: "芝",
+    distance: 1600,
+    going: "良",
+    finish: offset + 1,
+    field_size: 10,
+    source_url: "annual-" + index + ".pdf"
+  }));
+  rows.push({ ...rows[1] });
+
+  const result = integratedHorsePerformanceScore(
+    rows, [],
+    { track: "東京", surface: "芝", distance: 1600, going: "良" },
+    { horseName: "同一PDF重複馬" }
+  );
+
+  assert.equal(result.baseline_sample_count, 2);
+  assert.equal(result.distance_sample_count, 0);
+  assert.equal(result.going_sample_count, 0);
+  assert.deepEqual(result.components_used, ["placing"]);
+});
+
 test("rejects conflicting registration and profile IDs in integrated scoring", () => {
   const { horseRows } = buildFourFactorFixture();
   const conditions = {
@@ -438,6 +466,28 @@ test("deduplicates the same race across sources and merges missing runner times"
   const target = summaries.find(item => item.horse_registration_number === "2020-12345");
   assert.equal(target.conditions.track[0].sample_count, 3);
   assert.equal(target.conditions.track[0].average_relative_score, 100);
+});
+
+test("rejects same-source duplicate runner rows in relative last-3F scoring", () => {
+  const rows = [];
+  for (let raceNumber = 1; raceNumber <= 3; raceNumber += 1) {
+    const base = {
+      date: "2026-11-0" + raceNumber, track: "東京", race_number: raceNumber,
+      surface: "芝", distance: 1600, going: "良", field_size: 3,
+      source_url: "same-official-source.pdf"
+    };
+    const runners = [
+      { ...base, horse_name: "対象馬", horse_registration_number: "2020-12345",
+        horse_number: 1, finish: 1, individual_last3f: 33 },
+      { ...base, horse_name: "相手馬A", horse_registration_number: "2021-12345",
+        horse_number: 2, finish: 2, individual_last3f: 34 },
+      { ...base, horse_name: "相手馬B", horse_registration_number: "2022-12345",
+        horse_number: 3, finish: 3, individual_last3f: 35 }
+    ];
+    rows.push(...runners, { ...runners[0] });
+  }
+
+  assert.deepEqual(summarizeRelativeLast3f(rows, { minConditionStarts: 1 }), []);
 });
 
 test("exposes Python-compatible relative last-3F diagnostics and condition times", () => {
