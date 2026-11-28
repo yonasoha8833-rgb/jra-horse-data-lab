@@ -171,6 +171,20 @@ class JraPdfParserTests(unittest.TestCase):
     def test_ocr_runner_row_bounds_respect_image_edges(self):
         self.assertEqual(_ocr_runner_row_bounds(0.5, 0.0, 20.0, 2.0, 100), (0, 1))
 
+    def test_expanded_runner_row_retry_stays_inside_neighboring_row_centers(self):
+        top, bottom = _ocr_runner_row_bounds(
+            100.0, 75.0, 125.0, 5 / 3, 500, half_gap_ratio=0.49
+        )
+        self.assertEqual((top, bottom), (146, 187))
+        self.assertLess(bottom, int(125.0 * (5 / 3)))
+
+    def test_expanded_runner_row_retry_stays_inside_neighboring_row_centers(self):
+        top, bottom = _ocr_runner_row_bounds(
+            100.0, 75.0, 125.0, 5 / 3, 500, half_gap_ratio=0.49
+        )
+        self.assertEqual((top, bottom), (146, 187))
+        self.assertLess(bottom, int(125.0 * (5 / 3)))
+
     def test_finish_time_crop_covers_time_without_adjacent_columns(self):
         left, right = _ocr_finish_time_bounds(1788)
         self.assertEqual((left, right), (1388, 1472))
