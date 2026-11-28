@@ -23,6 +23,25 @@ JRA_OCR_HEADCOUNT_VERIFIED=2
 
 class JraPdfParserTests(unittest.TestCase):
 
+    def test_runner_rejects_unverified_missing_demographics(self):
+        self.assertIsNone(_runner("2|2 サノノファイター 56 田辺 裕信 1:39.0"))
+
+    def test_runner_accepts_only_independently_verified_name_without_demographics(self):
+        runner = _runner(
+            "2|2 サノノファイター JRA_DEMOGRAPHICS_UNREADABLE 56 田辺 裕信 1:39.0"
+        )
+        self.assertIsNotNone(runner)
+        self.assertEqual(runner["horse_name"], "サノノファイター")
+        self.assertIsNone(runner["sex"])
+        self.assertIsNone(runner["age"])
+        self.assertEqual(runner["finish_time"], "1:39.0")
+
+    def test_runner_still_parses_verified_demographics_when_present(self):
+        runner = _runner("2|2 サノノファイター 牡2鹿 56 田辺 裕信 1:39.0")
+        self.assertIsNotNone(runner)
+        self.assertEqual(runner["sex"], "牡")
+        self.assertEqual(runner["age"], 2)
+
     def test_parses_jra_gelding_sex_label(self):
         rows = parse_race_text(
             "第1競走\n"
