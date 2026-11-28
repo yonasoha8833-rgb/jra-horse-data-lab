@@ -1359,5 +1359,12 @@ class JraPdfParserTests(unittest.TestCase):
             [],
         )
 
+    def test_parses_race_closing_splits_when_ocr_misreads_ue_as_to(self):
+        ocr_sample = SAMPLE.replace("上り", "トり")
+        rows = parse_race_text(ocr_sample)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual({row["race_last4f"] for row in rows}, {52.0})
+        self.assertEqual({row["race_last3f"] for row in rows}, {39.4})
+
 if __name__ == "__main__":
     unittest.main()
