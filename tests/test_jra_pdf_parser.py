@@ -23,8 +23,13 @@ JRA_OCR_HEADCOUNT_VERIFIED=2
 
 class JraPdfParserTests(unittest.TestCase):
 
-    def test_runner_accepts_verified_name_and_result_when_demographics_are_missing(self):
-        runner = _runner("2|2 サノノファイター 56 田辺 裕信 1:39.0")
+    def test_runner_rejects_unverified_missing_demographics(self):
+        self.assertIsNone(_runner("2|2 サノノファイター 56 田辺 裕信 1:39.0"))
+
+    def test_runner_accepts_only_independently_verified_name_without_demographics(self):
+        runner = _runner(
+            "2|2 サノノファイター JRA_DEMOGRAPHICS_UNREADABLE 56 田辺 裕信 1:39.0"
+        )
         self.assertIsNotNone(runner)
         self.assertEqual(runner["horse_name"], "サノノファイター")
         self.assertIsNone(runner["sex"])
