@@ -76,6 +76,15 @@ def _ocr_runner_name_bounds(panel_width: int) -> tuple[int, int]:
     return max(0, int(panel_width * 0.085)), min(panel_width, int(panel_width * 0.255))
 
 
+def _ocr_runner_name_retry_bounds(panel_width: int) -> tuple[tuple[int, int], tuple[int, int]]:
+    """Return two tighter name-cell crops to exclude bleed from the adjacent demographics cell."""
+    left = max(0, int(panel_width * 0.085))
+    return (
+        (left, min(panel_width, int(panel_width * 0.247))),
+        (left, min(panel_width, int(panel_width * 0.240))),
+    )
+
+
 def _ocr_runner_demographics_bounds(panel_width: int) -> tuple[int, int]:
     """Crop only the printed sex/age cell for independent OCR verification."""
     return max(0, int(panel_width * 0.255)), min(panel_width, int(panel_width * 0.335))
@@ -2243,6 +2252,49 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         check=True, timeout=15, capture_output=True, text=True,
                                     ).stdout.strip())
                                 verified_name = _consensus_ocr_horse_name(name_readings)
+                                name_retry_diagnostics = []
+                                if verified_name is None:
+                                    # If the normal name cell includes a neighboring glyph,
+                                    # independently retry two slightly narrower crops. A retry
+                                    # is accepted only when both crop widths each produce a
+                                    # strict three-layout consensus and agree with one another.
+                                    retry_names = []
+                                    for retry_index, (retry_left, retry_right) in enumerate(
+                                        _ocr_runner_name_retry_bounds(panel_image.width), start=1
+                                    ):
+                                        retry_crop = panel_image.crop(
+                                            (retry_left, y_top, retry_right, y_bottom)
+                                        )
+                                        retry_image = ImageOps.autocontrast(
+                                            ImageOps.grayscale(retry_crop)
+                                        )
+                                        retry_image = retry_image.resize(
+                                            (retry_image.width * 4, retry_image.height * 4),
+                                            Image.Resampling.LANCZOS,
+                                        )
+                                        retry_readings = []
+                                        for psm in ("7", "8", "13"):
+                                            retry_path = temp_dir / (
+                                                f"{page.stem}-{side}-name-{row_index}-"
+                                                f"retry-{retry_index}-{psm}.png"
+                                            )
+                                            retry_image.save(retry_path)
+                                            retry_readings.append(subprocess.run(
+                                                ["tesseract", str(retry_path), "stdout", "-l", "jpn", "--psm", psm],
+                                                check=True, timeout=15, capture_output=True, text=True,
+                                            ).stdout.strip())
+                                        retry_name = _consensus_ocr_horse_name(retry_readings)
+                                        retry_names.append(retry_name)
+                                        name_retry_diagnostics.append(
+                                            f"crop={retry_index} bounds=({retry_left},{retry_right}) "
+                                            f"reads={retry_readings!r} verified={retry_name!r}"
+                                        )
+                                    if (
+                                        len(retry_names) == 2
+                                        and retry_names[0] is not None
+                                        and retry_names[0] == retry_names[1]
+                                    ):
+                                        verified_name = retry_names[0]
                                 verified_demographics = _consensus_ocr_sex_age(demographics_readings)
                                 if verified_name:
                                     row_result = _apply_verified_ocr_identity(
@@ -2254,7 +2306,8 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                 parsed_row = _runner(f"{frame_value}|{horse_value} {row_result}")
                                 time_diagnostics.append(
                                     f"identity_row={row_index + 1} horse={horse_value} "
-                                    f"name_reads={name_readings!r} verified_name={verified_name!r} "
+                                    f"name_reads={name_readings!r} name_retry={name_retry_diagnostics!r} "
+                                    f"verified_name={verified_name!r} "
                                     f"demographic_reads={demographics_readings!r} "
                                     f"verified_demographics={verified_demographics!r} "
                                     f"row_parse={'ok' if parsed_row is not None else 'failed'}"
