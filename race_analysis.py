@@ -812,16 +812,7 @@ def summarize_relative_last3f(
 
     scored: list[dict[str, Any]] = []
     for race_rows in races.values():
-        unique: dict[Any, dict[str, Any]] = {}
-        for index, row in enumerate(race_rows):
-            identity = _race_runner_identity(row)
-            if identity is None:
-                identity = ("row", str(index))
-            if identity in unique:
-                unique[identity] = _merge_runner_records(unique[identity], row)
-            else:
-                unique[identity] = row
-        runners = list(unique.values())
+        runners = _deduplicate_runner_records(race_rows)
         if len(runners) < min_race_runners:
             continue
 
@@ -1191,6 +1182,50 @@ def _merge_runner_records(
     return merged
 
 
+def _deduplicate_runner_records(
+    records: Iterable[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Merge cross-source duplicates but discard same-source or untraceable duplicates.
+
+    Repeated runner identities within one PDF are ambiguous: they may hide a
+    missing runner or a bad horse-number read. Do not let them contribute to
+    placing or relative last-3F statistics.
+    """
+    rows: list[dict[str, Any] | None] = []
+    seen: dict[tuple[str, str, str, str], int] = {}
+    sources: dict[tuple[str, str, str, str], set[str]] = {}
+    ambiguous: set[tuple[str, str, str, str]] = set()
+
+    for row in records:
+        key = _race_runner_identity(row)
+        if key is None:
+            rows.append(row)
+            continue
+        if key in ambiguous:
+            continue
+
+        source = str(row.get("source_url") or "").strip()
+        if key not in seen:
+            seen[key] = len(rows)
+            sources[key] = {source} if source else set()
+            rows.append(row)
+            continue
+
+        known_sources = sources[key]
+        if not source or not known_sources or source in known_sources:
+            rows[seen[key]] = None
+            ambiguous.add(key)
+            continue
+
+        known_sources.add(source)
+        index = seen[key]
+        existing = rows[index]
+        if existing is not None:
+            rows[index] = _merge_runner_records(existing, row)
+
+    return [row for row in rows if row is not None]
+
+
 def _score_condition_component(
     rows: list[dict[str, Any]],
     candidates: list[tuple[str, Any]],
@@ -1269,18 +1304,8 @@ def integrated_horse_performance_score(
     if placing_weight <= 0:
         raise ValueError("placing_weight must be greater than zero")
 
-    # Deduplicate the same runner across annual and graded-race PDFs.
-    rows: list[dict[str, Any]] = []
-    seen: dict[tuple[str, str, str, str], int] = {}
-    for row in horse_records:
-        key = _race_runner_identity(row)
-        if key is not None and key in seen:
-            index = seen[key]
-            rows[index] = _merge_runner_records(rows[index], row)
-            continue
-        if key is not None:
-            seen[key] = len(rows)
-        rows.append(row)
+    # Merge only traceable cross-source duplicates; same-source duplicates are ambiguous.
+    rows = _deduplicate_runner_records(horse_records)
 
     valid_rows = [row for row in rows if _normalized_integrated_score(row) is not None]
     baseline = _integrated_performance_score(valid_rows)
