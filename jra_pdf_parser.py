@@ -24,7 +24,10 @@ TRACKS = ("札幌", "函館", "福島", "新潟", "東京", "中山", "中京", 
 RUNNER_RE = re.compile(
     # OCR may separate frame/horse numbers ("2 2", "2 1 2") or join them ("811"),
     # and may substitute braces or punctuation for the printed separator.
-    r"^\s*([1-8])\s*[|/\\\\{}()\[\].,:;<>_-]*\s*(\d{1,2})\s*[|/\\\\{}()\[\].,:;<>_-]?\s*(.+?)\s*[|/\\\\{}()\[\].,:;<>_-]?\s*(牡|牝|騸|騙|セン|せん|セ)\s*([0-9０-９]+)",
+    # The demographics cell is optional: a separately verified horse name and
+    # result may still be useful when sex/age OCR is unreadable. Keep the name
+    # bounded to name characters so the result tail cannot be swallowed.
+    r"^\\s*([1-8])\\s*[|/\\\\{}()\\[\\].,:;<>_-]*\\s*(\\d{1,2})\\s*[|/\\\\{}()\\[\\].,:;<>_-]?\\s*([ぁ-んァ-ヶー一-龯A-Za-z・]+?)\\s*(?:(牡|牝|騸|騙|セン|せん|セ)\\s*([0-9０-９]+))?(?=\\s|$)",
 )
 RACE_RE = re.compile(r"第\s*(\d+)\s*競走")
 
@@ -286,10 +289,12 @@ def _runner(line: str) -> dict[str, Any] | None:
     frame, number, name, sex, age = match.groups()
     frame_number = int(_ascii_digits(frame))
     horse_number = int(_ascii_digits(number))
-    horse_age = int(_ascii_digits(age))
+    horse_age = int(_ascii_digits(age)) if age else None
     # Reject impossible identifiers/ages from malformed text extraction.
-    # The broad age ceiling avoids excluding unusual historical records.
-    if not (1 <= frame_number <= 8 and 1 <= horse_number <= 18 and 2 <= horse_age <= 20):
+    # Missing demographics remain null; they are never guessed or synthesized.
+    if not (1 <= frame_number <= 8 and 1 <= horse_number <= 18):
+        return None
+    if horse_age is not None and not 2 <= horse_age <= 20:
         return None
     tail = line[match.end():]
     time_match = re.search(r"(?<![0-9])([0-9０-９]{1,2})[：:]([0-9０-９]{2})[.．]\s*([0-9０-９])", tail)
