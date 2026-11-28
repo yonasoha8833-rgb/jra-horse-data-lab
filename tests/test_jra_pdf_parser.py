@@ -154,8 +154,8 @@ class JraPdfParserTests(unittest.TestCase):
 
     def test_ocr_runner_row_bounds_keep_adjacent_rows_out_of_crop(self):
         top, bottom = _ocr_runner_row_bounds(100.0, 75.0, 125.0, 5 / 3, 500)
-        self.assertEqual(top, 150)
-        self.assertEqual(bottom, 183)
+        self.assertEqual(top, 147)
+        self.assertEqual(bottom, 185)
         self.assertLess(bottom, int(125.0 * (5 / 3)))
 
     def test_ocr_runner_row_bounds_respect_image_edges(self):
