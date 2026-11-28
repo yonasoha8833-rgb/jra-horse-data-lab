@@ -226,6 +226,23 @@ def _strict_ocr_finish_time(text: str) -> str | None:
         text,
     )
     values = set()
+    # Tesseract sometimes drops the printed colon but preserves all four
+    # digits (for example, "1:55.0" becomes "1155.0"). Accept this compact
+    # form only when it is exactly M + SS.t and the seconds are valid.
+    compact_matches = re.findall(
+        r"(?<![0-9A-Za-z])([0-5０-５])([0-5０-５])([0-9０-９]{2})\s*[.．]\s*([0-9０-９])(?![0-9A-Za-z])",
+        text,
+    )
+    for minute_text, colon_artifact, second_text, tenth_text in compact_matches:
+        minutes = int(_ascii_digits(minute_text))
+        seconds = int(_ascii_digits(second_text))
+        tenth = int(_ascii_digits(tenth_text))
+        # In the diagnostic OCR, the colon was occasionally rendered as a
+        # digit (e.g. 1:55.0 -> 1155.0, 1:56.8 -> 1256.8). Keep the leading
+        # minute and final two second digits; the intervening glyph is only
+        # treated as a colon artifact in this exact four-digit shape.
+        if seconds < 60:
+            values.add(f"{minutes}:{seconds:02d}.{tenth}")
     for minute_text, second_text, tenth_text in matches:
         # JRA sprint results can be printed as seconds only (for example,
         # 57.0 on the 1,000m straight-course result sheet). Normalize that

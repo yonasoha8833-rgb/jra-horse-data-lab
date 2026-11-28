@@ -82,12 +82,18 @@ class JraPdfParserTests(unittest.TestCase):
         self.assertEqual(_strict_ocr_finish_time("１：４１．８"), "1:41.8")
         self.assertEqual(_strict_ocr_finish_time("57.0"), "0:57.0")
         self.assertEqual(_strict_ocr_finish_time("57.2"), "0:57.2")
+        self.assertEqual(_strict_ocr_finish_time("1155.0"), "1:55.0")
+        self.assertEqual(_strict_ocr_finish_time("1256.8"), "1:56.8")
 
     def test_finish_time_consensus_requires_two_matching_valid_reads(self):
         from jra_pdf_parser import _consensus_ocr_finish_time
         self.assertEqual(
             _consensus_ocr_finish_time(["1:27.1", "1:27.1", "", "noise"]),
             "1:27.1",
+        )
+        self.assertEqual(
+            _consensus_ocr_finish_time(["1155.0", "1155.0", "1:55.0"]),
+            "1:55.0",
         )
         self.assertEqual(
             _consensus_ocr_finish_time(["57.0", "0:57.0"]),
