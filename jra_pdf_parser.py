@@ -56,7 +56,7 @@ def _ocr_runner_row_bounds(
     """Crop the central 80% of a runner's vertical slot, away from adjacent rows."""
     before_gap = max(1.0, center - previous)
     after_gap = max(1.0, following - center)
-    half_height = min(before_gap, after_gap) * 0.40
+    half_height = min(before_gap, after_gap) * 0.46
     top = max(0, int((center - half_height) * scale))
     bottom = min(image_height, int((center + half_height) * scale))
     return top, bottom
