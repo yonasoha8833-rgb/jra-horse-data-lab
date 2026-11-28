@@ -24,10 +24,12 @@ TRACKS = ("札幌", "函館", "福島", "新潟", "東京", "中山", "中京", 
 RUNNER_RE = re.compile(
     # OCR may separate frame/horse numbers ("2 2", "2 1 2") or join them ("811"),
     # and may substitute braces or punctuation for the printed separator.
-    # The demographics cell is optional: a separately verified horse name and
-    # result may still be useful when sex/age OCR is unreadable. Keep the name
-    # bounded to name characters so the result tail cannot be swallowed.
-    r"^\s*([1-8])\s*[|/\\\\{}()\[\].,:;<>_-]*\s*(\d{1,2})\s*[|/\\\\{}()\[\].,:;<>_-]?\s*((?:(?!(?:牡|牝|騸|騙|セン|せん|セ)\s*[0-9０-９])[ぁ-んァ-ヶー一-龯A-Za-z・])+)(?:\s+(牡|牝|騸|騙|セン|せん|セ)\s*([0-9０-９]+))?"
+    r"^\s*([1-8])\s*[|/\\\\{}()\[\].,:;<>_-]*\s*(\d{1,2})\s*[|/\\\\{}()\[\].,:;<>_-]?\s*(.+?)\s*[|/\\\\{}()\[\].,:;<>_-]?\s*(牡|牝|騸|騙|セン|せん|セ)\s*([0-9０-９]+)",
+)
+# This marker is inserted only after independent multi-pass OCR consensus
+# verifies the horse name. It permits that one row to retain a null sex/age.
+VERIFIED_NAME_ONLY_RE = re.compile(
+    r"^\s*([1-8])\s*[|/\\\\{}()\[\].,:;<>_-]*\s*(\d{1,2})\s*[|/\\\\{}()\[\].,:;<>_-]?\s*(.+?)\s+JRA_DEMOGRAPHICS_UNREADABLE(?=\s|$)"
 )
 RACE_RE = re.compile(r"第\s*(\d+)\s*競走")
 
@@ -284,17 +286,25 @@ def _runner(line: str) -> dict[str, Any] | None:
         line,
     )
     match = RUNNER_RE.match(line)
+    verified_name_only = False
+    if not match:
+        match = VERIFIED_NAME_ONLY_RE.match(line)
+        verified_name_only = match is not None
     if not match:
         return None
-    frame, number, name, sex, age = match.groups()
+    if verified_name_only:
+        frame, number, name = match.groups()
+        sex, age = None, None
+    else:
+        frame, number, name, sex, age = match.groups()
     frame_number = int(_ascii_digits(frame))
     horse_number = int(_ascii_digits(number))
     horse_age = int(_ascii_digits(age)) if age else None
     # Reject impossible identifiers/ages from malformed text extraction.
-    # Missing demographics remain null; they are never guessed or synthesized.
+    # Demographics may be null only for the separately verified-name marker.
     if not (1 <= frame_number <= 8 and 1 <= horse_number <= 18):
         return None
-    if horse_age is not None and not 2 <= horse_age <= 20:
+    if not verified_name_only and not 2 <= horse_age <= 20:
         return None
     tail = line[match.end():]
     time_match = re.search(r"(?<![0-9])([0-9０-９]{1,2})[：:]([0-9０-９]{2})[.．]\s*([0-9０-９])", tail)
@@ -2140,6 +2150,12 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                     if verified_name and verified_demographics:
                                         verified_sex, verified_age = verified_demographics
                                         row_result = f"{verified_name}|{verified_sex}{verified_age} {row_result}"
+                                    elif verified_name:
+                                        # The name is independently verified by multiple OCR
+                                        # layouts. Preserve it, but leave unreadable demographics null.
+                                        row_result = (
+                                            f"{verified_name} JRA_DEMOGRAPHICS_UNREADABLE {row_result}"
+                                        )
                                     time_diagnostics.append(
                                         f"identity_row={row_index + 1} horse={horse_value} "
                                         f"name_reads={name_readings!r} verified_name={verified_name!r} "
