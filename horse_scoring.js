@@ -158,19 +158,38 @@
   }
 
   function deduplicateHorseRows(records) {
-    const seen = new Map();
+    const indexes = new Map();
+    const sources = new Map();
+    const ambiguous = new Set();
     const rows = [];
     for (const row of records || []) {
       const key = raceRunnerIdentity(row);
-      if (key !== null && seen.has(key)) {
-        const index = seen.get(key);
-        rows[index] = mergeRunnerRecords(rows[index], row);
+      if (key === null) {
+        rows.push(row);
         continue;
       }
-      if (key !== null) seen.set(key, rows.length);
-      rows.push(row);
+      if (ambiguous.has(key)) continue;
+
+      const source = String(row.source_url || "").trim();
+      if (!indexes.has(key)) {
+        indexes.set(key, rows.length);
+        sources.set(key, new Set(source ? [source] : []));
+        rows.push(row);
+        continue;
+      }
+
+      const knownSources = sources.get(key);
+      if (!source || knownSources.size === 0 || knownSources.has(source)) {
+        rows[indexes.get(key)] = null;
+        ambiguous.add(key);
+        continue;
+      }
+
+      knownSources.add(source);
+      const index = indexes.get(key);
+      if (rows[index] !== null) rows[index] = mergeRunnerRecords(rows[index], row);
     }
-    return rows;
+    return rows.filter(row => row !== null);
   }
 
   function summarizeRelativeLast3f(records, options) {
@@ -198,16 +217,7 @@
 
     const scored = [];
     for (const raceRows of races.values()) {
-      const unique = new Map();
-      raceRows.forEach((row, index) => {
-        const identity = raceRunnerIdentity(row) || ("row:" + index);
-        if (unique.has(identity)) {
-          unique.set(identity, mergeRunnerRecords(unique.get(identity), row));
-        } else {
-          unique.set(identity, row);
-        }
-      });
-      const runners = Array.from(unique.values());
+      const runners = deduplicateHorseRows(raceRows);
       const fieldSizes = runners.map(row => numeric(row.field_size));
       if (fieldSizes.length < minRaceRunners
           || fieldSizes.some(size => !Number.isInteger(size))
