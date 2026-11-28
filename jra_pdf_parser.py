@@ -126,6 +126,13 @@ def _ocr_finish_time_bounds(panel_width: int) -> tuple[int, int]:
     # Keep the right edge unchanged to exclude the adjacent placing column.
     return max(0, int(panel_width * 0.7765)), min(panel_width, int(panel_width * 0.8235))
 
+def _ocr_finish_time_crop_bounds(panel_width: int) -> list[tuple[int, int]]:
+    """Return the standard time crop and a small right-shifted crop excluding its left rule."""
+    left, right = _ocr_finish_time_bounds(panel_width)
+    shift = max(3, int(panel_width * 0.0025))
+    shifted_left = min(right - 12, left + shift)
+    return [(left, right)] + ([(shifted_left, right)] if shifted_left > left else [])
+
 
 def _last_stable_identifier_slot_center(centers) -> float | None:
     """Find the final table-row center from stable row spacing, ignoring a detached footer OCR slot."""
@@ -2237,46 +2244,51 @@ def _ocr_pdf_text(pdf_path: Path, temp_dir: Path, *, max_pages: int = 10) -> str
                                         f"verified_demographics={verified_demographics!r}"
                                     )
                                     parsed_row = _runner(f"{frame_value}|{horse_value} {row_result}")
-                                time_left, time_right = _ocr_finish_time_bounds(panel_image.width)
-                                time_crop_path = temp_dir / f"{page.stem}-{side}-time-{row_index}.png"
-                                time_crop = panel_image.crop((time_left, y_top, time_right, y_bottom))
-                                time_crop = ImageOps.autocontrast(ImageOps.grayscale(time_crop))
-                                time_crop = time_crop.resize(
-                                    (time_crop.width * 3, time_crop.height * 3),
-                                    Image.Resampling.LANCZOS,
-                                )
-                                time_crop.save(time_crop_path)
-                                # Compare the normalized grayscale crop with two
-                                # independent binarization thresholds. A time is
-                                # accepted only if at least two valid OCR reads agree
-                                # and no other valid reading conflicts.
-                                time_variants = [("gray", time_crop_path)]
-                                for threshold in (120, 170):
-                                    variant = time_crop.point(
-                                        lambda pixel, cutoff=threshold: (
-                                            255 if pixel >= cutoff else 0
-                                        )
-                                    )
-                                    variant_path = temp_dir / (
-                                        f"{page.stem}-{side}-time-{row_index}-"
-                                        f"threshold-{threshold}.png"
-                                    )
-                                    variant.save(variant_path)
-                                    time_variants.append((f"threshold-{threshold}", variant_path))
                                 time_reads = []
                                 time_read_details = []
-                                for variant_name, variant_path in time_variants:
-                                    for time_psm in ("7", "8"):
-                                        time_text = subprocess.run(
-                                            ["tesseract", str(variant_path), "stdout", "-l", "eng",
-                                             "--psm", time_psm, "-c",
-                                             "tessedit_char_whitelist=0123456789:."],
-                                            check=True, timeout=15, capture_output=True, text=True,
-                                        ).stdout.strip()
-                                        time_reads.append(time_text)
-                                        time_read_details.append(
-                                            f"{variant_name}/psm{time_psm}={time_text!r}"
+                                time_crop_bounds = _ocr_finish_time_crop_bounds(panel_image.width)
+                                for crop_index, (time_left, time_right) in enumerate(time_crop_bounds):
+                                    time_crop_path = temp_dir / (
+                                        f"{page.stem}-{side}-time-{row_index}-crop-{crop_index}.png"
+                                    )
+                                    time_crop = panel_image.crop((time_left, y_top, time_right, y_bottom))
+                                    time_crop = ImageOps.autocontrast(ImageOps.grayscale(time_crop))
+                                    time_crop = time_crop.resize(
+                                        (time_crop.width * 3, time_crop.height * 3),
+                                        Image.Resampling.LANCZOS,
+                                    )
+                                    time_crop.save(time_crop_path)
+                                    # Read both the standard crop and a crop shifted just inside
+                                    # the left cell rule. The latter avoids mistaking the vertical
+                                    # border for an extra leading "1"; strict consensus still
+                                    # rejects conflicting or implausible times.
+                                    time_variants = [(f"crop-{crop_index}-gray", time_crop_path)]
+                                    for threshold in (120, 170):
+                                        variant = time_crop.point(
+                                            lambda pixel, cutoff=threshold: (
+                                                255 if pixel >= cutoff else 0
+                                            )
                                         )
+                                        variant_path = temp_dir / (
+                                            f"{page.stem}-{side}-time-{row_index}-"
+                                            f"crop-{crop_index}-threshold-{threshold}.png"
+                                        )
+                                        variant.save(variant_path)
+                                        time_variants.append(
+                                            (f"crop-{crop_index}-threshold-{threshold}", variant_path)
+                                        )
+                                    for variant_name, variant_path in time_variants:
+                                        for time_psm in ("7", "8"):
+                                            time_text = subprocess.run(
+                                                ["tesseract", str(variant_path), "stdout", "-l", "eng",
+                                                 "--psm", time_psm, "-c",
+                                                 "tessedit_char_whitelist=0123456789:."],
+                                                check=True, timeout=15, capture_output=True, text=True,
+                                            ).stdout.strip()
+                                            time_reads.append(time_text)
+                                            time_read_details.append(
+                                                f"{variant_name}/psm{time_psm}={time_text!r}"
+                                            )
                                 isolated_time = _consensus_ocr_finish_time(time_reads)
                                 time_diagnostics.append(
                                     f"time_row={row_index + 1} horse={horse_value} "
