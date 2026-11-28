@@ -110,7 +110,7 @@ def _apply_verified_ocr_identity(
     # Preserve only the text after the original sex/age token; if no such token
     # exists, the separately OCRed finish-time path may recover the result field.
     identity_match = re.search(
-        r"(?:牡|牝|騸|騙|セン|せん|セ)\\s*[0-9０-９]{1,2}",
+        r"(?:牡|牝|騸|騙|セン|せん|セ)\s*[0-9０-９]{1,2}",
         row_text,
     )
     tail = row_text[identity_match.end():].strip() if identity_match else ""
